@@ -1,5 +1,7 @@
 # coding=utf-8
 
+import numpy as np
+
 class LPNVariable:
     def __init__(self,value,units,name="NoName",vtype='ArbitraryVariable'):
         self.type = vtype

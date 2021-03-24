@@ -137,10 +137,6 @@ def initialize_solution_structures(neq):
     # Return y,ydot
     return np.zeros(neq),np.zeros(neq) # recall that neq = number of solution variables = num of unknowns. thus, the global solution vector, y, should be of length neq
 
-def initialize_solution_matrices(neq):
-    # Return E,F,C,dE,dF,dC
-    return np.zeros((neq,neq)),np.zeros((neq,neq)),np.zeros(neq),np.zeros((neq,neq)),np.zeros((neq,neq)),np.zeros((neq,neq))
-
 def assign_global_ids(block_list,wire_dict): # this function is where aekaansh assigns the global ids for the solution variables for the wires and blocks
 
     # Ordering of solution variables :
@@ -181,21 +177,3 @@ def assign_global_ids(block_list,wire_dict): # this function is where aekaansh a
     # print var_name_list
 
     return var_name_list
-
-
-def assemble_structures(E,F,C,dE,dF,dC,args,block_list):
-    # assemble local into global matrices
-    trg = [E, F, C, dE, dF, dC]
-
-    for i_bl, bl in enumerate(block_list):
-        src = [bl.emxcoe, bl.fmxcoe, bl.cveccoe, bl.demxcoe, bl.dfmxcoe, bl.dcmxcoe]
-        for i_trg, (S, T) in enumerate(zip(src, trg)):
-            # vectors
-            if len(T.shape) == 1:
-                for i in range(len(S)):
-                    T[bl.global_row_id[i]] = S[i]
-            # matrices
-            else:
-                for i in range(len(S)):
-                    for j in range(len(S[i])):
-                        T[bl.global_row_id[i], bl.global_col_id[j]] = S[i][j]
