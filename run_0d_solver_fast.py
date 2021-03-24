@@ -640,25 +640,14 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     # create time integration
     t_int = time_int.GenAlpha(rho, y_next)
 
-    # for t_current in tqdm(tlist[:-1]): # added this line on 10/14/20:
-    for t_current in tlist[1:]: # run time stepping loop # currently here 10/14/20:  need to change tlist[1:] to tlist[:-1] because t_current is t_n and y_next, ydot_next are y_(n+1) and ydot_(n+1), and in numerical methods, we usually always use the current time step (t_n) to solve for the solution at the next time step ( t_(n+1) ); # commented this line out on 10/14/20:
-    # for t_current in tlist[1:2]:
-    #     print(t_current)
+    for t_current in tqdm(tlist[:-1]): # added this line on 10/14/20:
         args['Solution'] = y_next
         y_next, ydot_next = t_int.step(y_next, ydot_next, t_current, block_list, args, parameters["delta_t"])
-        # y_next, ydot_next = ntwku.gen_alpha_dae_integrator_NR(y_next, ydot_next, t_current, block_list, args, parameters["delta_t"], rho)
         ylist.append(y_next)
 
     if save_y_ydot_to_npy:
         np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
         print("var_name_list = ", var_name_list)
-
-    # # commented the below section out on 10/14/20:
-    # ############### currently here 10/14/20: i think this section is wrong and should be removed (related to the above currently here comment where i need to change tlist[1:] to tlist[:-1])
-    # # these corrections are needed based on how i think the above for loop works: the "t" in the above for loop corresponds to t_current (t_n) and the output of gen_alpha_dae_integrator_NR is y_next (y_(n+1)). see https://github.com/StanfordCBCL/0D_LPN_Python_Solver/blob/master/test_nonlin_res.py for proof.
-    # ylist = ylist[:-1]
-    # ylist.insert(0, y_initial.copy())
-    # ###############
 
     results_0d = np.array(ylist)
     ylist, var_name_list = compute_wss(parameters, results_0d, ylist, var_name_list)
