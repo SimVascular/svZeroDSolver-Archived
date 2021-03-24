@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import numpy as np
+from collections import defaultdict
 
 class LPNVariable:
     def __init__(self,value,units,name="NoName",vtype='ArbitraryVariable'):
@@ -122,15 +123,11 @@ class LPNBlock:
         else :
             self.flow_directions = flow_directions
         self.LPN_solution_ids = [] # LPN_solution_ids for LPNBlock contains the solution IDs for the LPN block's internal solution variables; basically, LPN_solution_ids stores the index at which the LPNBlock's internal solution variables are stored in the global vector of solution variables/unknowns
-        self.emxcoe = []
-        self.fmxcoe = []
-        self.cveccoe = []
-
-        # Tangent matrix coes
-        self.demxcoe = [] # sum_k[ydot_k(d(E_ik)/dy_j)]
-        self.dfmxcoe = [] # sum_k[y_k(d(F_ik)/dy_j)]
-        self.dcmxcoe = [] # (d(C_i)/dy_j)
-
+        
+        # block matrices
+        self.mat = defaultdict(list)
+        
+        # row and column indices of block in global matrix
         self.global_col_id = [] # a list of the indices at which this LPNBlock's associated solution variables (Pin, Qin, Pout, Qout, and internal solutions) are stored in the global vector of solution variables/unknowns
         self.global_row_id = []
 
@@ -207,9 +204,9 @@ class Junction(LPNBlock):
         # Number of equations = num_connections-1 Pressure equations, 1 flow equation
         # Format : P1,Q1,P2,Q2,P3,Q3, .., Pn,Qm
 
-        # self.emxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        # self.mat['E'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
 
-        self.fmxcoe = [ (1.,)+(0,)*(2*i+1) + (-1,) + (0,)*(2*self.num_connections-2*i-3) for i in range(self.num_connections-1) ]
+        self.mat['F'] = [ (1.,)+(0,)*(2*i+1) + (-1,) + (0,)*(2*self.num_connections-2*i-3) for i in range(self.num_connections-1) ]
 
         tmp = (0,)
         for d in self.flow_directions[:-1]:
@@ -217,12 +214,12 @@ class Junction(LPNBlock):
             tmp+=(0,)
 
         tmp += (self.flow_directions[-1],)
-        self.fmxcoe.append(tmp)
-        # self.cveccoe = [0]*self.num_connections
+        self.mat['F'].append(tmp)
+        # self.mat['C'] = [0]*self.num_connections
         #
-        # self.demxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        # self.dfmxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        # self.dcmxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        # self.mat['dE'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        # self.mat['dF'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        # self.mat['dC'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
 
 # -- JUNCTION WITH PRESSURE LOSS
 # Junction points between LPN blocks with specified directions of flow
@@ -356,8 +353,8 @@ class Junction_with_PressureLoss(LPNBlock):
          # question: does aekaansh's code initialize all the flow rates to be zero initially? - look into this
 
         # construct the E, F, C, dE/dy, dF/dy, dC/dy matrices
-        self.emxcoe = [(0.,)*(2*self.num_connections)]*(self.num_connections)
-        self.demxcoe = [(0.,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['E'] = [(0.,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['dE'] = [(0.,)*(2*self.num_connections)]*(self.num_connections)
 
         inlet_index = self.flow_directions.index(-1) # find the index in flow_directions that corresponds to the inlet
         # print "\ninlet_index = ", inlet_index
@@ -365,8 +362,8 @@ class Junction_with_PressureLoss(LPNBlock):
         # print "\nr_dat = ", r_dat
         inlet_vessel_vector = self.segment_vectors[inlet_segment_numbers[inlet_index]]
         # print "\ninlet_vessel_vector = ", inlet_vessel_vector
-        self.fmxcoe = []
-        self.dfmxcoe = []
+        self.mat['F'] = []
+        self.mat['dF'] = []
         for i in range(len(self.flow_directions)): # note: len(self.flow_directions) = num_connections = number of blocks attached to this block = number of equations for this block
             # index i is like the index of the equation, except not really because there is also the mass conservation equation
             if i != inlet_index: # the coefficients in F and dF for the inlet vessel will be taken into account inherently in the code below
@@ -389,7 +386,7 @@ class Junction_with_PressureLoss(LPNBlock):
                 # print "\n-1.0*R = ", -1.0*R
                 eqn_temp_line_f[i*2:i*2 + 2] = [-1.0, float(-1.0*R)] # apply the correct coefficient for the current outlet vessel to the F equation
                 # print "\neqn_temp_line_f = ", eqn_temp_line_f
-                self.fmxcoe.append(tuple(eqn_temp_line_f))
+                self.mat['F'].append(tuple(eqn_temp_line_f))
 
                 eqn_temp_line_df = [0, 0]*self.num_connections
                 # print "\neqn_temp_line_df = ", eqn_temp_line_df # just finished adding print statement here - 12/16/19
@@ -402,18 +399,18 @@ class Junction_with_PressureLoss(LPNBlock):
                 # print "\n-1.0*dRodQin*Q_i = ", -1.0*dRodQin*Q_i
                 # print "\n-1.0*dRodQi*Q_i = ", -1.0*dRodQi*Q_i
                 # print "\neqn_temp_line_df = ", eqn_temp_line_df # just finished adding print statement here - 12/16/19
-                self.dfmxcoe.append(tuple(eqn_temp_line_df))
+                self.mat['dF'].append(tuple(eqn_temp_line_df))
                 # raw_input("\ninside here 2 ---------------------------------------------------------")
         tmp = () # this is used to construct the mass/flow conservation equation
         for d in self.flow_directions:
             tmp += (0, d,)
-        self.fmxcoe.append(tmp)
-        self.dfmxcoe.append((0, 0, )*self.num_connections) # this line represents the coefficients for the mass conservation eqn in the junction # good
-        # print "\nfmxcoe = ", self.fmxcoe
-        # print "\ndfmxcoe = ", self.dfmxcoe
+        self.mat['F'].append(tmp)
+        self.mat['dF'].append((0, 0, )*self.num_connections) # this line represents the coefficients for the mass conservation eqn in the junction # good
+        # print "\nfmxcoe = ", self.mat['F']
+        # print "\ndfmxcoe = ", self.mat['dF']
         # raw_input("\ninside here 3 ---------------------------------------------------------")
-        self.cveccoe = [0.]*self.num_connections
-        self.dcmxcoe = [(0.,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['C'] = [0.]*self.num_connections
+        self.mat['dC'] = [(0.,)*(2*self.num_connections)]*(self.num_connections)
 
 # -- Resistance
 class Resistance(LPNBlock):
@@ -431,13 +428,13 @@ class Resistance(LPNBlock):
 
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
 
-        # self.emxcoe = [(0,)*4]*2
-        self.fmxcoe = [(1.,-1.*self.R,-1.,0),(0,1.,0,-1.)]
-        # self.cveccoe = [0]*2
+        # self.mat['E'] = [(0,)*4]*2
+        self.mat['F'] = [(1.,-1.*self.R,-1.,0),(0,1.,0,-1.)]
+        # self.mat['C'] = [0]*2
         #
-        # self.demxcoe = [(0,)*4]*2
-        # self.dfmxcoe = [(0,)*4]*2
-        # self.dcmxcoe = [(0,)*4]*2
+        # self.mat['dE'] = [(0,)*4]*2
+        # self.mat['dF'] = [(0,)*4]*2
+        # self.mat['dC'] = [(0,)*4]*2
 
 # -- Flow dependent Resistance : delta_P = q*Rfunc(t,q)
 class FlowDepResistance(LPNBlock):
@@ -480,22 +477,22 @@ class FlowDepResistance(LPNBlock):
         R = self.Rfunc(t,q)
 
         # c_lin = q*q*dR
-        # self.emxcoe = [(0,)*4]*2
-        # self.fmxcoe = [(1.,-1.*(self.Rfunc(t+dt*alpha_f,q)+q*dR),-1.,0),(0,1.,0,-1.)]
-        # self.cveccoe = [c_lin,0]
+        # self.mat['E'] = [(0,)*4]*2
+        # self.mat['F'] = [(1.,-1.*(self.Rfunc(t+dt*alpha_f,q)+q*dR),-1.,0),(0,1.,0,-1.)]
+        # self.mat['C'] = [c_lin,0]
 
-        # self.fmxcoe = [(1./(R),-1.,-1./(R),0),(0,1.,0,-1.)]
-        self.fmxcoe = [(1.,-1.*(R),-1.,0),(0,1.,0,-1.)]
+        # self.mat['F'] = [(1./(R),-1.,-1./(R),0),(0,1.,0,-1.)]
+        self.mat['F'] = [(1.,-1.*(R),-1.,0),(0,1.,0,-1.)]
 
-        # self.dfmxcoe = [(0,(pi-po)*(-dR/(R*R)),0,0),(0,)*4]
-        self.dfmxcoe = [(0,-dR*q,0,0),(0,)*4] # WHY IS dR MULTIPLED BY q HERE? SHOULDNT IT JUST BE dR? - ask aekaansh, 12/4/19: after I ask him, then I can create the dE, dF, dC matrices for the Junction_with_PressureLoss # 3/7/21: see derivation of the dfmxcoe matrix in page 1 of the physical composition notebook titled "Research Notebook #3"
+        # self.mat['dF'] = [(0,(pi-po)*(-dR/(R*R)),0,0),(0,)*4]
+        self.mat['dF'] = [(0,-dR*q,0,0),(0,)*4] # WHY IS dR MULTIPLED BY q HERE? SHOULDNT IT JUST BE dR? - ask aekaansh, 12/4/19: after I ask him, then I can create the dE, dF, dC matrices for the Junction_with_PressureLoss # 3/7/21: see derivation of the dfmxcoe matrix in page 1 of the physical composition notebook titled "Research Notebook #3"
 
     # def update_constant(self):
-    #     self.emxcoe = [(0,)*4]*2 # "mxcoe" = "MatriX COEfficient"
-    #     self.cveccoe = [0,0]
+    #     self.mat['E'] = [(0,)*4]*2 # "mxcoe" = "MatriX COEfficient"
+    #     self.mat['C'] = [0,0]
     #
-    #     self.demxcoe = [(0,)*4]*2
-    #     self.dcmxcoe = [(0,)*4]*2
+    #     self.mat['dE'] = [(0,)*4]*2
+    #     self.mat['dC'] = [(0,)*4]*2
 
 
 """
@@ -522,14 +519,14 @@ class StenosisBlock(LPNBlock):
         curr_y = args['Solution'] # the current solution for all unknowns in our 0D model
         wire_dict = args['Wire dictionary']
         Q_in =  curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[1]]
-        self.fmxcoe   = [ (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0), (0, 1.0, 0, -1.0)]
-        self.dfmxcoe  = [ (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0), (0,)*4] # 3/7/21: see derivation in GoodNotes on 3/7/21 in the notebook titled "Research"
+        self.mat['F']   = [ (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0), (0, 1.0, 0, -1.0)]
+        self.mat['dF']  = [ (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0), (0,)*4] # 3/7/21: see derivation in GoodNotes on 3/7/21 in the notebook titled "Research"
 
     def update_constant(self):
-        self.emxcoe   = [ (0,0,0,0), (0,0,0,0)]
-        self.cveccoe  = [0, 0]
-        self.demxcoe  = [(0,)*4]*2
-        self.dcmxcoe  = [(0,)*4]*2
+        self.mat['E']   = [ (0,0,0,0), (0,0,0,0)]
+        self.mat['C']  = [0, 0]
+        self.mat['dE']  = [(0,)*4]*2
+        self.mat['dC']  = [(0,)*4]*2
 
 
 # -- Unsteady Resistance : delta_P = q*Rfunc(t)
@@ -548,15 +545,15 @@ class UnsteadyResistance(LPNBlock):
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
         t = args['Time']
 
-        self.fmxcoe = [(1.,-1.0*self.Rfunc(t),-1.,0),(0,1.,0,-1.)]
+        self.mat['F'] = [(1.,-1.0*self.Rfunc(t),-1.,0),(0,1.,0,-1.)]
 
     # def update_constant(self):
-    #     self.emxcoe = [(0,)*4]*2
-    #     self.cveccoe = [0]*2
+    #     self.mat['E'] = [(0,)*4]*2
+    #     self.mat['C'] = [0]*2
     #
-    #     self.demxcoe = [(0,)*4]*2
-    #     self.dfmxcoe = [(0,)*4]*2
-    #     self.dcmxcoe = [(0,)*4]*2
+    #     self.mat['dE'] = [(0,)*4]*2
+    #     self.mat['dF'] = [(0,)*4]*2
+    #     self.mat['dC'] = [(0,)*4]*2
 
 class UnsteadyResistanceWithDistalPressure(LPNBlock):
     def __init__(self,Rfunc,Pref_func,connecting_block_list=None,name="NoNameUnsteadyResistanceWithDistalPressure",flow_directions=None):
@@ -576,15 +573,15 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
         t = args['Time']
 
         # currently here 7/19/20: since this resistor element with distal pressure is supposed to be a terminal element, so that i dont have to connect a pressureRef block downstream, how many unknowns and equations should this block have? I think its 2 unknowns (P_in,Q_in), but how many equations do i need?
-        self.fmxcoe = [(1.,-1.0*self.Rfunc(t))]
-        self.cveccoe = [-1.0*self.Pref_func(t)]
+        self.mat['F'] = [(1.,-1.0*self.Rfunc(t))]
+        self.mat['C'] = [-1.0*self.Pref_func(t)]
 
     def update_constant(self):
-        self.emxcoe = [(0,)*2]
+        self.mat['E'] = [(0,)*2]
 
-        self.demxcoe = [(0,)*2]
-        self.dfmxcoe = [(0,)*2]
-        self.dcmxcoe = [(0,)*2]
+        self.mat['dE'] = [(0,)*2]
+        self.mat['dF'] = [(0,)*2]
+        self.mat['dC'] = [(0,)*2]
 
 # -- Pressure reference
 class PressureRef(LPNBlock):
@@ -600,13 +597,13 @@ class PressureRef(LPNBlock):
             raise Exception("PressureRef block can be connected only to one element")
 
     def update_constant(self):
-        # self.emxcoe = [(0,)]
-        self.fmxcoe = [(1.,)]
-        self.cveccoe = [-1.0*self.Pref]
+        # self.mat['E'] = [(0,)]
+        self.mat['F'] = [(1.,)]
+        self.mat['C'] = [-1.0*self.Pref]
 
-        # self.demxcoe = [(0,)]
-        # self.dfmxcoe = [(0,)]
-        # self.dcmxcoe = [(0,)]
+        # self.mat['dE'] = [(0,)]
+        # self.mat['dF'] = [(0,)]
+        # self.mat['dC'] = [(0,)]
 
 # -- Unsteady P reference
 class UnsteadyPressureRef(LPNBlock):
@@ -623,15 +620,15 @@ class UnsteadyPressureRef(LPNBlock):
 
     def update_time(self, args):
         t = args['Time']
-        self.cveccoe = [-1.0*self.Pfunc(t)]
+        self.mat['C'] = [-1.0*self.Pfunc(t)]
 
     def update_constant(self):
-        self.emxcoe = [(0,0)]
-        self.fmxcoe = [(1.,0.)]
+        self.mat['E'] = [(0,0)]
+        self.mat['F'] = [(1.,0.)]
 
-        self.demxcoe = [(0,)]
-        self.dfmxcoe = [(0,)]
-        self.dcmxcoe = [(0,)]
+        self.mat['dE'] = [(0,)]
+        self.mat['dF'] = [(0,)]
+        self.mat['dC'] = [(0,)]
 
 
 
@@ -651,15 +648,15 @@ class UnsteadyFlowRef(LPNBlock):
 
     def update_time(self, args):
         t = args['Time']
-        self.cveccoe = [-1.0*self.Qfunc(t)]
+        self.mat['C'] = [-1.0*self.Qfunc(t)]
 
     def update_constant(self):
-        # self.emxcoe = [(0,0)]
-        self.fmxcoe = [(0,1.)]
+        # self.mat['E'] = [(0,0)]
+        self.mat['F'] = [(0,1.)]
 
-        # self.demxcoe = [(0,)]
-        # self.dfmxcoe = [(0,)]
-        # self.dcmxcoe = [(0,)]
+        # self.mat['dE'] = [(0,)]
+        # self.mat['dF'] = [(0,)]
+        # self.mat['dC'] = [(0,)]
 
 # -- Capacitance
 class Capacitance(LPNBlock):
@@ -675,13 +672,13 @@ class Capacitance(LPNBlock):
 
 
     def update_constant(self):
-        self.emxcoe = [(1.0*self.C,0,-1.0*self.C,0),(0,0,0,0)]
-        self.fmxcoe = [(0,-1.0,0,0),(0,1.,0,-1.)]
-        # self.cveccoe = [0,0]
+        self.mat['E'] = [(1.0*self.C,0,-1.0*self.C,0),(0,0,0,0)]
+        self.mat['F'] = [(0,-1.0,0,0),(0,1.,0,-1.)]
+        # self.mat['C'] = [0,0]
 
-        # self.demxcoe = [(0,)*4]*2
-        # self.dfmxcoe = [(0,)*4]*2
-        # self.dcmxcoe = [(0,)*4]*2
+        # self.mat['dE'] = [(0,)*4]*2
+        # self.mat['dF'] = [(0,)*4]*2
+        # self.mat['dC'] = [(0,)*4]*2
 
 
 
@@ -704,13 +701,13 @@ class RCLBlock(LPNBlock):
             raise Exception("RCL block can be connected only to two elements")
 
     def update_constant(self):
-        self.emxcoe = [(0,0,0,-self.L,0),      (0,0,0,0,-self.C),   (0,0,0,0,0)]
-        self.fmxcoe = [(1.,-self.R,-1.,0,0), (0,1.,0,-1.,0),      (1.,-self.R,0,0,-1.)]
-        self.cveccoe = [0,0,0]
+        self.mat['E'] = [(0,0,0,-self.L,0),      (0,0,0,0,-self.C),   (0,0,0,0,0)]
+        self.mat['F'] = [(1.,-self.R,-1.,0,0), (0,1.,0,-1.,0),      (1.,-self.R,0,0,-1.)]
+        self.mat['C'] = [0,0,0]
 
-        self.demxcoe = [(0,)*5]*3
-        self.dfmxcoe = [(0,)*5]*3
-        self.dcmxcoe = [(0,)*5]*3
+        self.mat['dE'] = [(0,)*5]*3
+        self.mat['dF'] = [(0,)*5]*3
+        self.mat['dC'] = [(0,)*5]*3
 
 
 # -- RC - constant resistor, capacitor - low inertia vessel
@@ -727,13 +724,13 @@ class RCBlock(LPNBlock):
             raise Exception("RC block can be connected only to two elements")
 
     def update_constant(self):
-        self.emxcoe = [(0,0,0,0),      (0,0,-self.C,0)]
-        self.fmxcoe = [(1.0,-self.R,-1.0,0), (0,1.,0,-1.)]
-        # self.cveccoe = [0,0]
+        self.mat['E'] = [(0,0,0,0),      (0,0,-self.C,0)]
+        self.mat['F'] = [(1.0,-self.R,-1.0,0), (0,1.,0,-1.)]
+        # self.mat['C'] = [0,0]
         #
-        # self.demxcoe = [(0,)*4]*2
-        # self.dfmxcoe = [(0,)*4]*2
-        # self.dcmxcoe = [(0,)*4]*2
+        # self.mat['dE'] = [(0,)*4]*2
+        # self.mat['dF'] = [(0,)*4]*2
+        # self.mat['dC'] = [(0,)*4]*2
 
 # -- RL - constant resistor, inductor
 class RLBlock(LPNBlock):
@@ -752,13 +749,13 @@ class RLBlock(LPNBlock):
 
         # For this RL block, the ordering of solution unknowns is : (P_in, Q_in, P_out, Q_out)
 
-        self.emxcoe = [(0,0,0,-self.L),      (0,0,0,0)]
-        self.fmxcoe = [(1.0,-self.R,-1.0,0), (0,1.,0,-1.)]
-        self.cveccoe = [0,0]
+        self.mat['E'] = [(0,0,0,-self.L),      (0,0,0,0)]
+        self.mat['F'] = [(1.0,-self.R,-1.0,0), (0,1.,0,-1.)]
+        self.mat['C'] = [0,0]
 
-        self.demxcoe = [(0,)*4]*2
-        self.dfmxcoe = [(0,)*4]*2
-        self.dcmxcoe = [(0,)*4]*2
+        self.mat['dE'] = [(0,)*4]*2
+        self.mat['dF'] = [(0,)*4]*2
+        self.mat['dC'] = [(0,)*4]*2
 
 # -- RCR - constant RCR - outflow representation
 # Formulation includes additional variable : internal pressure proximal to capacitance.
@@ -779,13 +776,13 @@ class RCRBlock(LPNBlock):
             raise Exception("RCR block can be connected only to two elements")
 
     def update_constant(self):
-        self.emxcoe = [(0,0,0,0,0),      (0,0,0,0,-self.C),   (0,0,0,0,0)]
-        self.fmxcoe = [(1.0,-self.Rp,-1.0,-self.Rd,0), (0,1.,0,-1.,0),      (1.,-self.Rp,0,0,-1.)]
-        # self.cveccoe = [0,0,0]
+        self.mat['E'] = [(0,0,0,0,0),      (0,0,0,0,-self.C),   (0,0,0,0,0)]
+        self.mat['F'] = [(1.0,-self.Rp,-1.0,-self.Rd,0), (0,1.,0,-1.,0),      (1.,-self.Rp,0,0,-1.)]
+        # self.mat['C'] = [0,0,0]
         #
-        # self.demxcoe = [(0,)*5]*3
-        # self.dfmxcoe = [(0,)*5]*3
-        # self.dcmxcoe = [(0,)*5]*3
+        # self.mat['dE'] = [(0,)*5]*3
+        # self.mat['dF'] = [(0,)*5]*3
+        # self.mat['dC'] = [(0,)*5]*3
 
 # -- Unsteady RCR - time-varying RCR values
 # Formulation includes additional variable : internal pressure proximal to capacitance.
@@ -806,15 +803,15 @@ class UnsteadyRCRBlock(LPNBlock):
 
     def update_time(self, args):
         t = args['Time']
-        self.fmxcoe = [(1.0,-self.Rp_func(t),-1.0,-self.Rd_func(t),0),  (0,1.,0,-1.,0),   (1.,-self.Rp_func(t),0,0,-1.)]
+        self.mat['F'] = [(1.0,-self.Rp_func(t),-1.0,-self.Rd_func(t),0),  (0,1.,0,-1.,0),   (1.,-self.Rp_func(t),0,0,-1.)]
 
     def update_constant(self):
-        self.emxcoe = [(0,0,0,0,0),      (0,0,0,0,-self.C_func(t)),   (0,0,0,0,0)]
-        self.cveccoe = [0,0,0]
+        self.mat['E'] = [(0,0,0,0,0),      (0,0,0,0,-self.C_func(t)),   (0,0,0,0,0)]
+        self.mat['C'] = [0,0,0]
 
-        self.demxcoe = [(0,)*5]*3
-        self.dfmxcoe = [(0,)*5]*3
-        self.dcmxcoe = [(0,)*5]*3
+        self.mat['dE'] = [(0,)*5]*3
+        self.mat['dF'] = [(0,)*5]*3
+        self.mat['dC'] = [(0,)*5]*3
 
 
 # -- Unsteady RCR - time-varying RCR values
@@ -839,14 +836,14 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         # unknowns = [P_in, Q_in, internal_var (Pressure at the intersection of the Rp, Rd, and C elements)]
 
         t = args['Time']
-        self.emxcoe = [(0,0,0),      (0,0,-1.0*self.Rd_func(t)*self.C_func(t))]
-        self.fmxcoe = [(1.,-self.Rp_func(t),-1.), (0.0, self.Rd_func(t),-1.0)]
-        self.cveccoe = [0,self.Pref_func(t)]
+        self.mat['E'] = [(0,0,0),      (0,0,-1.0*self.Rd_func(t)*self.C_func(t))]
+        self.mat['F'] = [(1.,-self.Rp_func(t),-1.), (0.0, self.Rd_func(t),-1.0)]
+        self.mat['C'] = [0,self.Pref_func(t)]
 
     # def update_constant(self):
-        # self.demxcoe = [(0,)*3]*2
-        # self.dfmxcoe = [(0,)*3]*2
-        # self.dcmxcoe = [(0,)*3]*2
+        # self.mat['dE'] = [(0,)*3]*2
+        # self.mat['dF'] = [(0,)*3]*2
+        # self.mat['dC'] = [(0,)*3]*2
 
 # -- Open loop coronary block - RCRCR - pressure imposed on the second capacitor
 class OpenLoopCoronaryBlock(LPNBlock):
@@ -892,15 +889,15 @@ class OpenLoopCoronaryBlock(LPNBlock):
         # and Q_out is the flow the third resistor, and Q_in is the flow through the first resistor
         # and P_in is the pressure at the inlet of the first resistor and P_out is the the pressure ath the outlet of the third resistor
         # Note that the first capacitor is attached to ground but the second capacitor is attached to the time-varying  intramyocardial pressure
-        self.cveccoe = [0,0,self.C2*dPv]
+        self.mat['C'] = [0,0,self.C2*dPv]
 
     def update_constant(self):
-        self.emxcoe = [(0,0,0,0,0), (-self.C1,self.C1*self.R1,0,0,0),   (-self.C2,self.C2*self.R1,0,0,self.C2*self.R2)]
-        self.fmxcoe = [(1.0,-self.R1,-1.0,-self.R3,-self.R2), (0,1.0,0,0,-1.0),      (0,0,0,-1.0,1.0)]
+        self.mat['E'] = [(0,0,0,0,0), (-self.C1,self.C1*self.R1,0,0,0),   (-self.C2,self.C2*self.R1,0,0,self.C2*self.R2)]
+        self.mat['F'] = [(1.0,-self.R1,-1.0,-self.R3,-self.R2), (0,1.0,0,0,-1.0),      (0,0,0,-1.0,1.0)]
 
-        # self.demxcoe = [(0,)*5]*3
-        # self.dfmxcoe = [(0,)*5]*3
-        # self.dcmxcoe = [(0,)*5]*3
+        # self.mat['dE'] = [(0,)*5]*3
+        # self.mat['dF'] = [(0,)*5]*3
+        # self.mat['dC'] = [(0,)*5]*3
 
 class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
     "Publication reference: Kim, H. J. et al. Patient-specific modeling of blood flow and pressure in human coronary arteries. Annals of Biomedical Engineering 38, 3195–3209 (2010)."
@@ -948,15 +945,15 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         # and Q_out is the flow the third resistor, and Q_in is the flow through the first resistor
         # and P_in is the pressure at the inlet of the first resistor and P_out is the the pressure ath the outlet of the third resistor
         # Note that the first capacitor is attached to ground but the second capacitor is attached to the time-varying  intramyocardial pressure
-        self.cveccoe = [0, -1.0*self.R3*self.C2*dPv - self.Pv]
+        self.mat['C'] = [0, -1.0*self.R3*self.C2*dPv - self.Pv]
 
     def update_constant(self):
-        self.emxcoe = [(-1.0*self.C1, self.R1*self.C1, 0), (self.R3*self.C2, -1.0*self.R3*self.C2*self.R1, -1.0*self.R3*self.C2*self.R2)]
-        self.fmxcoe = [(0, 1.0, -1.0), (1.0, -self.R1, -1.0*(self.R3 + self.R2))]
+        self.mat['E'] = [(-1.0*self.C1, self.R1*self.C1, 0), (self.R3*self.C2, -1.0*self.R3*self.C2*self.R1, -1.0*self.R3*self.C2*self.R2)]
+        self.mat['F'] = [(0, 1.0, -1.0), (1.0, -self.R1, -1.0*(self.R3 + self.R2))]
 
-        # self.demxcoe = [(0,)*3]*self.neq
-        # self.dfmxcoe = [(0,)*3]*self.neq
-        # self.dcmxcoe = [(0,)*3]*self.neq
+        # self.mat['dE'] = [(0,)*3]*self.neq
+        # self.mat['dF'] = [(0,)*3]*self.neq
+        # self.mat['dC'] = [(0,)*3]*self.neq
 
 ###################################################################
 class OpenLoopCoronaryWithDistalPressureBlock_v2(LPNBlock):
@@ -1019,15 +1016,15 @@ class OpenLoopCoronaryWithDistalPressureBlock_v2(LPNBlock):
         # last here - there is something wrong here because i am doing the exact same thing as earlier, but now it is not working. the only difference that instead of making a lambda function in run_0d_solver and then sending it OpenLoopCoronaryWithDistalPressureBlock_v2, I sent a matrix to OpenLoopCoronaryWithDistalPressureBlock_v2 and use that matrix to create the lambda function from within OpenLoopCoronaryWithDistalPressureBlock_v2. These 2 methods should be equivalent, so whats going on here. did i actually do something different earlier??
 
         # print("Pim_value = ", Pim_value)
-        self.cveccoe = [-1.0*self.Cim*Pim_value + self.Cim*Pv_value, -1.0*self.Cim*(self.Rv + self.Ram)*Pim_value + self.Ram*self.Cim*Pv_value]
+        self.mat['C'] = [-1.0*self.Cim*Pim_value + self.Cim*Pv_value, -1.0*self.Cim*(self.Rv + self.Ram)*Pim_value + self.Ram*self.Cim*Pv_value]
 
     def update_constant(self):
-        self.emxcoe = [(-1.0*self.Ca*self.Cim*self.Rv, self.Ra*self.Ca*self.Cim*self.Rv, -1.0*self.Cim*self.Rv), (0.0, 0.0, -1.0*self.Cim*self.Rv*self.Ram)]
-        self.fmxcoe = [(0.0, self.Cim*self.Rv, -1.0), (self.Cim*self.Rv, -1.0*self.Cim*self.Rv*self.Ra, -1.0*(self.Rv + self.Ram))]
+        self.mat['E'] = [(-1.0*self.Ca*self.Cim*self.Rv, self.Ra*self.Ca*self.Cim*self.Rv, -1.0*self.Cim*self.Rv), (0.0, 0.0, -1.0*self.Cim*self.Rv*self.Ram)]
+        self.mat['F'] = [(0.0, self.Cim*self.Rv, -1.0), (self.Cim*self.Rv, -1.0*self.Cim*self.Rv*self.Ra, -1.0*(self.Rv + self.Ram))]
 
-        # self.demxcoe = [(0,)*3]*self.neq
-        # self.dfmxcoe = [(0,)*3]*self.neq
-        # self.dcmxcoe = [(0,)*3]*self.neq
+        # self.mat['dE'] = [(0,)*3]*self.neq
+        # self.mat['dF'] = [(0,)*3]*self.neq
+        # self.mat['dC'] = [(0,)*3]*self.neq
 ###############################################################
 
 # -- Time Varying Capacitance
@@ -1048,15 +1045,15 @@ class TimeDependentCapacitance(LPNBlock):
         # dt = args['Time step']
         # rho = args['rho']
         # alpha_f = 1/(1.0+rho)
-        self.emxcoe = [(1.0*self.Cfunc(t),0,-1.0*self.Cfunc(t),0),(0,0,0,0)]
+        self.mat['E'] = [(1.0*self.Cfunc(t),0,-1.0*self.Cfunc(t),0),(0,0,0,0)]
 
     def update_constant(self):
-        self.fmxcoe = [(0,-1.0,0,0),(0,1.,0,-1.)]
-        # self.cveccoe = [0,0]
+        self.mat['F'] = [(0,-1.0,0,0),(0,1.,0,-1.)]
+        # self.mat['C'] = [0,0]
         #
-        # self.demxcoe = [(0,)*4]*2
-        # self.dfmxcoe = [(0,)*4]*2
-        # self.dcmxcoe = [(0,)*4]*2
+        # self.mat['dE'] = [(0,)*4]*2
+        # self.mat['dF'] = [(0,)*4]*2
+        # self.mat['dC'] = [(0,)*4]*2
 
 
 # -- Chamber Capacitance -- with direct prescription of pressure
@@ -1118,16 +1115,16 @@ class ChamberModel(LPNBlock):
         # c_from_lin = -(self.Activefunc(t,v) + self.Passivefunc(t,v)) + v*(a_lin+p_lin)
         # print 'Volume ',v,'has pressure ',(self.Activefunc(t,v) + self.Passivefunc(t,v))/1333.33
 
-        self.emxcoe = [(0,0,0,0,1.),     (0,0,0,0,0),     (0,0,0,0,0)]
-        self.fmxcoe = [(0,-1.,0,1.,0), (-1.,0,1.,0,0),  (1.,0,0.,0.,0.)]
-        self.cveccoe = [0,0,-(self.Activefunc(t,v)+self.Passivefunc(t,v))-self.Pref]
+        self.mat['E'] = [(0,0,0,0,1.),     (0,0,0,0,0),     (0,0,0,0,0)]
+        self.mat['F'] = [(0,-1.,0,1.,0), (-1.,0,1.,0,0),  (1.,0,0.,0.,0.)]
+        self.mat['C'] = [0,0,-(self.Activefunc(t,v)+self.Passivefunc(t,v))-self.Pref]
 
-        # self.fmxcoe = [(0,-1.,0,1.,0), (-1.,0,1.,0,0),  (1.,0,0.,0,-(a_lin+p_lin))]
-        # self.cveccoe = [0,0,c_from_lin+self.Pref]
+        # self.mat['F'] = [(0,-1.,0,1.,0), (-1.,0,1.,0,0),  (1.,0,0.,0,-(a_lin+p_lin))]
+        # self.mat['C'] = [0,0,c_from_lin+self.Pref]
 
-        # self.demxcoe = [(0,)*5,(0,)*5,(0,)*5]
-        # self.dfmxcoe = [(0,)*5,(0,)*5,(0,)*5]
-        self.dcmxcoe = [(0,)*5,(0,)*5,(0,0,0,0,-(a_lin+p_lin))]
+        # self.mat['dE'] = [(0,)*5,(0,)*5,(0,)*5]
+        # self.mat['dF'] = [(0,)*5,(0,)*5,(0,)*5]
+        self.mat['dC'] = [(0,)*5,(0,)*5,(0,0,0,0,-(a_lin+p_lin))]
 
 
 
@@ -1144,13 +1141,13 @@ class Inductance(LPNBlock):
             raise Exception("Inductance block can be connected only to two elements")
 
     def update_constant(self):
-        self.emxcoe = [(0.0,-1.,0.0,0),(0,0,0,0)]
-        self.fmxcoe = [(1./self.L,0.0,-1./self.L,0),(0,1.,0,-1.)]
-        # self.cveccoe = [0,0]
+        self.mat['E'] = [(0.0,-1.,0.0,0),(0,0,0,0)]
+        self.mat['F'] = [(1./self.L,0.0,-1./self.L,0),(0,1.,0,-1.)]
+        # self.mat['C'] = [0,0]
         #
-        # self.demxcoe = [(0,)*4]*2
-        # self.dfmxcoe = [(0,)*4]*2
-        # self.dcmxcoe = [(0,)*4]*2
+        # self.mat['dE'] = [(0,)*4]*2
+        # self.mat['dF'] = [(0,)*4]*2
+        # self.mat['dC'] = [(0,)*4]*2
 
 
 # -- Ideal diode - state variable
@@ -1181,37 +1178,37 @@ class IdealDiode2(LPNBlock):
         Pi = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[0]]
         Po = curr_y[wire_dict[self.connecting_wires_list[1]].LPN_solution_ids[0]]
         state = curr_y[self.LPN_solution_ids[0]]
-        # self.emxcoe = [(0,)*5]*3
-        # self.demxcoe = [(0,)*5]*3
-        # self.dfmxcoe = [(0,)*5]*3
-        # self.dcmxcoe = [(0,)*5]*3
+        # self.mat['E'] = [(0,)*5]*3
+        # self.mat['dE'] = [(0,)*5]*3
+        # self.mat['dF'] = [(0,)*5]*3
+        # self.mat['dC'] = [(0,)*5]*3
 
         if state > 0 :
             # Zero flow
-            self.fmxcoe = [(0,1,0,0,0),(0,0,0,1.,0)]
-            self.cveccoe = [0.,0.]
+            self.mat['F'] = [(0,1,0,0,0),(0,0,0,1.,0)]
+            self.mat['C'] = [0.,0.]
 
         else :
             # Perfect wire
-            self.fmxcoe = [(1.,0,-1.,0,0),(0,1.,0,-1.,0)]
-            self.cveccoe = [0,0]
+            self.mat['F'] = [(1.,0,-1.,0,0),(0,1.,0,-1.,0)]
+            self.mat['C'] = [0,0]
 
         if Qi < -self.eps or Qo < -self.eps :
-            self.fmxcoe.append((0,0,0,0,1))
-            self.cveccoe.append(-alpha_f-(1-alpha_f)*state)
-            # self.cveccoe.append(-1)
+            self.mat['F'].append((0,0,0,0,1))
+            self.mat['C'].append(-alpha_f-(1-alpha_f)*state)
+            # self.mat['C'].append(-1)
             # print 'Flow toggle'
             # print state
 
         elif Pi - Po > -self.eps :
-            self.fmxcoe.append((0,0,0,0,1))
-            self.cveccoe.append(-(1-alpha_f)*state)
-            # self.cveccoe.append(0)
+            self.mat['F'].append((0,0,0,0,1))
+            self.mat['C'].append(-(1-alpha_f)*state)
+            # self.mat['C'].append(0)
             # print 'P toggle'
             # print state
         else :
-            self.fmxcoe.append((0,0,0,0,1))
-            self.cveccoe.append(-state)
+            self.mat['F'].append((0,0,0,0,1))
+            self.mat['C'].append(-state)
             # print 'State maintain'
             # print state
 
@@ -1236,16 +1233,16 @@ class PressureSource(LPNBlock):
         # rho = args['rho']
         # dt = args['Time step']
         # alpha_f = 1.0/(1.0+rho)
-        self.cveccoe = [-1.0*self.Pref,-1.0*self.Pfunction(t)]
-        # self.cveccoe = [-1.0*self.Pref,-1.0*self.Pfunction(t)]
+        self.mat['C'] = [-1.0*self.Pref,-1.0*self.Pfunction(t)]
+        # self.mat['C'] = [-1.0*self.Pref,-1.0*self.Pfunction(t)]
 
     def update_constant(self):
-        # self.emxcoe = [(0,0)]*2
-        self.fmxcoe = [(1.,0,0,0),(0,0,1.,0)]
+        # self.mat['E'] = [(0,0)]*2
+        self.mat['F'] = [(1.,0,0,0),(0,0,1.,0)]
 
-        # self.demxcoe = [(0,)*4]*2
-        # self.dfmxcoe = [(0,)*4]*2
-        # self.dcmxcoe = [(0,)*4]*2
+        # self.mat['dE'] = [(0,)*4]*2
+        # self.mat['dF'] = [(0,)*4]*2
+        # self.mat['dC'] = [(0,)*4]*2
 
 
 # # -- Flow source (single terminal)
@@ -1268,14 +1265,14 @@ class PressureSource(LPNBlock):
 #         # dt = args['Time step']
 #         # alpha_f = 1.0/(1.0+rho)
 
-#         self.emxcoe = [(0,0)]
-#         self.fmxcoe = [(0,1.)]
-#         # self.cveccoe = [-1.0*self.Qfunction(t+alpha_f*dt)]
-#         self.cveccoe = [-1.0*self.Qfunction(t)]
+#         self.mat['E'] = [(0,0)]
+#         self.mat['F'] = [(0,1.)]
+#         # self.mat['C'] = [-1.0*self.Qfunction(t+alpha_f*dt)]
+#         self.mat['C'] = [-1.0*self.Qfunction(t)]
 
-#         self.demxcoe = [(0,)*4]*2
-#         self.dfmxcoe = [(0,)*4]*2
-#         self.dcmxcoe = [(0,)*4]*2
+#         self.mat['dE'] = [(0,)*4]*2
+#         self.mat['dF'] = [(0,)*4]*2
+#         self.mat['dC'] = [(0,)*4]*2
 
 
 class UnsteadyResistanceWithDistalPressure_special(LPNBlock):
@@ -1300,15 +1297,15 @@ class UnsteadyResistanceWithDistalPressure_special(LPNBlock):
         t = args['Time']
 
         # currently here 7/19/20: since this resistor element with distal pressure is supposed to be a terminal element, so that i dont have to connect a pressureRef block downstream, how many unknowns and equations should this block have? I think its 2 unknowns (P_in,Q_in), but how many equations do i need?
-        self.fmxcoe = [(1.,-1.0*self.Rfunc(t))]
-        self.cveccoe = [-1.0*self.Pref_func(t)]
+        self.mat['F'] = [(1.,-1.0*self.Rfunc(t))]
+        self.mat['C'] = [-1.0*self.Pref_func(t)]
 
     def update_constant(self):
-        self.emxcoe = [(0,)*2]
+        self.mat['E'] = [(0,)*2]
 
-        self.demxcoe = [(0,)*2]
-        self.dfmxcoe = [(0,)*2]
-        self.dcmxcoe = [(0,)*2]
+        self.mat['dE'] = [(0,)*2]
+        self.mat['dF'] = [(0,)*2]
+        self.mat['dC'] = [(0,)*2]
 
 # -- Resistance
 class UnsteadyResistance_special(LPNBlock):
@@ -1328,15 +1325,15 @@ class UnsteadyResistance_special(LPNBlock):
     def update_time(self, args):
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
         t = args['Time']
-        self.fmxcoe = [(1.,-1.0*self.Rfunc(t),-1.,0),(0,1.,0,-1.)]
+        self.mat['F'] = [(1.,-1.0*self.Rfunc(t),-1.,0),(0,1.,0,-1.)]
 
     def update_constant(self):
-        self.emxcoe = [(0,)*4]*2
-        self.cveccoe = [0]*2
+        self.mat['E'] = [(0,)*4]*2
+        self.mat['C'] = [0]*2
 
-        self.demxcoe = [(0,)*4]*2
-        self.dfmxcoe = [(0,)*4]*2
-        self.dcmxcoe = [(0,)*4]*2
+        self.mat['dE'] = [(0,)*4]*2
+        self.mat['dF'] = [(0,)*4]*2
+        self.mat['dC'] = [(0,)*4]*2
 
 class UnsteadyFlowRef_special(LPNBlock):
     def __init__(self,Qfunc,connecting_block_list=None,name="NoNameUnsteadyFlowRef_special",flow_directions=None):
@@ -1355,15 +1352,15 @@ class UnsteadyFlowRef_special(LPNBlock):
 
     def update_time(self, args):
         t = args['Time']
-        self.cveccoe = [-1.0*self.Qfunc(t)]
+        self.mat['C'] = [-1.0*self.Qfunc(t)]
 
     def update_constant(self):
-        self.emxcoe = [(0,0)]
-        self.fmxcoe = [(0,1.)]
+        self.mat['E'] = [(0,0)]
+        self.mat['F'] = [(0,1.)]
 
-        self.demxcoe = [(0,)]
-        self.dfmxcoe = [(0,)]
-        self.dcmxcoe = [(0,)]
+        self.mat['dE'] = [(0,)]
+        self.mat['dF'] = [(0,)]
+        self.mat['dC'] = [(0,)]
 
 class Junction_special(LPNBlock):
     def __init__(self,temp_parameter,connecting_block_list=None,name="NoNameJunction_special",flow_directions=None):
@@ -1391,9 +1388,9 @@ class Junction_special(LPNBlock):
         # Number of equations = num_connections-1 Pressure equations, 1 flow equation
         # Format : P1,Q1,P2,Q2,P3,Q3, .., Pn,Qm
 
-        self.emxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['E'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
 
-        self.fmxcoe = [ (1.,)+(0,)*(2*i+1) + (-1,) + (0,)*(2*self.num_connections-2*i-3) for i in range(self.num_connections-1) ]
+        self.mat['F'] = [ (1.,)+(0,)*(2*i+1) + (-1,) + (0,)*(2*self.num_connections-2*i-3) for i in range(self.num_connections-1) ]
 
         tmp = (0,)
         for d in self.flow_directions[:-1]:
@@ -1401,9 +1398,9 @@ class Junction_special(LPNBlock):
             tmp+=(0,)
 
         tmp += (self.flow_directions[-1],)
-        self.fmxcoe.append(tmp)
-        self.cveccoe = [0]*self.num_connections
+        self.mat['F'].append(tmp)
+        self.mat['C'] = [0]*self.num_connections
 
-        self.demxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        self.dfmxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        self.dcmxcoe = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['dE'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['dF'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
+        self.mat['dC'] = [(0,)*(2*self.num_connections)]*(self.num_connections)

@@ -149,21 +149,20 @@ class GenAlpha():
             self.mat[v] = np.zeros(self.n)
 
     def assemble_structures(self, block_list):
-        # assemble local into global matrices
-        trg = ['E', 'F', 'C', 'dE', 'dF', 'dC']
-
+        """
+        Assemble block matrices into global matrices
+        """
         for bl in block_list:
-            src = [bl.emxcoe, bl.fmxcoe, bl.cveccoe, bl.demxcoe, bl.dfmxcoe, bl.dcmxcoe]
-            for S, T in zip(src, trg):
+            for n in self.mat.keys():
                 # vectors
-                if len(self.mat[T].shape) == 1:
-                    for i in range(len(S)):
-                        self.mat[T][bl.global_row_id[i]] = S[i]
+                if len(self.mat[n].shape) == 1:
+                    for i in range(len(bl.mat[n])):
+                        self.mat[n][bl.global_row_id[i]] = bl.mat[n][i]
                 # matrices
                 else:
-                    for i in range(len(S)):
-                        for j in range(len(S[i])):
-                            self.mat[T][bl.global_row_id[i], bl.global_col_id[j]] = S[i][j]
+                    for i in range(len(bl.mat[n])):
+                        for j in range(len(bl.mat[n][i])):
+                            self.mat[n][bl.global_row_id[i], bl.global_col_id[j]] = bl.mat[n][i][j]
 
     def form_matrix_NR(self, dt):
         self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (self.alpha_f * self.gamma * dt)))
