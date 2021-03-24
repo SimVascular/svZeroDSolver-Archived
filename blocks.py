@@ -190,22 +190,16 @@ class Junction(LPNBlock):
         self.type = "Junction"
         self.neq = self.num_connections # number of equations = num of blocks that connect to this junction, where the equations are 1) mass conservation 2) inlet pressures = outlet pressures
 
-
     def add_connecting_block(self,block,direction):
         self.connecting_block_list.append(block)
         self.num_connections = len(self.connecting_block_list)
         self.neq = self.num_connections
         self.flow_directions.append(direction)
-        # print self.name
 
     def update_constant(self):
-
         # Number of variables per tuple = 2*num_connections
         # Number of equations = num_connections-1 Pressure equations, 1 flow equation
         # Format : P1,Q1,P2,Q2,P3,Q3, .., Pn,Qm
-
-        # self.mat['E'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
-
         self.mat['F'] = [ (1.,)+(0,)*(2*i+1) + (-1,) + (0,)*(2*self.num_connections-2*i-3) for i in range(self.num_connections-1) ]
 
         tmp = (0,)
@@ -215,11 +209,6 @@ class Junction(LPNBlock):
 
         tmp += (self.flow_directions[-1],)
         self.mat['F'].append(tmp)
-        # self.mat['C'] = [0]*self.num_connections
-        #
-        # self.mat['dE'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        # self.mat['dF'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        # self.mat['dC'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
 
 # -- JUNCTION WITH PRESSURE LOSS
 # Junction points between LPN blocks with specified directions of flow
@@ -425,16 +414,8 @@ class Resistance(LPNBlock):
             raise Exception("Resistance block can be connected only to two elements")
 
     def update_constant(self):
-
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
-
-        # self.mat['E'] = [(0,)*4]*2
         self.mat['F'] = [(1.,-1.*self.R,-1.,0),(0,1.,0,-1.)]
-        # self.mat['C'] = [0]*2
-        #
-        # self.mat['dE'] = [(0,)*4]*2
-        # self.mat['dF'] = [(0,)*4]*2
-        # self.mat['dC'] = [(0,)*4]*2
 
 # -- Flow dependent Resistance : delta_P = q*Rfunc(t,q)
 class FlowDepResistance(LPNBlock):
@@ -487,13 +468,6 @@ class FlowDepResistance(LPNBlock):
         # self.mat['dF'] = [(0,(pi-po)*(-dR/(R*R)),0,0),(0,)*4]
         self.mat['dF'] = [(0,-dR*q,0,0),(0,)*4] # WHY IS dR MULTIPLED BY q HERE? SHOULDNT IT JUST BE dR? - ask aekaansh, 12/4/19: after I ask him, then I can create the dE, dF, dC matrices for the Junction_with_PressureLoss # 3/7/21: see derivation of the dfmxcoe matrix in page 1 of the physical composition notebook titled "Research Notebook #3"
 
-    # def update_constant(self):
-    #     self.mat['E'] = [(0,)*4]*2 # "mxcoe" = "MatriX COEfficient"
-    #     self.mat['C'] = [0,0]
-    #
-    #     self.mat['dE'] = [(0,)*4]*2
-    #     self.mat['dC'] = [(0,)*4]*2
-
 
 """
 Stenosis:
@@ -522,12 +496,6 @@ class StenosisBlock(LPNBlock):
         self.mat['F']   = [ (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0), (0, 1.0, 0, -1.0)]
         self.mat['dF']  = [ (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0), (0,)*4] # 3/7/21: see derivation in GoodNotes on 3/7/21 in the notebook titled "Research"
 
-    def update_constant(self):
-        self.mat['E']   = [ (0,0,0,0), (0,0,0,0)]
-        self.mat['C']  = [0, 0]
-        self.mat['dE']  = [(0,)*4]*2
-        self.mat['dC']  = [(0,)*4]*2
-
 
 # -- Unsteady Resistance : delta_P = q*Rfunc(t)
 class UnsteadyResistance(LPNBlock):
@@ -547,13 +515,6 @@ class UnsteadyResistance(LPNBlock):
 
         self.mat['F'] = [(1.,-1.0*self.Rfunc(t),-1.,0),(0,1.,0,-1.)]
 
-    # def update_constant(self):
-    #     self.mat['E'] = [(0,)*4]*2
-    #     self.mat['C'] = [0]*2
-    #
-    #     self.mat['dE'] = [(0,)*4]*2
-    #     self.mat['dF'] = [(0,)*4]*2
-    #     self.mat['dC'] = [(0,)*4]*2
 
 class UnsteadyResistanceWithDistalPressure(LPNBlock):
     def __init__(self,Rfunc,Pref_func,connecting_block_list=None,name="NoNameUnsteadyResistanceWithDistalPressure",flow_directions=None):
@@ -576,12 +537,6 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
         self.mat['F'] = [(1.,-1.0*self.Rfunc(t))]
         self.mat['C'] = [-1.0*self.Pref_func(t)]
 
-    def update_constant(self):
-        self.mat['E'] = [(0,)*2]
-
-        self.mat['dE'] = [(0,)*2]
-        self.mat['dF'] = [(0,)*2]
-        self.mat['dC'] = [(0,)*2]
 
 # -- Pressure reference
 class PressureRef(LPNBlock):
@@ -597,13 +552,9 @@ class PressureRef(LPNBlock):
             raise Exception("PressureRef block can be connected only to one element")
 
     def update_constant(self):
-        # self.mat['E'] = [(0,)]
         self.mat['F'] = [(1.,)]
         self.mat['C'] = [-1.0*self.Pref]
 
-        # self.mat['dE'] = [(0,)]
-        # self.mat['dF'] = [(0,)]
-        # self.mat['dC'] = [(0,)]
 
 # -- Unsteady P reference
 class UnsteadyPressureRef(LPNBlock):
@@ -623,14 +574,7 @@ class UnsteadyPressureRef(LPNBlock):
         self.mat['C'] = [-1.0*self.Pfunc(t)]
 
     def update_constant(self):
-        self.mat['E'] = [(0,0)]
         self.mat['F'] = [(1.,0.)]
-
-        self.mat['dE'] = [(0,)]
-        self.mat['dF'] = [(0,)]
-        self.mat['dC'] = [(0,)]
-
-
 
 
 # -- Flow reference
@@ -651,12 +595,8 @@ class UnsteadyFlowRef(LPNBlock):
         self.mat['C'] = [-1.0*self.Qfunc(t)]
 
     def update_constant(self):
-        # self.mat['E'] = [(0,0)]
         self.mat['F'] = [(0,1.)]
 
-        # self.mat['dE'] = [(0,)]
-        # self.mat['dF'] = [(0,)]
-        # self.mat['dC'] = [(0,)]
 
 # -- Capacitance
 class Capacitance(LPNBlock):
@@ -670,16 +610,9 @@ class Capacitance(LPNBlock):
         if len(connecting_block_list) != 2:
             raise Exception("Capacitance block can be connected only to two elements")
 
-
     def update_constant(self):
         self.mat['E'] = [(1.0*self.C,0,-1.0*self.C,0),(0,0,0,0)]
         self.mat['F'] = [(0,-1.0,0,0),(0,1.,0,-1.)]
-        # self.mat['C'] = [0,0]
-
-        # self.mat['dE'] = [(0,)*4]*2
-        # self.mat['dF'] = [(0,)*4]*2
-        # self.mat['dC'] = [(0,)*4]*2
-
 
 
 # -- RCL - constant resistor, capacitor, inductor - vessel representation
@@ -703,11 +636,6 @@ class RCLBlock(LPNBlock):
     def update_constant(self):
         self.mat['E'] = [(0,0,0,-self.L,0),      (0,0,0,0,-self.C),   (0,0,0,0,0)]
         self.mat['F'] = [(1.,-self.R,-1.,0,0), (0,1.,0,-1.,0),      (1.,-self.R,0,0,-1.)]
-        self.mat['C'] = [0,0,0]
-
-        self.mat['dE'] = [(0,)*5]*3
-        self.mat['dF'] = [(0,)*5]*3
-        self.mat['dC'] = [(0,)*5]*3
 
 
 # -- RC - constant resistor, capacitor - low inertia vessel
@@ -726,11 +654,7 @@ class RCBlock(LPNBlock):
     def update_constant(self):
         self.mat['E'] = [(0,0,0,0),      (0,0,-self.C,0)]
         self.mat['F'] = [(1.0,-self.R,-1.0,0), (0,1.,0,-1.)]
-        # self.mat['C'] = [0,0]
-        #
-        # self.mat['dE'] = [(0,)*4]*2
-        # self.mat['dF'] = [(0,)*4]*2
-        # self.mat['dC'] = [(0,)*4]*2
+
 
 # -- RL - constant resistor, inductor
 class RLBlock(LPNBlock):
@@ -751,11 +675,7 @@ class RLBlock(LPNBlock):
 
         self.mat['E'] = [(0,0,0,-self.L),      (0,0,0,0)]
         self.mat['F'] = [(1.0,-self.R,-1.0,0), (0,1.,0,-1.)]
-        self.mat['C'] = [0,0]
 
-        self.mat['dE'] = [(0,)*4]*2
-        self.mat['dF'] = [(0,)*4]*2
-        self.mat['dC'] = [(0,)*4]*2
 
 # -- RCR - constant RCR - outflow representation
 # Formulation includes additional variable : internal pressure proximal to capacitance.
@@ -778,11 +698,7 @@ class RCRBlock(LPNBlock):
     def update_constant(self):
         self.mat['E'] = [(0,0,0,0,0),      (0,0,0,0,-self.C),   (0,0,0,0,0)]
         self.mat['F'] = [(1.0,-self.Rp,-1.0,-self.Rd,0), (0,1.,0,-1.,0),      (1.,-self.Rp,0,0,-1.)]
-        # self.mat['C'] = [0,0,0]
-        #
-        # self.mat['dE'] = [(0,)*5]*3
-        # self.mat['dF'] = [(0,)*5]*3
-        # self.mat['dC'] = [(0,)*5]*3
+
 
 # -- Unsteady RCR - time-varying RCR values
 # Formulation includes additional variable : internal pressure proximal to capacitance.
@@ -807,11 +723,6 @@ class UnsteadyRCRBlock(LPNBlock):
 
     def update_constant(self):
         self.mat['E'] = [(0,0,0,0,0),      (0,0,0,0,-self.C_func(t)),   (0,0,0,0,0)]
-        self.mat['C'] = [0,0,0]
-
-        self.mat['dE'] = [(0,)*5]*3
-        self.mat['dF'] = [(0,)*5]*3
-        self.mat['dC'] = [(0,)*5]*3
 
 
 # -- Unsteady RCR - time-varying RCR values
@@ -840,10 +751,6 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         self.mat['F'] = [(1.,-self.Rp_func(t),-1.), (0.0, self.Rd_func(t),-1.0)]
         self.mat['C'] = [0,self.Pref_func(t)]
 
-    # def update_constant(self):
-        # self.mat['dE'] = [(0,)*3]*2
-        # self.mat['dF'] = [(0,)*3]*2
-        # self.mat['dC'] = [(0,)*3]*2
 
 # -- Open loop coronary block - RCRCR - pressure imposed on the second capacitor
 class OpenLoopCoronaryBlock(LPNBlock):
@@ -895,9 +802,6 @@ class OpenLoopCoronaryBlock(LPNBlock):
         self.mat['E'] = [(0,0,0,0,0), (-self.C1,self.C1*self.R1,0,0,0),   (-self.C2,self.C2*self.R1,0,0,self.C2*self.R2)]
         self.mat['F'] = [(1.0,-self.R1,-1.0,-self.R3,-self.R2), (0,1.0,0,0,-1.0),      (0,0,0,-1.0,1.0)]
 
-        # self.mat['dE'] = [(0,)*5]*3
-        # self.mat['dF'] = [(0,)*5]*3
-        # self.mat['dC'] = [(0,)*5]*3
 
 class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
     "Publication reference: Kim, H. J. et al. Patient-specific modeling of blood flow and pressure in human coronary arteries. Annals of Biomedical Engineering 38, 3195–3209 (2010)."
@@ -951,9 +855,6 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.mat['E'] = [(-1.0*self.C1, self.R1*self.C1, 0), (self.R3*self.C2, -1.0*self.R3*self.C2*self.R1, -1.0*self.R3*self.C2*self.R2)]
         self.mat['F'] = [(0, 1.0, -1.0), (1.0, -self.R1, -1.0*(self.R3 + self.R2))]
 
-        # self.mat['dE'] = [(0,)*3]*self.neq
-        # self.mat['dF'] = [(0,)*3]*self.neq
-        # self.mat['dC'] = [(0,)*3]*self.neq
 
 ###################################################################
 class OpenLoopCoronaryWithDistalPressureBlock_v2(LPNBlock):
@@ -1022,10 +923,6 @@ class OpenLoopCoronaryWithDistalPressureBlock_v2(LPNBlock):
         self.mat['E'] = [(-1.0*self.Ca*self.Cim*self.Rv, self.Ra*self.Ca*self.Cim*self.Rv, -1.0*self.Cim*self.Rv), (0.0, 0.0, -1.0*self.Cim*self.Rv*self.Ram)]
         self.mat['F'] = [(0.0, self.Cim*self.Rv, -1.0), (self.Cim*self.Rv, -1.0*self.Cim*self.Rv*self.Ra, -1.0*(self.Rv + self.Ram))]
 
-        # self.mat['dE'] = [(0,)*3]*self.neq
-        # self.mat['dF'] = [(0,)*3]*self.neq
-        # self.mat['dC'] = [(0,)*3]*self.neq
-###############################################################
 
 # -- Time Varying Capacitance
 class TimeDependentCapacitance(LPNBlock):
@@ -1049,11 +946,6 @@ class TimeDependentCapacitance(LPNBlock):
 
     def update_constant(self):
         self.mat['F'] = [(0,-1.0,0,0),(0,1.,0,-1.)]
-        # self.mat['C'] = [0,0]
-        #
-        # self.mat['dE'] = [(0,)*4]*2
-        # self.mat['dF'] = [(0,)*4]*2
-        # self.mat['dC'] = [(0,)*4]*2
 
 
 # -- Chamber Capacitance -- with direct prescription of pressure
@@ -1122,10 +1014,7 @@ class ChamberModel(LPNBlock):
         # self.mat['F'] = [(0,-1.,0,1.,0), (-1.,0,1.,0,0),  (1.,0,0.,0,-(a_lin+p_lin))]
         # self.mat['C'] = [0,0,c_from_lin+self.Pref]
 
-        # self.mat['dE'] = [(0,)*5,(0,)*5,(0,)*5]
-        # self.mat['dF'] = [(0,)*5,(0,)*5,(0,)*5]
         self.mat['dC'] = [(0,)*5,(0,)*5,(0,0,0,0,-(a_lin+p_lin))]
-
 
 
 # -- Inductance
@@ -1143,11 +1032,6 @@ class Inductance(LPNBlock):
     def update_constant(self):
         self.mat['E'] = [(0.0,-1.,0.0,0),(0,0,0,0)]
         self.mat['F'] = [(1./self.L,0.0,-1./self.L,0),(0,1.,0,-1.)]
-        # self.mat['C'] = [0,0]
-        #
-        # self.mat['dE'] = [(0,)*4]*2
-        # self.mat['dF'] = [(0,)*4]*2
-        # self.mat['dC'] = [(0,)*4]*2
 
 
 # -- Ideal diode - state variable
@@ -1178,10 +1062,6 @@ class IdealDiode2(LPNBlock):
         Pi = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[0]]
         Po = curr_y[wire_dict[self.connecting_wires_list[1]].LPN_solution_ids[0]]
         state = curr_y[self.LPN_solution_ids[0]]
-        # self.mat['E'] = [(0,)*5]*3
-        # self.mat['dE'] = [(0,)*5]*3
-        # self.mat['dF'] = [(0,)*5]*3
-        # self.mat['dC'] = [(0,)*5]*3
 
         if state > 0 :
             # Zero flow
@@ -1213,7 +1093,6 @@ class IdealDiode2(LPNBlock):
             # print state
 
 
-
 # -- Pressure source (two terminal : analogous to a battery)
 class PressureSource(LPNBlock):
     def __init__(self,Pfunction,Pref,connecting_block_list=None,name="NoNamePressureSource",flow_directions=None):
@@ -1237,42 +1116,7 @@ class PressureSource(LPNBlock):
         # self.mat['C'] = [-1.0*self.Pref,-1.0*self.Pfunction(t)]
 
     def update_constant(self):
-        # self.mat['E'] = [(0,0)]*2
         self.mat['F'] = [(1.,0,0,0),(0,0,1.,0)]
-
-        # self.mat['dE'] = [(0,)*4]*2
-        # self.mat['dF'] = [(0,)*4]*2
-        # self.mat['dC'] = [(0,)*4]*2
-
-
-# # -- Flow source (single terminal)
-# class FlowSource(LPNBlock):
-#     def __init__(self,Qfunction,connecting_block_list=None,name="NoNameFlowSource",flow_directions=None):
-
-#         LPNBlock.__init__(self,connecting_block_list,name=name,flow_directions=flow_directions)
-#         self.neq = 1
-#         self.type = "FlowSource"
-#         self.Qfunction=Qfunction
-
-#     def check_block_consistency(self):
-#         if len(connecting_block_list) != 1:
-#             raise Exception("FlowSource block can be connected only to one elements")
-
-#     def update_time(self,args):
-#         t = args['Time']
-
-#         # rho = args['rho']
-#         # dt = args['Time step']
-#         # alpha_f = 1.0/(1.0+rho)
-
-#         self.mat['E'] = [(0,0)]
-#         self.mat['F'] = [(0,1.)]
-#         # self.mat['C'] = [-1.0*self.Qfunction(t+alpha_f*dt)]
-#         self.mat['C'] = [-1.0*self.Qfunction(t)]
-
-#         self.mat['dE'] = [(0,)*4]*2
-#         self.mat['dF'] = [(0,)*4]*2
-#         self.mat['dC'] = [(0,)*4]*2
 
 
 class UnsteadyResistanceWithDistalPressure_special(LPNBlock):
@@ -1300,12 +1144,6 @@ class UnsteadyResistanceWithDistalPressure_special(LPNBlock):
         self.mat['F'] = [(1.,-1.0*self.Rfunc(t))]
         self.mat['C'] = [-1.0*self.Pref_func(t)]
 
-    def update_constant(self):
-        self.mat['E'] = [(0,)*2]
-
-        self.mat['dE'] = [(0,)*2]
-        self.mat['dF'] = [(0,)*2]
-        self.mat['dC'] = [(0,)*2]
 
 # -- Resistance
 class UnsteadyResistance_special(LPNBlock):
@@ -1327,13 +1165,6 @@ class UnsteadyResistance_special(LPNBlock):
         t = args['Time']
         self.mat['F'] = [(1.,-1.0*self.Rfunc(t),-1.,0),(0,1.,0,-1.)]
 
-    def update_constant(self):
-        self.mat['E'] = [(0,)*4]*2
-        self.mat['C'] = [0]*2
-
-        self.mat['dE'] = [(0,)*4]*2
-        self.mat['dF'] = [(0,)*4]*2
-        self.mat['dC'] = [(0,)*4]*2
 
 class UnsteadyFlowRef_special(LPNBlock):
     def __init__(self,Qfunc,connecting_block_list=None,name="NoNameUnsteadyFlowRef_special",flow_directions=None):
@@ -1355,12 +1186,8 @@ class UnsteadyFlowRef_special(LPNBlock):
         self.mat['C'] = [-1.0*self.Qfunc(t)]
 
     def update_constant(self):
-        self.mat['E'] = [(0,0)]
         self.mat['F'] = [(0,1.)]
 
-        self.mat['dE'] = [(0,)]
-        self.mat['dF'] = [(0,)]
-        self.mat['dC'] = [(0,)]
 
 class Junction_special(LPNBlock):
     def __init__(self,temp_parameter,connecting_block_list=None,name="NoNameJunction_special",flow_directions=None):
@@ -1399,8 +1226,3 @@ class Junction_special(LPNBlock):
 
         tmp += (self.flow_directions[-1],)
         self.mat['F'].append(tmp)
-        self.mat['C'] = [0]*self.num_connections
-
-        self.mat['dE'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        self.mat['dF'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
-        self.mat['dC'] = [(0,)*(2*self.num_connections)]*(self.num_connections)
