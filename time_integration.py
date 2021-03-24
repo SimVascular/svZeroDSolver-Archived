@@ -4,7 +4,8 @@ import scipy
 from scipy.sparse import csr_matrix
 import pdb
 
-def min_ydot_least_sq_init(neq,eps_min,yinit,block_list,args,dt,rho,eps_factor=5.0):
+
+def min_ydot_least_sq_init(neq, eps_min, yinit, block_list, args, dt, rho, eps_factor=5.0):
     # System : min (over y) ||Fy+C||^2 + eps||Ay-yinit||^2
     # Inversion equation:
     # y <-- inv(F'F+eps*D) (-F'C+eps*D*yinit)
@@ -22,33 +23,33 @@ def min_ydot_least_sq_init(neq,eps_min,yinit,block_list,args,dt,rho,eps_factor=5
 
     y0 = yinit
 
-    E,F,C,dE,dF,dC = initialize_solution_matrices(neq)
+    E, F, C, dE, dF, dC = initialize_solution_matrices(neq)
 
     if np.linalg.norm(yinit) == 0.:
         D = np.eye(neq)
-    else :
-        D = np.diag([_!=0 for _ in yinit])
+    else:
+        D = np.diag([_ != 0 for _ in yinit])
 
     print("Approximate consistent initialization : \n\n")
 
-    while eps > eps_min :
-        iit +=1
+    while eps > eps_min:
+        iit += 1
         args['Solution'] = y0
-        assemble_structures(E,F,C,dE,dF,dC,args,block_list)
+        assemble_structures(E, F, C, dE, dF, dC, args, block_list)
 
-        M = np.dot(F.transpose(),F)+eps*D
-        v = -np.dot(F.transpose(),C) + eps*np.dot(D,yinit)
-        y0,_,_,_ = np.linalg.lstsq(M,v)
+        M = np.dot(F.transpose(), F) + eps * D
+        v = -np.dot(F.transpose(), C) + eps * np.dot(D, yinit)
+        y0, _, _, _ = np.linalg.lstsq(M, v)
 
-        ydot0,_,_,_ = np.linalg.lstsq(E,-np.dot(F,y0)-C)
+        ydot0, _, _, _ = np.linalg.lstsq(E, -np.dot(F, y0) - C)
 
-        print("Iteration ",iit,", Initializing residual: ",np.linalg.norm(form_rhs_NR(E,F,C,y0,ydot0)))
-        eps = eps/eps_factor
+        print("Iteration ", iit, ", Initializing residual: ", np.linalg.norm(form_rhs_NR(E, F, C, y0, ydot0)))
+        eps = eps / eps_factor
+
+    return y0, ydot0
 
 
-    return y0,ydot0
-
-def min_ydot_cons_least_sq_init(neq,eps_min,yinit,block_list,args,dt,rho,eps_factor=5.0):
+def min_ydot_cons_least_sq_init(neq, eps_min, yinit, block_list, args, dt, rho, eps_factor=5.0):
     # System : min (over y) ||Fy+C||^2 + sum_j(lambda_j(y_j-yinit_j))
     # Inversion equation:
     # [2(F'F)  A' ][  y0  ] = [ -2F'C ]
@@ -66,66 +67,65 @@ def min_ydot_cons_least_sq_init(neq,eps_min,yinit,block_list,args,dt,rho,eps_fac
 
     indx = np.nonzero(yinit)
 
-    E,F,C,dE,dF,dC = initialize_solution_matrices(neq)
+    E, F, C, dE, dF, dC = initialize_solution_matrices(neq)
 
     print("Approximate consistent initialization : \n\n")
 
     isize = indx[0].size
 
     if isize == 0:
-        while eps > eps_min :
-            iit +=1
+        while eps > eps_min:
+            iit += 1
             args['Solution'] = y0
-            assemble_structures(E,F,C,dE,dF,dC,args,block_list)
-            M =  np.dot(F.transpose(),F)
-            v = -np.dot(F.transpose(),C+np.dot(E,ydot0))
-            y0,_,_,_ = np.linalg.lstsq(M,v)
-            ydot0,_,_,_ = np.linalg.lstsq(E,-np.dot(F,y0)-C)
-            print("Iteration ",iit,", Initializing residual: ",np.linalg.norm(form_rhs_NR(E,F,C,y0,ydot0)))
-            print("Iteration ",iit,", Initializing time derivative size: ",np.linalg.norm(ydot0))
-            eps = eps/eps_factor
+            assemble_structures(E, F, C, dE, dF, dC, args, block_list)
+            M = np.dot(F.transpose(), F)
+            v = -np.dot(F.transpose(), C + np.dot(E, ydot0))
+            y0, _, _, _ = np.linalg.lstsq(M, v)
+            ydot0, _, _, _ = np.linalg.lstsq(E, -np.dot(F, y0) - C)
+            print("Iteration ", iit, ", Initializing residual: ", np.linalg.norm(form_rhs_NR(E, F, C, y0, ydot0)))
+            print("Iteration ", iit, ", Initializing time derivative size: ", np.linalg.norm(ydot0))
+            eps = eps / eps_factor
 
-    else :
-        A = np.zeros((isize,neq))
+    else:
+        A = np.zeros((isize, neq))
         i = 0
         print(indx[0])
         for j in indx[0]:
-            A[i,j] = 1
-            i+=1
+            A[i, j] = 1
+            i += 1
 
-        while eps > eps_min :
-            iit +=1
+        while eps > eps_min:
+            iit += 1
             args['Solution'] = y0
-            assemble_structures(E,F,C,dE,dF,dC,args,block_list)
+            assemble_structures(E, F, C, dE, dF, dC, args, block_list)
 
-            T = 2*np.dot(F.transpose(),F)
+            T = 2 * np.dot(F.transpose(), F)
 
             M = np.block([
-                [T,A.transpose()],
-                [A,np.zeros((isize,isize))]
-                ])
+                [T, A.transpose()],
+                [A, np.zeros((isize, isize))]
+            ])
 
-            v = np.block([-2*np.dot(F.transpose(),C+np.dot(E,ydot0)),yinit[indx]]).transpose()
+            v = np.block([-2 * np.dot(F.transpose(), C + np.dot(E, ydot0)), yinit[indx]]).transpose()
 
-            yM,_,_,_ = np.linalg.lstsq(M,v)
+            yM, _, _, _ = np.linalg.lstsq(M, v)
 
             y0 = yM[:neq]
-            ydot0,_,_,_ = np.linalg.lstsq(E,-np.dot(F,y0)-C)
+            ydot0, _, _, _ = np.linalg.lstsq(E, -np.dot(F, y0) - C)
 
-            print("Iteration ",iit,", Initializing residual: ",np.linalg.norm(form_rhs_NR(E,F,C,y0,ydot0)))
-            print("Iteration ",iit,", Initializing time derivative size: ",np.linalg.norm(ydot0))
-            eps = eps/eps_factor
+            print("Iteration ", iit, ", Initializing residual: ", np.linalg.norm(form_rhs_NR(E, F, C, y0, ydot0)))
+            print("Iteration ", iit, ", Initializing time derivative size: ", np.linalg.norm(ydot0))
+            eps = eps / eps_factor
 
-
-    return y0,ydot0
+    return y0, ydot0
 
 
 # Equation: E*ydot + F*y + C = 0
 class GenAlpha():
     def __init__(self, rho, y):
         # Constants for generalized alpha
-        self.alpha_m = 0.5*(3.0-rho)/(1.0+rho)
-        self.alpha_f = 1.0/(1.0+rho)
+        self.alpha_m = 0.5 * (3.0 - rho) / (1.0 + rho)
+        self.alpha_f = 1.0 / (1.0 + rho)
         self.gamma = 0.5 + self.alpha_m - self.alpha_f
         self.n = y.shape[0]
 
@@ -139,10 +139,12 @@ class GenAlpha():
         self.initialize_solution_matrices()
 
     def initialize_solution_matrices(self):
+        """
+        Create empty dense matrices and vectors
+        """
         mats = ['E', 'F', 'dE', 'dF', 'dC']
         vecs = ['C']
 
-        # create empty dense matrices
         for m in mats:
             self.mat[m] = np.zeros((self.n, self.n))
         for v in vecs:
@@ -165,7 +167,8 @@ class GenAlpha():
                             self.mat[n][bl.global_row_id[i], bl.global_col_id[j]] = bl.mat[n][i][j]
 
     def form_matrix_NR(self, dt):
-        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (self.alpha_f * self.gamma * dt)))
+        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
+                    self.alpha_f * self.gamma * dt)))
 
     def form_rhs_NR(self, y, ydot):
         self.res = - np.dot(self.mat['E'], ydot) - np.dot(self.mat['F'], y) - self.mat['C']
@@ -173,7 +176,7 @@ class GenAlpha():
 
     def step(self, y, ydot, t, block_list, args, dt, nit=30):
         # Initial guess for n+1-th step -- explicit euler type guess, half step
-        curr_y = y+0.5*dt*ydot
+        curr_y = y + 0.5 * dt * ydot
         curr_ydot = np.copy(ydot) * ((self.gamma - 0.5) / self.gamma)
 
         # Substep level quantities
@@ -235,7 +238,8 @@ class GenAlpha():
             iit += 1
 
         if iit >= nit:
-            print("Max NR iterations reached at time: ", t, " , max error: ", max(abs(res0))) # NOTE: "max error" = max residual here
+            print("Max NR iterations reached at time: ", t, " , max error: ",
+                  max(abs(res0)))  # NOTE: "max error" = max residual here
             # print "Condition number of F ", np.linalg.cond(F)
             # print "Condition number of NR matrix: ",np.linalg.cond(M)
             # print M
@@ -243,6 +247,6 @@ class GenAlpha():
         curr_y = y + (yaf - y) / self.alpha_f
         curr_ydot = ydot + (ydotam - ydot) / self.alpha_m
 
-        args['Time'] = t+dt
+        args['Time'] = t + dt
 
         return curr_y, curr_ydot
