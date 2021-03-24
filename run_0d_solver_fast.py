@@ -52,10 +52,9 @@ try:
 except ImportError:
     print("\nnetworkx not found. networkx is needed only if you want to visualize your 0d model as a directed graph.")
 try:
-    import network_util_NR_fast as ntwku
-    # import network_util_NR_update_functions as ntwku
-    # import network_util_NR_use_more_numpy_even_slower as ntwku
-    # import network_util_NR_use_less_numpy_singular as ntwku
+    import blocks as ntwku
+    import connections
+    import time_integration as time_int
 except ImportError:
     message = "Error. network_util_NR.py was not imported. This code is needed to create the network_util_NR::LPNBlock objects for the 0D elements and run the 0D simulations."
     raise ImportError(message)
@@ -606,22 +605,22 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     """
 
     block_list = list(parameters["blocks"].values())
-    connect_list, wire_dict = ntwku.connect_blocks_by_inblock_list(block_list)
+    connect_list, wire_dict = connections.connect_blocks_by_inblock_list(block_list)
     if draw_directed_graph == True:
         zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
         directed_graph_file_path = zero_d_input_file_name + "_directed_graph"
         save_directed_graph(block_list, connect_list, directed_graph_file_path)
-    neq = ntwku.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
+    neq = connections.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
     for block in block_list: # run a consistency check
-        ntwku.check_block_connection(block)
-    var_name_list = ntwku.assign_global_ids(block_list, wire_dict) # assign solution variables with global ID
+        connections.check_block_connection(block)
+    var_name_list = connections.assign_global_ids(block_list, wire_dict) # assign solution variables with global ID
 
     # initialize solution structures
     if use_ICs_from_npy_file:
         ICs_dict = np.load(ICs_npy_file_path, allow_pickle = True).item()
         y_initial, ydot_initial = load_in_ics(var_name_list, ICs_dict)
     else:
-        y_initial, ydot_initial = ntwku.initialize_solution_structures(neq) # initial conditions for all solutions are zero
+        y_initial, ydot_initial = connections.initialize_solution_structures(neq) # initial conditions for all solutions are zero
     y_next = y_initial.copy()
     ydot_next = ydot_initial.copy()
 
@@ -639,7 +638,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     tlist = np.array([ parameters["initial_time"] + _*parameters["delta_t"] for _ in range(0, parameters["total_number_of_simulated_time_steps"])])
 
     # create time integration
-    t_int = ntwku.GenAlpha(rho, y_next)
+    t_int = time_int.GenAlpha(rho, y_next)
 
     # for t_current in tqdm(tlist[:-1]): # added this line on 10/14/20:
     for t_current in tlist[1:]: # run time stepping loop # currently here 10/14/20:  need to change tlist[1:] to tlist[:-1] because t_current is t_n and y_next, ydot_next are y_(n+1) and ydot_(n+1), and in numerical methods, we usually always use the current time step (t_n) to solve for the solution at the next time step ( t_(n+1) ); # commented this line out on 10/14/20:
@@ -691,15 +690,15 @@ def run_network_util_with_y_ydot_return(zero_d_solver_input_file_path, parameter
     """
 
     block_list = list(parameters["blocks"].values())
-    connect_list, wire_dict = ntwku.connect_blocks_by_inblock_list(block_list)
+    connect_list, wire_dict = connections.connect_blocks_by_inblock_list(block_list)
 
-    neq = ntwku.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
+    neq = connections.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
     for block in block_list: # run a consistency check
-        ntwku.check_block_connection(block)
-    var_name_list = ntwku.assign_global_ids(block_list, wire_dict) # assign solution variables with global ID
+        connections.check_block_connection(block)
+    var_name_list = connections.assign_global_ids(block_list, wire_dict) # assign solution variables with global ID
 
     # initialize solution structures
-    y_initial, ydot_initial = ntwku.initialize_solution_structures(neq) # initial conditions for all solutions are zero
+    y_initial, ydot_initial = connections.initialize_solution_structures(neq) # initial conditions for all solutions are zero
     y_next = y_initial.copy()
     ydot_next = ydot_initial.copy()
 
