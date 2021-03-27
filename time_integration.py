@@ -187,9 +187,10 @@ class GenAlpha():
         Numerically compute the Jacobian by computing the partial derivatives of the residual using forward finite differences
         """
 
-        # save original values for restoration later
+        ############# save original values for restoration later #############
         yaf_original = copy.deepcopy(args['Solution']) # yaf_i
 
+        ############# compute numerical Jacobian #############
         J_numerical = np.zeros((self.n, self.n))
         for jj in range(self.n):
 
@@ -198,10 +199,6 @@ class GenAlpha():
 
             # get solution at the i+1 step
             args['Solution'] = yaf_original  + yaf_step_size # yaf_ip1
-
-            # E_ip1, F_ip1, C_ip1, dE_ip1, dF_ip1, dC_ip1 = initialize_solution_matrices(n)
-            # assemble_structures(E_ip1, F_ip1, C_ip1, dE_ip1, dF_ip1, dC_ip1, args, block_list)
-            # res_ip1 = form_rhs_NR(E_ip1, F_ip1, C_ip1, args['Solution'], ydotam)
 
             for b in block_list:
                 b.update_solution(args)
@@ -231,16 +228,12 @@ class GenAlpha():
         epsilon_list = np.power(10, np.linspace(-6, 4, 25))
 
         fig, axs = plt.subplots(self.n, self.n, figsize = (20, 20))
-        print("J_exact:")
-        print(self.M)
         for epsilon in epsilon_list:
-            print("epsilon = ", epsilon)
             J_numerical = self.form_matrix_NR_numerical(res_i, ydotam, args, block_list, epsilon)
             error = np.abs(self.M - J_numerical)
             for ii in range(self.n):
                 for jj in range(self.n):
                     axs[ii, jj].loglog(epsilon, error[ii, jj], 'k*-')
-            pdb.set_trace()
 
         for ax in axs.flat:
             ax.set(xlabel='epsilon', ylabel='error')
@@ -290,8 +283,9 @@ class GenAlpha():
                 self.form_rhs_NR(yaf, ydotam)
 
             self.form_matrix_NR(dt)
-            if args['Time'] > dt:
-                self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
+            if args['check_jacobian']:
+                if args['Time'] > dt:
+                    self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
             dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
             while np.linalg.norm(self.res) >= np.linalg.norm(self.res0) and damping > 1e-5:
                 yaf2 = yaf + damping * dy
@@ -305,7 +299,7 @@ class GenAlpha():
             self.res0 = self.res
             if np.any(np.isnan(self.res0)):
                 raise RuntimeError('Solution nan')
-            print("iit = ", iit, ", time = ", t, " , Max residual (in while loop) = ", max(abs(self.res0)))
+            # print("iit = ", iit, ", time = ", t, " , Max residual (in while loop) = ", max(abs(self.res0)))
 
             # Check this equation up
             # ydotam = (1-alpha_m/gamma)*ydot + (alpha_m/(gamma*dt*alpha_f))*(yaf-y)
@@ -314,8 +308,7 @@ class GenAlpha():
             iit += 1
 
         if iit >= nit:
-            print("Max NR iterations reached at time: ", t, " , max error: ",
-                  max(abs(res0)))  # NOTE: "max error" = max residual here
+            print("Max NR iterations reached at time: ", t, " , max error: ", max(abs(self.res0)))  # NOTE: "max error" = max residual here
             # print "Condition number of F ", np.linalg.cond(F)
             # print "Condition number of NR matrix: ",np.linalg.cond(M)
             # print M
