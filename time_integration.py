@@ -129,7 +129,7 @@ class GenAlpha():
         self.gamma = 0.5 + self.alpha_m - self.alpha_f
         self.n = y.shape[0]
 
-        self.damping_step = 1.5
+        self.damping_step = 1.0
 
         self.mat = {}
         self.M = []
