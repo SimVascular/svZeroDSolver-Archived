@@ -3,6 +3,8 @@ import numpy as np
 import scipy
 from scipy.sparse import csr_matrix
 import pdb
+import copy
+import matplotlib.pyplot as plt
 
 
 def min_ydot_least_sq_init(neq, eps_min, yinit, block_list, args, dt, rho, eps_factor=5.0):
@@ -132,8 +134,8 @@ class GenAlpha():
         self.damping_step = 1.0
 
         self.mat = {}
-        self.M = []
-        self.res = []
+        self.M = [] # jacobian matrix
+        self.res = [] # residual vector
         self.res0 = []
 
         self.initialize_solution_matrices()
@@ -167,12 +169,77 @@ class GenAlpha():
                             self.mat[n][bl.global_row_id[i], bl.global_col_id[j]] = bl.mat[n][i][j]
 
     def form_matrix_NR(self, dt):
+        """
+        Create Jacobian matrix
+        """
         self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
                     self.alpha_f * self.gamma * dt)))
 
     def form_rhs_NR(self, y, ydot):
+        """
+        Create residual vector
+        """
         self.res = - np.dot(self.mat['E'], ydot) - np.dot(self.mat['F'], y) - self.mat['C']
         # return - csr_matrix(E).dot(ydot) - csr_matrix(F).dot(y) - C
+
+    def form_matrix_NR_numerical(self, res_i, ydotam, args, block_list, epsilon):
+        """
+        Numerically compute the Jacobian by computing the partial derivatives of the residual using forward finite differences
+        """
+
+        ############# save original values for restoration later #############
+        yaf_original = copy.deepcopy(args['Solution']) # yaf_i
+
+        ############# compute numerical Jacobian #############
+        J_numerical = np.zeros((self.n, self.n))
+        for jj in range(self.n):
+
+            yaf_step_size = np.zeros(self.n)
+            yaf_step_size[jj] = np.abs(yaf_original[jj])  * epsilon
+
+            # get solution at the i+1 step
+            args['Solution'] = yaf_original  + yaf_step_size # yaf_ip1
+
+            for b in block_list:
+                b.update_solution(args)
+            self.initialize_solution_matrices()
+            self.assemble_structures(block_list)
+            self.form_rhs_NR(args['Solution'], ydotam)
+
+            # use forward finite differences
+            J_numerical[:, jj] = (self.res - res_i) / yaf_step_size[jj] * -1 # multiply by -1 b/c form_rhs_NR creates the negative residual
+
+        ############# restore original quantities #############
+        args['Solution'] = yaf_original
+
+        for b in block_list:
+            b.update_solution(args)
+        self.initialize_solution_matrices()
+        self.assemble_structures(block_list)
+        self.form_rhs_NR(args['Solution'], ydotam)
+
+        return J_numerical
+
+    def check_jacobian(self, res_i, ydotam, args, block_list):
+        """
+        Check if the analytical Jacobian (computed from form_matrix_NR) matches the numerical Jacobian
+        """
+
+        epsilon_list = np.power(10, np.linspace(-6, 4, 25))
+
+        fig, axs = plt.subplots(self.n, self.n, figsize = (20, 20))
+        for epsilon in epsilon_list:
+            J_numerical = self.form_matrix_NR_numerical(res_i, ydotam, args, block_list, epsilon)
+            error = np.abs(self.M - J_numerical)
+            for ii in range(self.n):
+                for jj in range(self.n):
+                    axs[ii, jj].loglog(epsilon, error[ii, jj], 'k*-')
+
+        for ax in axs.flat:
+            ax.set(xlabel='epsilon', ylabel='error')
+
+        fig.suptitle('absolute error vs epsilon')
+        plt.show()
 
     def step(self, y, ydot, t, block_list, args, dt, nit=30):
         # Initial guess for n+1-th step -- explicit euler type guess, half step
@@ -216,6 +283,9 @@ class GenAlpha():
                 self.form_rhs_NR(yaf, ydotam)
 
             self.form_matrix_NR(dt)
+            if args['check_jacobian']:
+                if args['Time'] > dt:
+                    self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
             dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
             while np.linalg.norm(self.res) >= np.linalg.norm(self.res0) and damping > 1e-5:
                 yaf2 = yaf + damping * dy
@@ -229,7 +299,7 @@ class GenAlpha():
             self.res0 = self.res
             if np.any(np.isnan(self.res0)):
                 raise RuntimeError('Solution nan')
-            # print "time = ", t, " , Max residual (in while loop) = ", max(abs(res0))
+            # print("iit = ", iit, ", time = ", t, " , Max residual (in while loop) = ", max(abs(self.res0)))
 
             # Check this equation up
             # ydotam = (1-alpha_m/gamma)*ydot + (alpha_m/(gamma*dt*alpha_f))*(yaf-y)
@@ -238,8 +308,7 @@ class GenAlpha():
             iit += 1
 
         if iit >= nit:
-            print("Max NR iterations reached at time: ", t, " , max error: ",
-                  max(abs(res0)))  # NOTE: "max error" = max residual here
+            print("Max NR iterations reached at time: ", t, " , max error: ", max(abs(self.res0)))  # NOTE: "max error" = max residual here
             # print "Condition number of F ", np.linalg.cond(F)
             # print "Condition number of NR matrix: ",np.linalg.cond(M)
             # print M

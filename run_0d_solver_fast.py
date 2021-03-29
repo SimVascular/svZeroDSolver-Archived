@@ -629,6 +629,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     args['Time step'] = parameters["delta_t"]
     args['rho'] = rho
     args['Wire dictionary'] = wire_dict
+    args["check_jacobian"] = parameters["check_jacobian"]
 
     # y_next, ydot_next = min_ydot_least_sq_init(neq, 1e-8, y_initial, block_list, args, parameters["delta_t"], rho)
 
@@ -1336,7 +1337,7 @@ def comparing_true_to_loaded(zero_d_results_for_var_names_true, zero_d_results_f
         message = "Error. The qois of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
         raise RuntimeError(message)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1380,6 +1381,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_p
     else:
         custom_0d_elements_arguments = None
     parameters = oneD_to_zeroD_convertor.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
+    parameters["check_jacobian"] = check_jacobian
     create_LPN_blocks(parameters, custom_0d_elements_arguments)
     set_solver_parameters(parameters, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles)
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path)
