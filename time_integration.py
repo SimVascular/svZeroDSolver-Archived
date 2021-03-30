@@ -122,22 +122,29 @@ def min_ydot_cons_least_sq_init(neq, eps_min, yinit, block_list, args, dt, rho, 
     return y0, ydot0
 
 
-# Equation: E*ydot + F*y + C = 0
-class GenAlpha():
+class GenAlpha:
+    """
+    Solves system E*ydot + F*y + C = 0 with generalized alpha and Newton-Raphson for non-linear residual
+    """
     def __init__(self, rho, y):
         # Constants for generalized alpha
         self.alpha_m = 0.5 * (3.0 - rho) / (1.0 + rho)
         self.alpha_f = 1.0 / (1.0 + rho)
         self.gamma = 0.5 + self.alpha_m - self.alpha_f
+
+        # problem dimension
         self.n = y.shape[0]
 
-        self.damping_step = 1.0
-
+        # stores matrices E, F, vector C, and tangent matrices dE, dF, dC
         self.mat = {}
-        self.M = [] # jacobian matrix
-        self.res = [] # residual vector
-        self.res0 = []
 
+        # jacobian matrix
+        self.M = []
+
+        # residual vector
+        self.res = []
+
+        # initialize matrices in self.mat
         self.initialize_solution_matrices()
 
     def initialize_solution_matrices(self):
@@ -186,11 +193,10 @@ class GenAlpha():
         """
         Numerically compute the Jacobian by computing the partial derivatives of the residual using forward finite differences
         """
-
-        ############# save original values for restoration later #############
+        # save original values for restoration later
         yaf_original = copy.deepcopy(args['Solution']) # yaf_i
 
-        ############# compute numerical Jacobian #############
+        # compute numerical Jacobian
         J_numerical = np.zeros((self.n, self.n))
         for jj in range(self.n):
 
@@ -206,10 +212,10 @@ class GenAlpha():
             self.assemble_structures(block_list)
             self.form_rhs_NR(args['Solution'], ydotam)
 
-            # use forward finite differences
-            J_numerical[:, jj] = (self.res - res_i) / yaf_step_size[jj] * -1 # multiply by -1 b/c form_rhs_NR creates the negative residual
+            # use forward finite differences (multiply by -1 b/c form_rhs_NR creates the negative residual)
+            J_numerical[:, jj] = (self.res - res_i) / yaf_step_size[jj] * -1
 
-        ############# restore original quantities #############
+        # restore original quantities
         args['Solution'] = yaf_original
 
         for b in block_list:
@@ -242,77 +248,60 @@ class GenAlpha():
         plt.show()
 
     def step(self, y, ydot, t, block_list, args, dt, nit=30):
-        # Initial guess for n+1-th step -- explicit euler type guess, half step
-        curr_y = y + 0.5 * dt * ydot
-        curr_ydot = np.copy(ydot) * ((self.gamma - 0.5) / self.gamma)
+        """
+        Perform one time step
+        """
+        # initial guess for time step
+        curr_y = y.copy() + 0.5 * dt * ydot
+        curr_ydot = ydot.copy() * ((self.gamma - 0.5) / self.gamma)
 
         # Substep level quantities
         yaf = y + self.alpha_f * (curr_y - y)
         ydotam = ydot + self.alpha_m * (curr_ydot - ydot)
 
-        # print t
+        # initialize solution
         args['Time'] = t + self.alpha_f * dt
-
-        iit = 0
-
         args['Solution'] = yaf
 
         # initialize blocks
         for b in block_list:
             b.update_constant()
             b.update_time(args)
-            b.update_solution(args)
 
-        self.assemble_structures(block_list)
+        self.res = [1e16]
+        iit = 0
+        while np.max(np.abs(self.res)) > 5e-4 and iit < nit:
+            # update solution-dependent blocks
+            for b in block_list:
+                b.update_solution(args)
 
-        self.form_rhs_NR(yaf, ydotam)
-        self.res0 = self.res
-
-        # print "time = ", t, " , Max residual (outside while loop) = ", max(abs(res0))
-        while max(abs(self.res0)) > 5e-4 and iit < nit:
-
-            damping = 1.
-
-            if iit > 0:
-                # update solution-dependent blocks
-                for b in block_list:
-                    b.update_solution(args)
-
-                # update newton
-                self.assemble_structures(block_list)
-                self.form_rhs_NR(yaf, ydotam)
-
+            # update residual and jacobian
+            self.assemble_structures(block_list)
+            self.form_rhs_NR(yaf, ydotam)
             self.form_matrix_NR(dt)
+
+            # perform finite-difference check of jacobian if requested
             if args['check_jacobian']:
                 if args['Time'] > dt:
                     self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
+
+            # solve for Newton increment
             dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
-            while np.linalg.norm(self.res) >= np.linalg.norm(self.res0) and damping > 1e-5:
-                yaf2 = yaf + damping * dy
-                ydotam2 = ydotam + damping * self.alpha_m * dy / (self.alpha_f * self.gamma * dt)
-                damping /= self.damping_step
-                self.form_rhs_NR(yaf2, ydotam2)
 
-            yaf = yaf + self.damping_step * damping * dy
-            ydotam = ydotam + self.damping_step * damping * self.alpha_m * dy / (self.alpha_f * self.gamma * dt)
+            # update solution
+            yaf += dy
+            ydotam += self.alpha_m * dy / (self.alpha_f * self.gamma * dt)
 
-            self.res0 = self.res
-            if np.any(np.isnan(self.res0)):
+            if np.any(np.isnan(self.res)):
                 raise RuntimeError('Solution nan')
-            # print("iit = ", iit, ", time = ", t, " , Max residual (in while loop) = ", max(abs(self.res0)))
-
-            # Check this equation up
-            # ydotam = (1-alpha_m/gamma)*ydot + (alpha_m/(gamma*dt*alpha_f))*(yaf-y)
 
             args['Solution'] = yaf
             iit += 1
 
         if iit >= nit:
-            print("Max NR iterations reached at time: ", t, " , max error: ", max(abs(self.res0)))  # NOTE: "max error" = max residual here
-            # print "Condition number of F ", np.linalg.cond(F)
-            # print "Condition number of NR matrix: ",np.linalg.cond(M)
-            # print M
+            print("Max NR iterations reached at time: ", t, " , max error: ", max(abs(self.res)))
 
+        # update time step
         curr_y = y + (yaf - y) / self.alpha_f
         curr_ydot = ydot + (ydotam - ydot) / self.alpha_m
 
