@@ -1,6 +1,7 @@
 # coding=utf-8
 import numpy as np
 import scipy
+import scipy.sparse.linalg
 from scipy.sparse import csr_matrix
 import pdb
 import copy

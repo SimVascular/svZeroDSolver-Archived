@@ -56,13 +56,16 @@ try:
     import connections
     import time_integration as time_int
 except ImportError:
-    message = "Error. network_util_NR.py was not imported. This code is needed to create the network_util_NR::LPNBlock objects for the 0D elements and run the 0D simulations."
+    message = "Error. 0D solver was not imported. This code is needed to create the network_util_NR::LPNBlock objects for the 0D elements and run the 0D simulations."
     raise ImportError(message)
+try:
+    from profilehooks import profile # only needed if you want to profile this script
+except ImportError:
+    print("\nprofilehooks.profile not found. profilehooks.profile is needed only if you want to profile this script.")
 np.set_printoptions(threshold=sys.maxsize)
 import importlib
 
 """ TODOs """
-
 # currently here 8/26/20: should try runing code profiling on this python code when i have free time to see how to make this code more efficient, which will be useful for large 0d models, ie pulmonaries # https://stackoverflow.com/questions/582336/how-can-you-profile-a-python-script
 
 def import_custom_0d_elements(custom_0d_elements_arguments_file_path):
@@ -141,8 +144,6 @@ def create_bc_equations(parameters):
         void but updates parameters to include:
             float cardiac_cycle_period
                 = period of a cardiac cycle
-            float initial_time
-                = start time of the cardiac cycle
             dict bc_equations
                 =   {
                         "inlet" : {segment number : [list of equations for BC parameeter values as functions of time]}
@@ -153,7 +154,6 @@ def create_bc_equations(parameters):
     built_in_bc_types = {"inlet" : ["FLOW", "PRESSURE"], "outlet" : ["RESISTANCE", "RCR", "FLOW", "PRESSURE"]}
     temp = -10000000.0
     cardiac_cycle_period = temp # initialize as a large negative number for the below code to work correctly
-    initial_time = temp # initialize as a large negative number for the below code to work correctly
     for location in list(built_in_bc_types.keys()):
         location_segments_of_model = location + "_segments_of_model"
         for i in range(0, len(parameters[location_segments_of_model])):
@@ -177,7 +177,6 @@ def create_bc_equations(parameters):
                     end_index = start_index + num_values_per_variable
                     time, bc_values = extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
                     if len(time) > 1: # for time-dependent boundary conditions
-                        initial_time = time[0]
                         if cardiac_cycle_period == temp: # this if statement should get called only once
                             if (time[-1] - time[0]) <= 0.0:
                                 message = "Error. Boundary condition for segment #" + str(segment_number) + " has a prescribed negative or zero cardiac cycle period."
@@ -195,15 +194,12 @@ def create_bc_equations(parameters):
 
                 bc_equations[location][segment_number] = list_of_unsteady_functions
 
-    if initial_time == temp:
-        initial_time = 0.0
     if cardiac_cycle_period == temp:
         cardiac_cycle_period = float(input("\nEnter the period of one cardiac cycle for your 0d simulation. All 0d simulation results will be periodic with a period of this value: "))
         if cardiac_cycle_period <= 0:
             message = "Error. The prescribed cardiac cycle period must be greater than 0."
             raise ValueError(message)
     parameters.update({"cardiac_cycle_period" : cardiac_cycle_period})
-    parameters.update({"initial_time" : initial_time})
     parameters.update({"bc_equations" : bc_equations})
 
 def extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location):
@@ -580,9 +576,8 @@ def load_in_ics(var_name_list, ICs_dict):
 
     return y_initial, ydot_initial
 
-from profilehooks import profile
 # @profile
-def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path):
+def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time):
     """
     Purpose:
         Run functions from network_util_NR to execute the 0d simulation and generate simulation results (pressure, flow rates, and wall shear stress).
@@ -636,6 +631,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     print("starting simulation")
 
     ylist = [y_next.copy()]
+    parameters["initial_time"] = simulation_start_time
     tlist = np.array([ parameters["initial_time"] + _*parameters["delta_t"] for _ in range(0, parameters["total_number_of_simulated_time_steps"])])
 
     # create time integration
@@ -656,67 +652,6 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     zero_d_time = tlist
     # print("var_name_list = ", var_name_list)
     return zero_d_time, results_0d, var_name_list
-
-def run_network_util_with_y_ydot_return(zero_d_solver_input_file_path, parameters):
-    """
-    Purpose:
-        Run functions from network_util_NR to execute the 0d simulation and generate simulation results (pressure, flow rates, and wall shear stress).
-    Inputs:
-        string zero_d_solver_input_file_path
-            = path to the 0d solver input file
-        dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
-        boolean draw_directed_graph
-            = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
-    Returns:
-        np.array zero_d_time
-            = np.array of simulated time points
-        np.array results_0d
-            = np.array of the 0d simulation results, where the rows correspond to the each time point in zero_d_time and the column j corresponds to the solution for item j in var_name_list
-        list var_name_list
-            = list of the names of the 0d simulation results; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connect the 0d blocks), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
-                Example:
-                    for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6, which corresponds to cap segment #6
-    """
-
-    block_list = list(parameters["blocks"].values())
-    connect_list, wire_dict = connections.connect_blocks_by_inblock_list(block_list)
-
-    neq = connections.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
-    for block in block_list: # run a consistency check
-        connections.check_block_connection(block)
-    var_name_list = connections.assign_global_ids(block_list, wire_dict) # assign solution variables with global ID
-
-    # initialize solution structures
-    y_initial, ydot_initial = connections.initialize_solution_structures(neq) # initial conditions for all solutions are zero
-    y_next = y_initial.copy()
-    ydot_next = ydot_initial.copy()
-
-    rho = 0.1
-    args = {}
-    args['Time step'] = parameters["delta_t"]
-    args['rho'] = rho
-    args['Wire dictionary'] = wire_dict
-
-    ylist = [y_next.copy()]
-    tlist = np.array([ parameters["initial_time"] + _*parameters["delta_t"] for _ in range(0, parameters["total_number_of_simulated_time_steps"])])
-
-    for t_current in tlist[1:]: # run time stepping loop
-        args['Solution'] = y_next
-        y_next, ydot_next = ntwku.gen_alpha_dae_integrator_NR(y_next, ydot_next, t_current, block_list, args, parameters["delta_t"], rho)
-        ylist.append(y_next)
-
-    ###############
-    # these corrections are needed based on how i think the above for loop works: the "t" in the above for loop corresponds to t_current (t_n) and the output of gen_alpha_dae_integrator_NR is y_next (y_(n+1)). see https://github.com/StanfordCBCL/0D_LPN_Python_Solver/blob/master/test_nonlin_res.py for proof.
-    ylist = ylist[:-1]
-    ylist.insert(0, y_initial.copy())
-    ###############
-
-    results_0d = np.array(ylist)
-    ylist, var_name_list = compute_wss(parameters, results_0d, ylist, var_name_list)
-    results_0d = np.array(ylist)
-    zero_d_time = tlist
-    return zero_d_time, results_0d, var_name_list, y_next, ydot_next
 
 def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 8/13/20: need to recheck that this function correctly computes wss...
     """
@@ -1337,7 +1272,7 @@ def comparing_true_to_loaded(zero_d_results_for_var_names_true, zero_d_results_f
         message = "Error. The qois of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
         raise RuntimeError(message)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1360,6 +1295,10 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_p
             = path to user-defined custom 0d element file
         boolean check_convergence
             = True to check if all 0d simulation results have converged to a periodic state; False, otherwise
+        float simulation_start_time
+            = time at which to begin the 0d simulation
+            -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
+            -- 0.0 <= simulation_start_time <= cardiac_cycle_period
     Returns:
         dict zero_d_results_for_var_names
             =   {
@@ -1384,7 +1323,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_p
     parameters["check_jacobian"] = check_jacobian
     create_LPN_blocks(parameters, custom_0d_elements_arguments)
     set_solver_parameters(parameters, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles)
-    zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path)
+    zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
     zero_d_results_for_var_names = reformat_network_util_results(zero_d_time, results_0d, var_name_list)
     if check_convergence:
