@@ -133,7 +133,9 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                 "datatable_types" : datatable_types,
                 "datatable_values" : datatable_values,
                 "outlet_segments_of_model" : outlet_segments_of_model,
-                "inlet_segments_of_model" : inlet_segments_of_model
+                "inlet_segments_of_model" : inlet_segments_of_model,
+                "number_of_time_pts_per_cardiac_cycle" : number_of_time_pts_per_cardiac_cycle,
+                "number_of_cardiac_cycles" : number_of_cardiac_cycles
             }
     """
 
