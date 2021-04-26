@@ -116,6 +116,8 @@ class LPNBlock:
         self.num_connections = len(connecting_block_list)
         self.name = name
         self.neq = 2
+        self.n_connect = 2
+        self.n_connect = None
         self.type = "ArbitraryBlock"
         self.num_block_vars = 0
         self.connecting_wires_list = []
@@ -135,7 +137,9 @@ class LPNBlock:
         self.is_nonlinear = False
 
     def check_block_consistency(self):
-        return
+        if len(connecting_block_list) != self.n_connect:
+            msg = self.name + " block can be connected only to " + str(self.n_connect) + " elements"
+            raise Exception(msg)
 
     def add_connecting_block(self, block, direction):
         # Direction = +1 if flow sent to block
@@ -433,10 +437,6 @@ class Resistance(LPNBlock):
         self.type = "Resistance"
         self.R = R
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Resistance block can be connected only to two elements")
-
     def update_constant(self):
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
         self.mat['F'] = [(1., -1. * self.R, -1., 0), (0, 1., 0, -1.)]
@@ -449,10 +449,6 @@ class FlowDepResistance(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "FlowDepResistance"
         self.Rfunc = Rfunc
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("FlowDepResistance block can be connected only to two elements")
 
     def linearize_func(self, t, q, func,
                        eps_dq=1e-3):  # 3/7/21: this linearize function isnt really linearizing anything; it is just computing the derivative of "func" with respect to "q"
@@ -513,10 +509,6 @@ class StenosisBlock(LPNBlock):
         self.stenosis_coefficient = stenosis_coefficient
         self.is_nonlinear = True
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("StenosisBlock can be connected only to two elements")
-
     def update_solution(self, args):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
         wire_dict = args['Wire dictionary']
@@ -532,14 +524,9 @@ class UnsteadyResistance(LPNBlock):
         self.type = "UnsteadyResistance"
         self.Rfunc = Rfunc
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("UnsteadyResistance block can be connected only to two elements")
-
     def update_time(self, args):
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
         t = args['Time']
-
         self.mat['F'] = [(1., -1.0 * self.Rfunc(t), -1., 0), (0, 1., 0, -1.)]
 
 
@@ -551,10 +538,6 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
         self.neq = 1
         self.Rfunc = Rfunc
         self.Pref_func = Pref_func
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("UnsteadyResistanceWithDistalPressure block can be connected only to two elements")
 
     def update_time(self, args):
         # For resistors, the ordering is : (P_in,Q_in)
@@ -573,10 +556,6 @@ class PressureRef(LPNBlock):
         self.neq = 1
         self.Pref = Pref
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("PressureRef block can be connected only to one element")
-
     def update_constant(self):
         self.mat['F'] = [(1.,)]
         self.mat['C'] = [-1.0 * self.Pref]
@@ -588,11 +567,8 @@ class UnsteadyPressureRef(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyPressureRef"
         self.neq = 1
+        self.n_connect = 1
         self.Pfunc = Pfunc
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("UnsteadyPressureRef block can be connected only to one element")
 
     def update_time(self, args):
         t = args['Time']
@@ -608,11 +584,8 @@ class UnsteadyFlowRef(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyFlowRef"
         self.neq = 1
+        self.n_connect = 1
         self.Qfunc = Qfunc
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("UnsteadyFlowRef block can be connected only to one element")
 
     def update_time(self, args):
         t = args['Time']
@@ -628,10 +601,6 @@ class Capacitance(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "Capacitance"
         self.C = C
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Capacitance block can be connected only to two elements")
 
     def update_constant(self):
         self.mat['E'] = [(1.0 * self.C, 0, -1.0 * self.C, 0), (0, 0, 0, 0)]
@@ -651,10 +620,6 @@ class RCLBlock(LPNBlock):
         self.C = C
         self.L = L
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("RCL block can be connected only to two elements")
-
     def update_constant(self):
         self.mat['E'] = [(0, 0, 0, -self.L, 0), (0, 0, 0, 0, -self.C), (0, 0, 0, 0, 0)]
         self.mat['F'] = [(1., -self.R, -1., 0, 0), (0, 1., 0, -1., 0), (1., -self.R, 0, 0, -1.)]
@@ -668,10 +633,6 @@ class RCBlock(LPNBlock):
         self.R = R
         self.C = C
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("RC block can be connected only to two elements")
-
     def update_constant(self):
         self.mat['E'] = [(0, 0, 0, 0), (0, 0, -self.C, 0)]
         self.mat['F'] = [(1.0, -self.R, -1.0, 0), (0, 1., 0, -1.)]
@@ -684,10 +645,6 @@ class RLBlock(LPNBlock):
         self.type = "RL"
         self.R = R
         self.L = L
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("RL block can be connected only to two elements")
 
     def update_constant(self):
         # For this RL block, the ordering of solution unknowns is : (P_in, Q_in, P_out, Q_out)
@@ -709,10 +666,6 @@ class RCRBlock(LPNBlock):
         self.C = C
         self.Rd = Rd
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("RCR block can be connected only to two elements")
-
     def update_constant(self):
         self.mat['E'] = [(0, 0, 0, 0, 0), (0, 0, 0, 0, -self.C), (0, 0, 0, 0, 0)]
         self.mat['F'] = [(1.0, -self.Rp, -1.0, -self.Rd, 0), (0, 1., 0, -1., 0), (1., -self.Rp, 0, 0, -1.)]
@@ -731,10 +684,6 @@ class UnsteadyRCRBlock(LPNBlock):
         self.C_func = C_func
         self.Rd_func = Rd_func
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Unsteady RCR block can be connected only to two elements")
-
     def update_time(self, args):
         t = args['Time']
         self.mat['F'] = [(1.0, -self.Rp_func(t), -1.0, -self.Rd_func(t), 0), (0, 1., 0, -1., 0),
@@ -752,15 +701,12 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyRCRBlockWithDistalPressure"
         self.neq = 2
+        self.n_connect = 1
         self.num_block_vars = 1
         self.Rp_func = Rp_func
         self.C_func = C_func
         self.Rd_func = Rd_func
         self.Pref_func = Pref_func
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("UnsteadyRCRBlockWithDistalPressure block can be connected only to two elements")
 
     def update_time(self, args):
         # unknowns = [P_in, Q_in, internal_var (Pressure at the intersection of the Rp, Rd, and C elements)]
@@ -792,11 +738,6 @@ class OpenLoopCoronaryBlock(LPNBlock):
         self.cardiac_cycle_period = cardiac_cycle_period
 
     # Provide a [Nx2] array for the time-derivative of intramyocardial pressure. dPvdt_f[:,0] is the time info. dPvdt_f[:,1] is the pressure deriv. values.
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Coronary block can be connected only to two elements")
-
     # The Open Loop Coronary block needs to attach a downstream pressure reference block.
 
     def dPvdt(self, dPvdt_f, t):
@@ -835,6 +776,7 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "OpenLoopCoronaryWithDistalPressureBlock"
         self.neq = 2
+        self.n_connect = 1
         self.num_block_vars = 1
         self.R1 = R1
         self.C1 = C1
@@ -846,11 +788,6 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.cardiac_cycle_period = cardiac_cycle_period
 
     # Provide a [Nx2] array for the time-derivative of intramyocardial pressure. dPvdt_f[:,0] is the time info. dPvdt_f[:,1] is the pressure deriv. values.
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("OpenLoopCoronaryWithDistalPressureBlock can be connected only to one elements")
-
     # The Open Loop Coronary block needs to attach a downstream pressure reference block.
 
     def dPvdt(self, dPvdt_f, t):
@@ -892,6 +829,7 @@ class OpenLoopCoronaryWithDistalPressureBlock_v2(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "OpenLoopCoronaryWithDistalPressureBlock_v2"
         self.neq = 2
+        self.n_connect = 1
         self.num_block_vars = 1
         self.Ra = Ra
         self.Ca = Ca
@@ -915,10 +853,6 @@ class OpenLoopCoronaryWithDistalPressureBlock_v2(LPNBlock):
         # plt.plot(P[:, 0], P[:, 1], label = "P")
         # plt.show()
         return P_tt
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("OpenLoopCoronaryWithDistalPressureBlock_v2 can be connected only to one elements")
 
     def update_time(self, args):
         # For this open-loop coronary BC, the ordering of solution unknowns is : (P_in, Q_in, V_im)
@@ -959,10 +893,6 @@ class TimeDependentCapacitance(LPNBlock):
         self.type = "TimeDependentCapacitance"
         self.Cfunc = Cfunc
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Capacitance block can be connected only to two elements")
-
     def update_time(self, args):
         t = args['Time']
         # dt = args['Time step']
@@ -989,24 +919,15 @@ class ChamberModel(LPNBlock):
         self.Pref = Pref
 
     def linearize_func(self, t, v, func, eps_dv=1e-4):
-
         # Input  : func(t,v), typically t = t_n+1 ie t_n + dt
         # Return : d/dv (func) at (t,v) using central differences
-
         dv = eps_dv * v
         return (func(t, v + dv) - func(t, v - dv)) / (2. * dv)
 
     def linearize_func_t(self, t, v, func, dt=1e-3):
-
         return (func(t + dt, v) - func(t - dt, v)) / (2. * dt)
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Chamber block can be connected only to two elements")
-        return
-
     def initialize_volume(self, sol_vec, Vu=1.0, scale_fact=1.5):
-
         sol_vec[self.LPN_solution_ids[0]] = scale_fact * Vu
 
     def update_solution(self, args):
@@ -1050,10 +971,6 @@ class Inductance(LPNBlock):
         self.type = "Inductance"
         self.L = L
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("Inductance block can be connected only to two elements")
-
     def update_constant(self):
         self.mat['E'] = [(0.0, -1., 0.0, 0), (0, 0, 0, 0)]
         self.mat['F'] = [(1. / self.L, 0.0, -1. / self.L, 0), (0, 1., 0, -1.)]
@@ -1069,10 +986,6 @@ class IdealDiode2(LPNBlock):
         self.num_block_vars = 1  # State : 0- shunt, 1- interrupt
         self.eps = eps
         # self.Peps = Peps
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("IdealDiode block can be connected only to two elements")
 
     def update_solution(self, args):
         # Needs to take current solution vector as argument
@@ -1127,10 +1040,6 @@ class PressureSource(LPNBlock):
         self.Pfunction = Pfunction
         self.Pref = Pref
 
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("PressureSource block can be connected only to two elements")
-
     def update_time(self, args):
         t = args['Time']
         # rho = args['rho']
@@ -1149,14 +1058,9 @@ class UnsteadyResistanceWithDistalPressure_special(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyResistanceWithDistalPressure_special"
         self.neq = 1
+        self.n_connect = 1
         self.Rfunc = Rfunc
         self.Pref_func = Pref_func
-
-        # input("UnsteadyResistanceWithDistalPressure_special - click to continue")
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("UnsteadyResistanceWithDistalPressure_special block can be connected only to two elements")
 
     def update_time(self, args):
         # For resistors, the ordering is : (P_in,Q_in)
@@ -1175,12 +1079,6 @@ class UnsteadyResistance_special(LPNBlock):
         self.type = "UnsteadyResistance_special"
         self.Rfunc = Rfunc
 
-        # input("UnsteadyResistance_special - click to continue")
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 2:
-            raise Exception("UnsteadyResistance_special block can be connected only to two elements")
-
     def update_time(self, args):
         # For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
         t = args['Time']
@@ -1193,12 +1091,6 @@ class UnsteadyFlowRef_special(LPNBlock):
         self.type = "UnsteadyFlowRef_special"
         self.neq = 1
         self.Qfunc = Qfunc
-
-        # input("UnsteadyFlowRef_special - click to continue")
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != 1:
-            raise Exception("UnsteadyFlowRef_special block can be connected only to one element")
 
     def update_time(self, args):
         t = args['Time']
