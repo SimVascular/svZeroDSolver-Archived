@@ -1339,6 +1339,7 @@ def main(args):
     # references:
     # https://jdhao.github.io/2018/10/11/python_argparse_set_boolean_params/
     # https://docs.python.org/3/library/argparse.html#type
+    # https://stackoverflow.com/questions/26626799/pythons-argument-parser-printing-the-argument-name-in-upper-case
 
     # get command line arguments
     parser = argparse.ArgumentParser(description = 'This code runs the 0d solver.')
