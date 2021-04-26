@@ -531,17 +531,13 @@ def create_LPN_blocks(parameters, custom_0d_elements_arguments):
     create_inlet_bc_blocks(parameters, custom_0d_elements_arguments)
     parameters.update({"block_names" : list(parameters["blocks"].keys())})
 
-def set_solver_parameters(parameters, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles):
+def set_solver_parameters(parameters):
     """
     Purpose:
         Set the 0d simulation time-stepping parameters
     Inputs:
         dict parameters
             -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
-        int number_of_time_pts_per_cardiac_cycle
-            = number of time steps to simulate for each cardiac cycle
-        int number_of_cardiac_cycles
-            = number of cardiac cycles to simulate
     Returns:
         void, but updates parameters to include:
             int number_of_time_pts_per_cardiac_cycle
@@ -553,11 +549,9 @@ def set_solver_parameters(parameters, number_of_time_pts_per_cardiac_cycle, numb
             int total_number_of_simulated_time_steps
                 = total number of time steps to simulate for the entire 0d simulation
     """
-    parameters.update({"number_of_time_pts_per_cardiac_cycle" : number_of_time_pts_per_cardiac_cycle})
-    parameters.update({"number_of_cardiac_cycles" : number_of_cardiac_cycles})
     delta_t = parameters["cardiac_cycle_period"]/(parameters["number_of_time_pts_per_cardiac_cycle"] - 1)
     parameters.update({"delta_t" : delta_t})
-    total_number_of_simulated_time_steps = int((number_of_time_pts_per_cardiac_cycle - 1)*number_of_cardiac_cycles + 1)
+    total_number_of_simulated_time_steps = int((parameters["number_of_time_pts_per_cardiac_cycle"] - 1)*parameters["number_of_cardiac_cycles"] + 1)
     parameters.update({"total_number_of_simulated_time_steps" : total_number_of_simulated_time_steps})
 
 def load_in_ics(var_name_list, ICs_dict):
@@ -1116,7 +1110,7 @@ def compute_time_averaged_result(time, result, parameters):
     time_of_time_averaged_result = time[parameters["number_of_time_pts_per_cardiac_cycle"] - 1:]
     return time_of_time_averaged_result, time_averaged_result
 
-def run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters, number_of_time_pts_per_cardiac_cycle):# currently here 8/18/20: need to make sure that this function works correctly
+def run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters):# currently here 8/18/20: need to make sure that this function works correctly
     """
     Purpose:
         Check if all 0d simulation results in zero_d_results_for_var_names have converged to a periodic state.
@@ -1152,7 +1146,7 @@ def run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters
 
                     # Reference: Xiao N, Alastruey J, Figueroa C. A systematic comparison between 1-D and 3-D hemodynamics in compliant arterial models. International Journal of Numerical Methods in Biomedical Engineering 2014; 30:204–231
 
-                    time_of_time_averaged_result, time_averaged_result = extract_last_cardiac_cycle_simulation_results(time_of_time_averaged_result, time_averaged_result, number_of_time_pts_per_cardiac_cycle)
+                    time_of_time_averaged_result, time_averaged_result = extract_last_cardiac_cycle_simulation_results(time_of_time_averaged_result, time_averaged_result, parameters["number_of_time_pts_per_cardiac_cycle"])
 
                     converged = check_convergence_of_simulation_result_max(time_of_time_averaged_result, time_averaged_result)
 
@@ -1272,17 +1266,13 @@ def comparing_true_to_loaded(zero_d_results_for_var_names_true, zero_d_results_f
         message = "Error. The qois of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
         raise RuntimeError(message)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_0d_simulation_data = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
     Inputs:
         string zero_d_solver_input_file_path
             = path to the 0d solver input file
-        int number_of_time_pts_per_cardiac_cycle
-            = number of time pts per cycle to simulate
-        int number_of_cardiac_cycles
-            = number of cycles to simulate
         boolean draw_directed_graph
             = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
         boolean last_cycle
@@ -1322,12 +1312,12 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_p
     parameters = oneD_to_zeroD_convertor.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
     parameters["check_jacobian"] = check_jacobian
     create_LPN_blocks(parameters, custom_0d_elements_arguments)
-    set_solver_parameters(parameters, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles)
+    set_solver_parameters(parameters)
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
     zero_d_results_for_var_names = reformat_network_util_results(zero_d_time, results_0d, var_name_list)
     if check_convergence:
-        all_results_converged = run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters, number_of_time_pts_per_cardiac_cycle)
+        all_results_converged = run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters)
     if last_cycle == True:
         zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
     if save_0d_simulation_data:
@@ -1349,8 +1339,6 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_p
 #   3. simulate the original model but with a super coarse time step first and then use that solution as the initialization for a original model with a finer time step size
 if __name__ == "__main__":
     zero_d_solver_input_file_path = "./zero_d_solver_test_cases/test_1d_to_0d_convertor/non_error_tests/01_0d.inp"
-    number_of_time_pts_per_cardiac_cycle = 201
-    number_of_cardiac_cycles = 50
     draw_directed_graph = False
     last_cycle = True
     save_0d_simulation_data = False
@@ -1362,7 +1350,7 @@ if __name__ == "__main__":
     save_y_ydot_to_npy = False
     y_ydot_file_path = None
 
-    zero_d_results_for_var_names = set_up_and_run_0d_simulation(zero_d_solver_input_file_path, number_of_time_pts_per_cardiac_cycle, number_of_cardiac_cycles, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements, custom_0d_elements_arguments_file_path, check_convergence, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path)
+    zero_d_results_for_var_names = set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph, last_cycle, save_0d_simulation_data, use_custom_0d_elements, custom_0d_elements_arguments_file_path, check_convergence, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path)
 
     #########################################################################################################
     #########################################################################################################
