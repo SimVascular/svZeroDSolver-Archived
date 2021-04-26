@@ -268,16 +268,19 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                     inlet_segments_of_model.append(segment_number)
                     boundary_condition_types["inlet"][segment_number] = line_list[2]
                     boundary_condition_datatable_names["inlet"][segment_number] = line_list[3]
-                elif line.startswith("SOLVEROPTIONS"): # this section is only available in the 1d solver input file
+                elif line.startswith("SOLVEROPTIONS"):
                     line_list = line.split()
-                    segment_number = one_d_inlet_segment_number # 1d models have only a single inlet segment number
-                    inlet_segments_of_model.append(segment_number)
-                    boundary_condition_types["inlet"][segment_number] = line_list[6]
-                    boundary_condition_datatable_names["inlet"][segment_number] = line_list[5]
-                elif line.startswith("SOLVEROPTIONS_0D"): # this section is only available in the 1d solver input file
-                    line_list = line.split()
-                    number_of_time_pts_per_cardiac_cycle = line_list[1]
-                    number_of_cardiac_cycles = line_list[2]
+                    if line_list[0] == "SOLVEROPTIONS": # 1D solver options
+                        segment_number = one_d_inlet_segment_number # 1d models have only a single inlet segment number
+                        inlet_segments_of_model.append(segment_number)
+                        boundary_condition_types["inlet"][segment_number] = line_list[6]
+                        boundary_condition_datatable_names["inlet"][segment_number] = line_list[5]
+                    elif line_list[0] == "SOLVEROPTIONS_0D": # 0D solver options
+                        number_of_time_pts_per_cardiac_cycle = int(line_list[1])
+                        number_of_cardiac_cycles = float(line_list[2])
+                    else:
+                        message = "Error. Unidentified solver card, " + line_list[0] + "."
+                        raise RuntimeError(message)
                 elif line.startswith("MATERIAL"): # this section is only available in the 1d solver input file
                     line_list = line.split()
                     material_name = line_list[1]
