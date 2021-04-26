@@ -277,7 +277,7 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                         boundary_condition_datatable_names["inlet"][segment_number] = line_list[5]
                     elif line_list[0] == "SOLVEROPTIONS_0D": # 0D solver options
                         number_of_time_pts_per_cardiac_cycle = int(line_list[1])
-                        number_of_cardiac_cycles = float(line_list[2])
+                        number_of_cardiac_cycles = int(line_list[2])
                     else:
                         message = "Error. Unidentified solver card, " + line_list[0] + "."
                         raise RuntimeError(message)

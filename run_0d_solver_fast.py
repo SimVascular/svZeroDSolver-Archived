@@ -541,10 +541,6 @@ def set_solver_parameters(parameters):
             -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
     Returns:
         void, but updates parameters to include:
-            int number_of_time_pts_per_cardiac_cycle
-                = number of time steps to simulate for each cardiac cycle
-            int number_of_cardiac_cycles
-                = number of cardiac cycles to simulate
             float delta_t
                 = constant time step size for the 0d simulation
             int total_number_of_simulated_time_steps
@@ -1338,3 +1334,43 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 #     1. simulate a resistor only model (including BCs) and use the converged solution as the initial condition for the original model
 #     2. simulate the original model but with the mean flow value as the inflow BC and use a coarse time step size and then use the solution as the initial condition for the original model
 #   3. simulate the original model but with a super coarse time step first and then use that solution as the initialization for a original model with a finer time step size
+
+def main(args):
+    # references:
+    # https://jdhao.github.io/2018/10/11/python_argparse_set_boolean_params/
+    # https://docs.python.org/3/library/argparse.html#type
+
+    # get command line arguments
+    parser = argparse.ArgumentParser(description = 'This code runs the 0d solver.')
+    parser.add_argument("zero", help = "Path to 0d solver input file")
+    parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
+    parser.add_argument("-l", "--last", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
+    parser.add_argument("-s", "--save", action = 'store_true', help = "Save the simulation results to a .npy file")
+    parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
+    parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
+    parser.add_argument("-ck", "--check", action = 'store_true', help = "Check convergence of 0d simulation results")
+    parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file")
+    parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
+    parser.add_argument("-y", "--useYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
+    parser.add_argument("-py", "--yydotPath", help = "Path to the .npy file containing y and ydot")
+    parser.add_argument("-j", "--jacobian", action = 'store_true', help = "Check the Jacobian")
+    parser.add_argument("-it", "--initial", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
+    args = parser.parse_args(args)
+
+    set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
+                                    draw_directed_graph = args.visualize,
+                                    last_cycle = args.last,
+                                    save_0d_simulation_data = args.save,
+                                    use_custom_0d_elements = args.useCustom,
+                                    custom_0d_elements_arguments_file_path = args.customPath,
+                                    check_convergence = args.check,
+                                    use_ICs_from_npy_file = args.useICs,
+                                    ICs_npy_file_path = args.ICsPath,
+                                    save_y_ydot_to_npy = args.useYydot,
+                                    y_ydot_file_path = args.yydotPath,
+                                    check_jacobian = args.jacobian,
+                                    simulation_start_time = args.initial
+                                )
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
