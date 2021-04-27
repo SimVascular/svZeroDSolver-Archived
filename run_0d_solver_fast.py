@@ -471,7 +471,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
                 # plt.legend()
                 # plt.show()
 
-                outlet_bc_blocks[block_name] = ntwku.OpenLoopCoronaryWithDistalPressureBlock_v2(Ra = Ra1, Ca = Ca, Ram = Ra2, Cim = Cc, Rv = Rv1, Pim = Pim_func, Pv = Pv_distal_pressure_func, cardiac_cycle_period = parameters["cardiac_cycle_period"], connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+                outlet_bc_blocks[block_name] = ntwku.OpenLoopCoronaryWithDistalPressureBlock(Ra = Ra1, Ca = Ca, Ram = Ra2, Cim = Cc, Rv = Rv1, Pim = Pim_func, Pv = Pv_distal_pressure_func, cardiac_cycle_period = parameters["cardiac_cycle_period"], connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
 
 
             else: # this is a custom, user-defined outlet bc block
