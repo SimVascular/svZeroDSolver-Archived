@@ -66,9 +66,6 @@ np.set_printoptions(threshold=sys.maxsize)
 import importlib
 import argparse
 
-""" TODOs """
-# currently here 8/26/20: should try runing code profiling on this python code when i have free time to see how to make this code more efficient, which will be useful for large 0d models, ie pulmonaries # https://stackoverflow.com/questions/582336/how-can-you-profile-a-python-script
-
 def import_custom_0d_elements(custom_0d_elements_arguments_file_path):
     """
     Purpose:
@@ -425,37 +422,6 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
                 else:
                     parameters.update({"cardiac_cycle_period": time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]})
 
-                # time_derivative_of_intramyocardial_pressure = np.zeros((len(time_of_intramyocardial_pressure), 2))
-                # time_derivative_of_intramyocardial_pressure[:, 0] = time_of_intramyocardial_pressure
-                # deltat_temp = time_of_intramyocardial_pressure[1] - time_of_intramyocardial_pressure[0]
-                # extended_time = np.array([time_of_intramyocardial_pressure[0] - deltat_temp] + time_of_intramyocardial_pressure + [time_of_intramyocardial_pressure[-1] + deltat_temp]) # extend time beyond the first and last boundaries to get a periodic dPvdt
-                # bc_values_of_intramyocardial_pressure_extended = np.array([bc_values_of_intramyocardial_pressure[-2]] + bc_values_of_intramyocardial_pressure + [bc_values_of_intramyocardial_pressure[1]])
-                # intramyocardial_pressure_derivative = np.gradient(bc_values_of_intramyocardial_pressure_extended, extended_time)
-                # time_derivative_of_intramyocardial_pressure[:, 1] = intramyocardial_pressure_derivative[1:-1]
-
-                # plt.figure()
-                # # plt.plot(time_derivative_of_intramyocardial_pressure[:, 0], time_derivative_of_intramyocardial_pressure[:, 1], 'b--', label = 'dPimdt')
-                # ttt = np.zeros(len(time_of_intramyocardial_pressure)*2)
-                # ttt[:len(time_of_intramyocardial_pressure)] = np.array(time_of_intramyocardial_pressure)
-                # ttt[len(time_of_intramyocardial_pressure):] = np.array(time_of_intramyocardial_pressure) + time_of_intramyocardial_pressure[-1]
-                # yyy = np.zeros(len(time_of_intramyocardial_pressure)*2)
-                # yyy[:len(time_of_intramyocardial_pressure)] = np.array(bc_values_of_intramyocardial_pressure)
-                # yyy[len(time_of_intramyocardial_pressure):] = np.array(bc_values_of_intramyocardial_pressure)
-                # # plt.plot(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, 'k-', label = 'Pim')
-                # plt.plot(ttt, yyy)
-                # plt.legend()
-                # plt.show()
-
-                # outlet_bc_blocks[block_name] = ntwku.OpenLoopCoronaryWithDistalPressureBlock(R1 = Ra1, C1 = Ca, R2 = Ra2, C2 = Cc, R3 = Rv1, dPvdt_f = time_derivative_of_intramyocardial_pressure, Pv = Pv_distal_pressure, cardiac_cycle_period = parameters["cardiac_cycle_period"], connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-
-                # Pim_func = lambda t: np.interp(t, time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure)
-                #
-                # Pv_distal_pressure_func = lambda t: Pv_distal_pressure + (t - t)
-
-                # Pv_distal_pressure_func= lambda t: np.interp(t, time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure)
-
-                # Pim_func = scipy.interpolate.CubicSpline(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, bc_type = 'periodic')
-
                 Pim_func = np.zeros((len(time_of_intramyocardial_pressure), 2))
                 Pv_distal_pressure_func = np.zeros((len(time_of_intramyocardial_pressure), 2))
 
@@ -464,15 +430,8 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
 
                 Pim_func[:, 1] = bc_values_of_intramyocardial_pressure
                 Pv_distal_pressure_func[:, 1] = np.ones(len(time_of_intramyocardial_pressure))*Pv_distal_pressure
-                # Pv_distal_pressure_func[:, 1] = bc_values_of_intramyocardial_pressure
-                # plt.figure()
-                # plt.plot(Pim_func[:, 0], Pim_func[:, 1], label = "Pim")
-                # plt.plot(Pv_distal_pressure_func[:, 0], Pv_distal_pressure_func[:, 1], label = "Pv")
-                # plt.legend()
-                # plt.show()
 
                 outlet_bc_blocks[block_name] = ntwku.OpenLoopCoronaryWithDistalPressureBlock(Ra = Ra1, Ca = Ca, Ram = Ra2, Cim = Cc, Rv = Rv1, Pim = Pim_func, Pv = Pv_distal_pressure_func, cardiac_cycle_period = parameters["cardiac_cycle_period"], connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-
 
             else: # this is a custom, user-defined outlet bc block
                 custom_0d_elements_arguments.outlet_bc_args[segment_number].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
@@ -979,52 +938,6 @@ def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # currently here 8
         print("Warning. Model has only a single element/segment. Collapse is not possible. Returning the original input dictionary.\n")
         return zero_d_cap_results
 
-def check_convergence_of_simulation_result_gradient(time, result, number_of_values_to_check = 20, tolerance = 0.01):
-    """
-    Purpose:
-        Check if result has converged to a periodic state. result has converged to a periodic state if the last number_of_values_to_check values of the temporal gradient of result are within the given tolerance and if their signs do not fluctuate during the last number_of_values_to_check values.
-    Caveat:
-        result must be a time-averaged waveform
-    Inputs:
-        np.array time
-            = np.array of time points
-        np.array result
-            = np.array of result values for which we want to check convergence
-            -- must have the same length as time
-        int number_of_values_to_check
-            -- check the last number_of_values_to_check values in the temporal gradient of result for convergence
-        float tolerance
-            = convergence requires that the last number_of_values_to_check values of the temporal gradient of result are equal to or below the given tolerance
-    Returns:
-        boolean converged
-            = True if result has converged; otherwise, False
-            -- True requires fluctuating_gradient to be False
-    """
-    converged = False
-    drdt = np.gradient(result, time) # temporal gradient of result
-    counter = 0
-    fluctuation_counter = 0
-    fluctuating_gradient = False
-    start_index = -1*number_of_values_to_check
-    end_index = 0
-    for i in range(start_index, end_index):
-        if np.abs(drdt[i]) > tolerance:
-            # print("drdt[i] = ", drdt[i])
-            print("Warning: the gradient, " + str(np.abs(drdt[i])) + " of the result is not within the given tolerance, " + str(tolerance) + ". Results not converged yet.") # currently here 7/21/20: maybe i should put these warnings in a separate text file too, like an output file that logs all of the warnings and issues, so that the user can easily refer to all the errors in a single consistent coherent doc
-        else:
-            counter =  counter + 1
-        previous_drdt = drdt[i]
-        if i > start_index:
-            if np.sign(drdt[i]) != np.sign(previous_drdt):
-                fluctuation_counter = fluctuation_counter + 1
-                print("Warning: the last " + number_of_values_to_check + " values of the gradient of the result exhibit fluctuating signs. This means that the results haven't converged.") # currently here 7/21/20: maybe i should put these warnings in a separate text file too, like an output file that logs all of the warnings and issues, so that the user can easily refer to all the errors in a single consistent coherent doc
-    if fluctuation_counter > 0:
-        fluctuating_gradient = True
-    else:
-        if counter == number_of_values_to_check:
-            converged = True
-    return converged
-
 def check_convergence_of_simulation_result_dif(time, result, number_of_values_to_check = 20, tolerance = 0.01):
     """
     Purpose:
@@ -1140,14 +1053,11 @@ def run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters
                 result = zero_d_results_for_var_names[qoi][var_name]
                 time_of_time_averaged_result, time_averaged_result = compute_time_averaged_result(time, result, parameters)
                 if qoi == "flow" or "wss":
-
                     # Reference: Xiao N, Alastruey J, Figueroa C. A systematic comparison between 1-D and 3-D hemodynamics in compliant arterial models. International Journal of Numerical Methods in Biomedical Engineering 2014; 30:204–231
 
                     time_of_time_averaged_result, time_averaged_result = extract_last_cardiac_cycle_simulation_results(time_of_time_averaged_result, time_averaged_result, parameters["number_of_time_pts_per_cardiac_cycle"])
 
                     converged = check_convergence_of_simulation_result_max(time_of_time_averaged_result, time_averaged_result)
-
-                    # converged = check_convergence_of_simulation_result_gradient(time_of_time_averaged_result, time_averaged_result)
                 else:
                     converged = check_convergence_of_simulation_result_dif(time_of_time_averaged_result, time_averaged_result) # changed from using the gradient-based convergence check to the difference-based check on 10/21/20
                 if not converged:
@@ -1185,83 +1095,6 @@ def save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_va
     zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
     zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
     np.save(zero_d_simulation_results_file_path, zero_d_results_for_var_names)
-
-def comparing_true_to_loaded(zero_d_results_for_var_names_true, zero_d_results_for_var_names_loaded, tolerance = 0.001): # currently here 8/18/20: need to make sure that this function works correctly
-
-    # currently here 02/12/21: use the np.testing.assert_allclose( np_array_1 , np_array_2 ) function to optimize this function
-
-    """
-    Purpose:
-        This function is only used to compare the 0d simulation results dictionary returned/outputted by set_up_and_run_0d_simulation and the dictionary saved in the .npy file by save_simulation_results. Theoretically, these two dictionaries should be exactly the same, but I use this function just to quickly check and make sure. Otherwise, I don't need this function and I certainly don't need to have it implemented in the final version that gets uploaded to SimVascular.
-    Inputs:
-        dict zero_d_results_for_var_names_true
-            = zero_d_results_for_var_names, but obtained from the output of set_up_and_run_0d_simulation
-        dict zero_d_results_for_var_names_loaded
-            = zero_d_results_for_var_names, but obtained from the dict stored in the .npy file created by save_simulation_results
-        recall that:
-            dict zero_d_results_for_var_names
-                =   {
-                        "time" : np.array of simulated time points,
-
-                        "flow" : {var_name : np.array of flow rate,
-
-                        "pressure" : {var_name : np.array of pressure},
-
-                        "wss" : {var_name : np.array of wall shear stress},
-
-                        "internal" : {var_name : np.array of internal block solutions},
-
-                            where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                    }
-        Returns:
-            void, but if the two variations of zero_d_results_for_var_names match, then nothing happens. Otherwise; the program prints errors.
-    """
-    qois_true = list(zero_d_results_for_var_names_true.keys())
-    qois_loaded = list(zero_d_results_for_var_names_loaded.keys())
-    qois_true.sort()
-    qois_loaded.sort()
-    if qois_true.sort() == qois_loaded.sort():
-        for qoi in qois_true:
-            if qoi != "time":
-                var_names_true = list(zero_d_results_for_var_names_true[qoi].keys())
-                var_names_loaded = list(zero_d_results_for_var_names_loaded[qoi].keys())
-                var_names_true.sort()
-                var_names_loaded.sort()
-                if var_names_true.sort() == var_names_loaded.sort():
-                    for var_name in var_names_true:
-                        if len(zero_d_results_for_var_names_true[qoi][var_name]) != len(zero_d_results_for_var_names_loaded[qoi][var_name]):
-                            print("qoi = ", qoi)
-                            print("var_name = ", var_name)
-                            message = "Error. The 0d simulation results of the results output of set_up_and_run_0d_simulation do not have the same length as the data saved in the npy file."
-                            raise RuntimeError(message)
-                        else:
-                            for i in range(len(zero_d_results_for_var_names_true[qoi][var_name])):
-                                errr = 100.0*np.abs((zero_d_results_for_var_names_true[qoi][var_name][i] - zero_d_results_for_var_names_loaded[qoi][var_name][i])/zero_d_results_for_var_names_true[qoi][var_name][i])
-                                if errr > tolerance:
-                                    print("i = ", i)
-                                    print("qoi = ", qoi)
-                                    print("var_name = ", var_name)
-                                    print("errr = ", errr)
-                                    print("zero_d_results_for_var_names_true[qoi][var_name][i] = ", zero_d_results_for_var_names_true[qoi][var_name][i])
-                                    print("zero_d_results_for_var_names_loaded[qoi][var_name][i] = ", zero_d_results_for_var_names_loaded[qoi][var_name][i])
-                                    message = "Error. The 0d simulation results of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
-                                    raise RuntimeError(message)
-                else:
-                    message = "Error. The var_names of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
-                    raise RuntimeError(message)
-            else:
-                if len(zero_d_results_for_var_names_true[qoi]) != len(zero_d_results_for_var_names_loaded[qoi]):
-                    message = "Error. The 0d simulation times of the results output of set_up_and_run_0d_simulation do not have the same length as the data saved in the npy file."
-                    raise RuntimeError(message)
-                else:
-                    for i in range(len(zero_d_results_for_var_names_true[qoi])):
-                        if zero_d_results_for_var_names_true[qoi][i] != zero_d_results_for_var_names_loaded[qoi][i]:
-                            print("i = ", i)
-                            message = "Error. The 0d simulation times of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
-                            raise RuntimeError(message)
-    else:
-        message = "Error. The qois of the results output of set_up_and_run_0d_simulation do not match what was saved in the npy file."
-        raise RuntimeError(message)
 
 def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_0d_simulation_data = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
@@ -1320,20 +1153,6 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     if save_0d_simulation_data:
         save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_var_names)
     return zero_d_results_for_var_names
-
-
-# currently here 10/13/20:
-# todos:
-# 1. give users the option to
-    # 1) specify the number of cycles to run for
-    # 2) dont specify the number of cycles to run for, but instead run the 0d model until convergence
-# 2. check convergence function to use difference in mean waveform value (mean flow and mean pressure) to check for periodic convergence rather than using the gradient method to check
-#
-# initialization options:
-#     0. use zero initial conditions
-#     1. simulate a resistor only model (including BCs) and use the converged solution as the initial condition for the original model
-#     2. simulate the original model but with the mean flow value as the inflow BC and use a coarse time step size and then use the solution as the initial condition for the original model
-#   3. simulate the original model but with a super coarse time step first and then use that solution as the initialization for a original model with a finer time step size
 
 def main(args):
     # references:
