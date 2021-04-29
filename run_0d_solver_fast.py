@@ -938,55 +938,6 @@ def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # currently here 8
         print("Warning. Model has only a single element/segment. Collapse is not possible. Returning the original input dictionary.\n")
         return zero_d_cap_results
 
-def check_convergence_of_simulation_result_dif(time, result, number_of_values_to_check = 20, tolerance = 0.01):
-    """
-    Purpose:
-        Check if result has converged to a periodic state. result has converged to a periodic state if the percent differences between the last number_of_values_to_check values of result and the last value of result is equal to or smaller than the tolerance.
-    Caveat:
-        result must be a time-averaged waveform
-    Inputs:
-        np.array time
-            = np.array of time points
-        np.array result
-            = np.array of result values for which we want to check convergence
-            -- must have the same length as time
-        float tolerance
-            = convergence requires that the last 2 values of result is equal to or smaller than the tolerance
-    Returns:
-        boolean converged
-            = True if result has converged; otherwise, False
-    """
-    start_index = -1*number_of_values_to_check
-    for i in range(start_index, 0):
-        if (100.0*np.abs((result[i] - result[-1])/result[-1]) > tolerance):
-            return False
-    return True
-
-def check_convergence_of_simulation_result_max(time, result, number_of_values_to_check = 20, tolerance = 0.01):
-    """
-    Purpose:
-        Check if result has converged to a periodic state. result has converged to a periodic state if the percent differences between the last number_of_values_to_check values of result and the last value of result is equal to or smaller than the tolerance.
-    Caveat:
-        result must be a time-averaged waveform
-    Inputs:
-        np.array time
-            = np.array of time points
-        np.array result
-            = np.array of result values for which we want to check convergence
-            -- must have the same length as time
-        float tolerance
-            = convergence requires that the last 2 values of result is equal to or smaller than the tolerance
-    Returns:
-        boolean converged
-            = True if result has converged; otherwise, False
-    """
-    max_result = np.amax(result)
-    start_index = -1*number_of_values_to_check
-    for i in range(start_index, 0):
-        if (100.0*np.abs((result[i] - result[-1])/max_result) > tolerance):
-            return False
-    return True
-
 def compute_time_averaged_result(time, result, parameters):
     """
     Purpose:
@@ -1020,51 +971,6 @@ def compute_time_averaged_result(time, result, parameters):
     time_of_time_averaged_result = time[parameters["number_of_time_pts_per_cardiac_cycle"] - 1:]
     return time_of_time_averaged_result, time_averaged_result
 
-def run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters):# currently here 8/18/20: need to make sure that this function works correctly
-    """
-    Purpose:
-        Check if all 0d simulation results in zero_d_results_for_var_names have converged to a periodic state.
-    Inputs:
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
-        dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
-    Returns:
-        boolean all_results_converged
-            = True if all results in zero_d_results_for_var_names have converged to a periodic state; otherwise, False
-    """
-    all_results_converged = True
-    time = zero_d_results_for_var_names["time"]
-    for qoi in list(zero_d_results_for_var_names.keys()):
-        if qoi != "time":
-            for var_name in list(zero_d_results_for_var_names[qoi].keys()):
-                result = zero_d_results_for_var_names[qoi][var_name]
-                time_of_time_averaged_result, time_averaged_result = compute_time_averaged_result(time, result, parameters)
-                if qoi == "flow" or "wss":
-                    # Reference: Xiao N, Alastruey J, Figueroa C. A systematic comparison between 1-D and 3-D hemodynamics in compliant arterial models. International Journal of Numerical Methods in Biomedical Engineering 2014; 30:204–231
-
-                    time_of_time_averaged_result, time_averaged_result = extract_last_cardiac_cycle_simulation_results(time_of_time_averaged_result, time_averaged_result, parameters["number_of_time_pts_per_cardiac_cycle"])
-
-                    converged = check_convergence_of_simulation_result_max(time_of_time_averaged_result, time_averaged_result)
-                else:
-                    converged = check_convergence_of_simulation_result_dif(time_of_time_averaged_result, time_averaged_result) # changed from using the gradient-based convergence check to the difference-based check on 10/21/20
-                if not converged:
-                    print("------> Warning: the 0d simulation result for " + var_name + " has not yet converged to a periodic state.\n")
-                    all_results_converged = False
-    return all_results_converged
-
 def save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_var_names):
     """
     Purpose:
@@ -1096,7 +1002,7 @@ def save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_va
     zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
     np.save(zero_d_simulation_results_file_path, zero_d_results_for_var_names)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1113,8 +1019,6 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
         string custom_0d_elements_arguments_file_path
             = path to user-defined custom 0d element file
-        boolean check_convergence
-            = True to check if all 0d simulation results have converged to a periodic state; False, otherwise
         float simulation_start_time
             = time at which to begin the 0d simulation
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
@@ -1146,8 +1050,6 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
     zero_d_results_for_var_names = reformat_network_util_results(zero_d_time, results_0d, var_name_list)
-    if check_convergence:
-        all_results_converged = run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters)
     if last_cycle == True:
         zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
     if save_results_all:
@@ -1168,7 +1070,6 @@ def main(args):
     parser.add_argument("-s", "--save", action = 'store_true', help = "Save the simulation results to a .npy file")
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
-    parser.add_argument("-ck", "--check", action = 'store_true', help = "Check convergence of 0d simulation results")
     parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file")
     parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
     parser.add_argument("-y", "--useYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
@@ -1183,7 +1084,6 @@ def main(args):
                                     save_results_all = args.save,
                                     use_custom_0d_elements = args.useCustom,
                                     custom_0d_elements_arguments_file_path = args.customPath,
-                                    check_convergence = args.check,
                                     use_ICs_from_npy_file = args.useICs,
                                     ICs_npy_file_path = args.ICsPath,
                                     save_y_ydot_to_npy = args.useYydot,
