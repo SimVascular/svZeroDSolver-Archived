@@ -1024,20 +1024,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
             -- 0.0 <= simulation_start_time <= cardiac_cycle_period
     Returns:
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
+        void
     """
     if use_custom_0d_elements:
         custom_0d_elements_arguments = import_custom_0d_elements(custom_0d_elements_arguments_file_path)
@@ -1054,7 +1041,6 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
     if save_results_all:
         save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_var_names)
-    return zero_d_results_for_var_names
 
 def main(args):
     # references:
