@@ -1096,7 +1096,7 @@ def save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_va
     zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
     np.save(zero_d_simulation_results_file_path, zero_d_results_for_var_names)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_0d_simulation_data = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1107,7 +1107,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
         boolean last_cycle
             = True to return 0d simulation results for only the last cycle; False to return the results for all simulated cycles
-        boolean save_0d_simulation_data
+        boolean save_results_all
             = True to save the 0d simulation results (zero_d_results_for_var_names) to a .npy file
         boolean use_custom_0d_elements
             = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
@@ -1150,7 +1150,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         all_results_converged = run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters)
     if last_cycle == True:
         zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
-    if save_0d_simulation_data:
+    if save_results_all:
         save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_var_names)
     return zero_d_results_for_var_names
 
@@ -1180,7 +1180,7 @@ def main(args):
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
                                     last_cycle = args.last,
-                                    save_0d_simulation_data = args.save,
+                                    save_results_all = args.save,
                                     use_custom_0d_elements = args.useCustom,
                                     custom_0d_elements_arguments_file_path = args.customPath,
                                     check_convergence = args.check,
