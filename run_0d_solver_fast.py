@@ -1002,7 +1002,7 @@ def save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_va
     zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
     np.save(zero_d_simulation_results_file_path, zero_d_results_for_var_names)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = True, save_results_branch = False, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1014,7 +1014,9 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         boolean last_cycle
             = True to return 0d simulation results for only the last cycle; False to return the results for all simulated cycles
         boolean save_results_all
-            = True to save the 0d simulation results (zero_d_results_for_var_names) to a .npy file
+            = True to save all 0d simulation results (reformatted to a readable dictionary format) to a .npy file
+        boolean save_results_branch
+            = True to save the 0d simulation results (reformatted to a readable dictionary format, but preserving the 1d/centerline branch structure) to a .npy file
         boolean use_custom_0d_elements
             = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
         string custom_0d_elements_arguments_file_path
@@ -1053,7 +1055,8 @@ def main(args):
     parser.add_argument("zero", help = "Path to 0d solver input file")
     parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
     parser.add_argument("-l", "--last", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-s", "--save", action = 'store_true', help = "Save the simulation results to a .npy file")
+    parser.add_argument("-sr", "--saveAll", action = 'store_true', help = "Save all simulation results to a .npy file")
+    parser.add_argument("-sb", "--saveBranch", action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file")
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
     parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file")
@@ -1067,7 +1070,8 @@ def main(args):
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
                                     last_cycle = args.last,
-                                    save_results_all = args.save,
+                                    save_results_all = args.saveAll,
+                                    save_results_branch = args.saveBranch,
                                     use_custom_0d_elements = args.useCustom,
                                     custom_0d_elements_arguments_file_path = args.customPath,
                                     use_ICs_from_npy_file = args.useICs,
