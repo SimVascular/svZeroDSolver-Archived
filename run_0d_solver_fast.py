@@ -985,7 +985,7 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
     qoi_map = {"Q" : "flow", "P" : "pressure", "tau" : "wss"}
     zero_d_results = initialize_0d_results_dict_branch(parameters, zero_d_time)
 
-    last here - need to test this code; code already done being checked
+    # last here - need to test this code; code already done being checked
 
     for i in range(len(var_name_list)):
         if ("var" not in var_names[i]): # var_names[i] == wire_name
@@ -1291,7 +1291,16 @@ def compute_time_averaged_result(time, result, parameters):
     time_of_time_averaged_result = time[parameters["number_of_time_pts_per_cardiac_cycle"] - 1:]
     return time_of_time_averaged_result, time_averaged_result
 
-def save_simulation_results(zero_d_solver_input_file_path, zero_d_results):
+def get_zero_input_file_name(zero_d_solver_input_file_path):
+    """
+    Inputs:
+        string zero_d_solver_input_file_path
+            = path to the 0d solver input file
+    """
+    zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
+    return zero_d_input_file_name
+
+def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results):
     """
     Purpose:
         Save the 0d simulation results to a .npy file.
@@ -1299,15 +1308,11 @@ def save_simulation_results(zero_d_solver_input_file_path, zero_d_results):
         To open and load the .npy file to extract the 0d simulation results, use the following command:
             zero_d_results = np.load(/path/to/zero/d/simulation/results/npy/file, allow_pickle = True).item()
     Inputs:
-        string zero_d_solver_input_file_path
-            = path to the 0d solver input file
         dict zero_d_results
             = obtained from reformat_network_util_results_all or reformat_network_util_results_branch
     Returns:
         void, but saves a .npy file storing the 0d simulation results (zero_d_results) as a dictionary.
     """
-    zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
-    zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
     np.save(zero_d_simulation_results_file_path, zero_d_results)
 
 def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = True, save_results_branch = False, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
@@ -1349,11 +1354,14 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     # if last_cycle == True:
     #     zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
     if save_results_all or save_results_branch:
+        zero_d_input_file_name = get_zero_input_file_name(zero_d_solver_input_file_path)
         if save_results_all:
+            zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
             zero_d_results = reformat_network_util_results_all(zero_d_time, results_0d, var_name_list)
         if save_results_branch:
+            zero_d_simulation_results_file_path = zero_d_input_file_name + "_branch_results"
             zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters)
-        save_simulation_results(zero_d_solver_input_file_path, zero_d_results)
+        save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
 
 def main(args):
     # references:
@@ -1366,7 +1374,7 @@ def main(args):
     parser.add_argument("zero", help = "Path to 0d solver input file")
     parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
     parser.add_argument("-l", "--last", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-sr", "--saveAll", action = 'store_true', help = "Save all simulation results to a .npy file")
+    parser.add_argument("-sa", "--saveAll", action = 'store_true', help = "Save all simulation results to a .npy file")
     parser.add_argument("-sb", "--saveBranch", action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file")
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
