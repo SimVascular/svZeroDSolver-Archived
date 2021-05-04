@@ -648,7 +648,7 @@ def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 
             radius = parameters["radii"][segment_number]
             mu = parameters["mu"][segment_number]
             Q_index = var_name_list.index("Q_" + wire_name)
-            tau = 4.0*mu*results_0d[:, Q_index]/(np.pi*radius**3)
+            tau = 4.0*mu*results_0d[:, Q_index]/(np.pi*radius**3) # todo: adjacent segemnts should have the same wss
             var_name_list.append("tau_" + wire_name)
             for j in range(len(ylist)):
                 ylist[j] = list(ylist[j]) # results at time step #j # this line is needed because ylist[j] is an np.array, so we have to turn it into a list before we can append tau[j] to it
@@ -922,10 +922,10 @@ def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
 #         # branch_nodes[branch_id] =
 
 def initialize_0d_results_dict_branch(parameters, zero_d_time):
-    zero_d_results = {"flow" : {}, "pressure" : {}, "wss" : {}, "time" : zero_d_time, "distance" : {}}
+    zero_d_results = {"flow" : {}, "pressure" : {}, "wss" : {}, "distance" : {}}
     num_time_pts = len(zero_d_time)
     branch_segment_ids = defaultdict(list) # {branch_id : [branch_segment_ids]}
-    segment_numbers_to_branch_segment_ids_map = {} # {branch_segment_id : segment_number}
+    segment_numbers_to_branch_segment_ids_map = defaultdict(dict) # {branch_id : {branch_segment_id : segment_number}}
 
     for segment_number in parameters["segment_names"]:
         segment_name = parameters["segment_names"][segment_number]
@@ -933,17 +933,25 @@ def initialize_0d_results_dict_branch(parameters, zero_d_time):
         branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
         branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
         branch_segment_ids[branch_id].append(branch_segment_id)
-        segment_numbers_to_branch_segment_ids_map[branch_segment_id] = segment_number
+        segment_numbers_to_branch_segment_ids_map[branch_id][branch_segment_id] = segment_number
 
     for branch_id in branch_segment_ids:
-        num_nodes_for_branch = max(branch_segment_ids[branch_id]) + 1
+        num_nodes_for_branch = max(branch_segment_ids[branch_id]) + 2
+        # print("num_nodes_for_branch = ", num_nodes_for_branch)
+        # print("num_time_pts = ", num_time_pts)
         for qoi in zero_d_results:
-            zero_d_results[qoi][branch_id] = np.zeros(num_nodes_for_branch, num_time_pts)
+            zero_d_results[qoi][branch_id] = np.zeros((num_nodes_for_branch, num_time_pts))
         zero_d_results["distance"][branch_id] = np.zeros(num_nodes_for_branch)
         branch_segment_ids[branch_id].sort() # sort by ascending order of branch_segment_id
+        counter = 0
         for branch_segment_id in branch_segment_ids[branch_id]:
-            segment_number = segment_numbers_to_branch_segment_ids_map[branch_segment_id]
-            zero_d_results["distance"][branch_id][branch_segment_id + 1] = np.sum(zero_d_results["distance"][branch_id]) + parameters["lengths"][segment_number]
+            # print("branch_segment_id = ", branch_segment_id)
+            segment_number = segment_numbers_to_branch_segment_ids_map[branch_id][branch_segment_id]
+            # print("segment_number = ", segment_number)
+            # print('parameters["lengths"][segment_number] = ', parameters["lengths"][segment_number])
+            zero_d_results["distance"][branch_id][branch_segment_id + 1] = zero_d_results["distance"][branch_id][counter] + parameters["lengths"][segment_number]
+            counter += 1
+    zero_d_results["time"] = zero_d_time
     return zero_d_results
 
 def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters):
@@ -988,14 +996,14 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
     # last here - need to test this code; code already done being checked
 
     for i in range(len(var_name_list)):
-        if ("var" not in var_names[i]): # var_names[i] == wire_name
+        if ("var" not in var_name_list[i]): # var_name_list[i] == wire_name
             # the only possible combination of wire connections are: 1) vessel <--> vessel 2) vessel <--> junction 3) vessel <--> boundary condition; in all of these cases, there is at least one vessel block ("V") in each wire_name
-            if "V" not in var_names[i]:
+            if "V" not in var_name_list[i]:
                 message = 'Error. It is expected that every wire in the 0d model must be connected to at least one vessel block.'
                 raise RuntimeError(message)
             else:
                 # parse var_name
-                var_name_split = var_names[i].split("_")
+                var_name_split = var_name_list[i].split("_")
                 qoi_header = var_name_split[0]
 
                 if var_name_split[1].startswith("V"): # the wire connected downstream of this vessel block
@@ -1358,10 +1366,11 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         if save_results_all:
             zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
             zero_d_results = reformat_network_util_results_all(zero_d_time, results_0d, var_name_list)
+            save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
         if save_results_branch:
             zero_d_simulation_results_file_path = zero_d_input_file_name + "_branch_results"
             zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters)
-        save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
+            save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
 
 def main(args):
     # references:
