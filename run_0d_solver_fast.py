@@ -899,7 +899,7 @@ def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_
     """
     time_for_last_cardiac_cycle = time[-1*number_of_time_pts_per_cardiac_cycle:]
     time_for_last_cardiac_cycle = time_for_last_cardiac_cycle - time_for_last_cardiac_cycle[0] + time[0]
-    return time_for_last_cardiac_cycle, results_0d[-1*number_of_time_pts_per_cardiac_cycle:, :]
+    return time_for_last_cardiac_cycle, results[-1*number_of_time_pts_per_cardiac_cycle:, :]
 
 def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_per_cardiac_cycle, zero_d_time, results_0d):
     """
