@@ -35,8 +35,9 @@ Available boundary conditions (BCs):
         9) steady coronary with time-dependent intramyocadial pressure with user-prescribed constant distal pressure
         10) custom, user-defined outlet BC
 """
-
+import pdb
 import sys
+import re
 import os
 import numpy as np
 import scipy.interpolate
@@ -65,6 +66,8 @@ except ImportError:
 np.set_printoptions(threshold=sys.maxsize)
 import importlib
 import argparse
+from collections import defaultdict
+
 
 def import_custom_0d_elements(custom_0d_elements_arguments_file_path):
     """
@@ -645,7 +648,7 @@ def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 
             radius = parameters["radii"][segment_number]
             mu = parameters["mu"][segment_number]
             Q_index = var_name_list.index("Q_" + wire_name)
-            tau = 4.0*mu*results_0d[:, Q_index]/(np.pi*radius**3)
+            tau = 4.0*mu*results_0d[:, Q_index]/(np.pi*radius**3) # todo: adjacent segemnts should have the same wss
             var_name_list.append("tau_" + wire_name)
             for j in range(len(ylist)):
                 ylist[j] = list(ylist[j]) # results at time step #j # this line is needed because ylist[j] is an np.array, so we have to turn it into a list before we can append tau[j] to it
@@ -717,10 +720,10 @@ def extract_0d_cap_results(zero_d_results_for_var_names): # currently here 8/18/
     zero_d_cap_results = {"inlet" : zero_d_inlet_cap_results, "outlet" : zero_d_outlet_cap_results, "time" : zero_d_results_for_var_names["time"]}
     return zero_d_cap_results
 
-def reformat_network_util_results(zero_d_time, results_0d, var_name_list):
+def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
     """
     Purpose:
-        Reformat the 0d simulation results (results_0d) into a dictionary (zero_d_results_for_var_names)
+        Reformat all 0d simulation results (results_0d) into a dictionary (zero_d_results_for_var_names)
     Inputs:
         np.array zero_d_time
             = np.array of simulated time points
@@ -741,7 +744,7 @@ def reformat_network_util_results(zero_d_time, results_0d, var_name_list):
 
                     "wss" : {var_name : np.array of wall shear stress},
 
-                    "internal" : {var_name : np.array of internal block solution},
+                    "internal" : {var_name : np.array of internal block solutions},
 
                         where var_name is an item in var_name_list (var_name_list generated from run_network_util)
                 }
@@ -763,6 +766,120 @@ def reformat_network_util_results(zero_d_time, results_0d, var_name_list):
             raise RuntimeError(message)
     return zero_d_results_for_var_names
 
+def initialize_0d_results_dict_branch(parameters, zero_d_time):
+    zero_d_results = {"flow" : {}, "pressure" : {}, "wss" : {}, "distance" : {}}
+    num_time_pts = len(zero_d_time)
+    branch_segment_ids = defaultdict(list) # {branch_id : [branch_segment_ids]}
+    segment_numbers_to_branch_segment_ids_map = defaultdict(dict) # {branch_id : {branch_segment_id : segment_number}}
+
+    for segment_number in parameters["segment_names"]:
+        segment_name = parameters["segment_names"][segment_number]
+        segment_name_split = segment_name.split("_")
+        branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
+        branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
+        branch_segment_ids[branch_id].append(branch_segment_id)
+        segment_numbers_to_branch_segment_ids_map[branch_id][branch_segment_id] = segment_number
+
+    for branch_id in branch_segment_ids:
+        num_nodes_for_branch = max(branch_segment_ids[branch_id]) + 2
+        for qoi in zero_d_results:
+            zero_d_results[qoi][branch_id] = np.zeros((num_nodes_for_branch, num_time_pts))
+        zero_d_results["distance"][branch_id] = np.zeros(num_nodes_for_branch)
+        branch_segment_ids[branch_id].sort() # sort by ascending order of branch_segment_id
+        counter = 0
+        for branch_segment_id in branch_segment_ids[branch_id]:
+            segment_number = segment_numbers_to_branch_segment_ids_map[branch_id][branch_segment_id]
+            zero_d_results["distance"][branch_id][branch_segment_id + 1] = zero_d_results["distance"][branch_id][counter] + parameters["lengths"][segment_number]
+            counter += 1
+    zero_d_results["time"] = zero_d_time
+    return zero_d_results
+
+def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters):
+    """
+    Purpose:
+        Reformat the 0d simulation results for just the branches into a dictionary (zero_d_results)
+    Inputs:
+        np.array zero_d_time
+            = np.array of simulated time points
+        np.array results_0d
+            = np.array of the 0d simulation results, where the rows correspond to the each simulated time point and column j corresponds to the 0d solution for the solution variable name in var_name_list[j]
+        list var_name_list
+            = list of the 0d simulation results' solution variable names; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connecting the 0d LPNBlock objects), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
+                Example:
+                    for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6_outlet. This wire connects a resistance vessel block to an outlet BC block (specifically for vessel segment #6)
+    Returns:
+        dict zero_d_results
+            =   {
+                    "time" : 1d np.array of simulated time points,
+
+                    "distance" : {branch_id : 1d np.array of distance of the branch's 0d nodes along the centerline}
+
+                    "flow" : {var_name : 2d np.array of flow rate where each row represents a 0d node on the branch and each column represents a time point,
+
+                    "pressure" : {var_name : 2d np.array of pressure where each row represents a 0d node on the branch and each column represents a time point},
+
+                    "wss" : {var_name : 2d np.array of wall shear stress where each row represents a 0d node on the branch and each column represents a time point}
+                }
+
+            - examples:
+                1. plt.plot(zero_d_results["time"], zero_d_results["flow"][branch_id][0, :])
+                        --> plot time vs the 0d flow waveform for the 0th node on branch, branch_id; this yields a plot that shows how the flow rate changes over time
+
+                2. plt.plot(zero_d_results["distance"], zero_d_results["pressure"][branch_id][:, -1])
+                        --> plot centerline distance vs the 0d pressure (at the last simulated time step); this yields a plot that shows how the pressure changes along the axial dimension of a vessel
+    """
+    qoi_map = {"Q" : "flow", "P" : "pressure", "tau" : "wss"}
+    zero_d_results = initialize_0d_results_dict_branch(parameters, zero_d_time)
+
+    for i in range(len(var_name_list)):
+        if ("var" not in var_name_list[i]): # var_name_list[i] == wire_name
+            # the only possible combination of wire connections are: 1) vessel <--> vessel 2) vessel <--> junction 3) vessel <--> boundary condition; in all of these cases, there is at least one vessel block ("V") in each wire_name
+            if "V" not in var_name_list[i]:
+                message = 'Error. It is expected that every wire in the 0d model must be connected to at least one vessel block.'
+                raise RuntimeError(message)
+            else:
+                # parse var_name
+                var_name_split = var_name_list[i].split("_")
+                qoi_header = var_name_split[0]
+
+                if var_name_split[1].startswith("V"): # the wire connected downstream of this vessel block
+                    segment_number = int(var_name_split[1][1:])
+                    segment_name = parameters["segment_names"][segment_number]
+                    segment_name_split = segment_name.split("_")
+                    branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
+                    branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
+                    branch_node_id = branch_segment_id + 1
+                    zero_d_results[qoi_map[qoi_header]][branch_id][branch_node_id, :] = results_0d[:, i]
+                else: # need to find the inlet wire/node of the branch
+                    if var_name_split[1].startswith("BC"): # inlet wire/node of the branch
+                        segment_number = int(var_name_split[3][1:])
+                        segment_name = parameters["segment_names"][segment_number]
+                        segment_name_split = segment_name.split("_")
+                        branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
+                        branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
+                        if branch_segment_id != 0:
+                            message = 'Error. branch_segment_id should be 0 here because we are at the inlet wire of the branch.'
+                            raise RuntimeError(message)
+                        else:
+                            branch_node_id = branch_segment_id
+                            zero_d_results[qoi_map[qoi_header]][branch_id][branch_node_id, :] = results_0d[:, i]
+                    elif var_name_split[1].startswith("J"): # this wire could either be 1) the inlet wire/node of a branch or 2) some internal wire in the branch (where that internal wire is 1) connecting 2 vessel blocks or 2) connecting a vessel block and a junction block) (and we dont care about internal wires)
+                        segment_number = int(var_name_split[2][1:])
+                        segment_name = parameters["segment_names"][segment_number]
+                        segment_name_split = segment_name.split("_")
+                        branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
+                        branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
+                        if branch_segment_id == 0: # this is the inlet wire/node of the branch
+                            branch_node_id = branch_segment_id
+                            zero_d_results[qoi_map[qoi_header]][branch_id][branch_node_id, :] = results_0d[:, i]
+                        else: # this is an internal wire/node in the branch
+                            pass # do nothing here, since we are ignoring the internal wires where the vessel block is connected downstream of the wire (and the junction block is connected upstream of the wire)
+                    else:
+                        message = 'Error. It is not possible for a block name to begin with something other than, "V", "J", or "BC".'
+                        raise RuntimeError(message)
+
+    return zero_d_results
+
 def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_pts_per_cardiac_cycle):
     """
     Purpose:
@@ -771,7 +888,7 @@ def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_
         np.array time
             = array of time points
         np.array results
-            = array of simulation results
+            = 2d array of simulation results
         int number_of_time_pts_per_cardiac_cycle
             = number of simulated time points per cycle
     Returns:
@@ -781,11 +898,10 @@ def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_
             = results, but condensed to contain just the values for the last cardiac cycle
     """
     time_for_last_cardiac_cycle = time[-1*number_of_time_pts_per_cardiac_cycle:]
-    results_for_last_cardiac_cycle =  results[-1*number_of_time_pts_per_cardiac_cycle:]
     time_for_last_cardiac_cycle = time_for_last_cardiac_cycle - time_for_last_cardiac_cycle[0] + time[0]
-    return time_for_last_cardiac_cycle, results_for_last_cardiac_cycle
+    return time_for_last_cardiac_cycle, results[-1*number_of_time_pts_per_cardiac_cycle:, :]
 
-def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_per_cardiac_cycle, zero_d_results_for_var_names):
+def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_per_cardiac_cycle, zero_d_time, results_0d):
     """
     Purpose:
         Extract the last cardiac cycle waveform for all 0d simulation results
@@ -794,39 +910,19 @@ def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_
             = period of a cardiac cycle
         int number_of_time_pts_per_cardiac_cycle
             = number of simulated 0d time points per cycle
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
     Returns:
-        dict zero_d_results_for_var_names_last_cycle
-            =   zero_d_results_for_var_names, but for just the last simulated cardiac cycle
+
     """
-    zero_d_results_for_var_names_last_cycle = {}
-    for qoi in list(zero_d_results_for_var_names.keys()):
-        if qoi != "time":
-            zero_d_results_for_var_names_last_cycle[qoi] = {}
-            for var_name in list(zero_d_results_for_var_names[qoi].keys()):
-                time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_results_for_var_names["time"], zero_d_results_for_var_names[qoi][var_name], number_of_time_pts_per_cardiac_cycle)
-                zero_d_results_for_var_names_last_cycle[qoi][var_name] = res
-    zero_d_results_for_var_names_last_cycle["time"] = time_for_last_cardiac_cycle
+
+    time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_time, results_0d, number_of_time_pts_per_cardiac_cycle)
 
     # check that the cardiac cycle period is correctly given by zero_d_time
-    errr = (cardiac_cycle_period - (zero_d_results_for_var_names_last_cycle["time"][-1] - zero_d_results_for_var_names_last_cycle["time"][0]))/cardiac_cycle_period*100.0
+    errr = (cardiac_cycle_period - (time_for_last_cardiac_cycle[-1] - time_for_last_cardiac_cycle[0]))/cardiac_cycle_period*100.0
     if errr > 0.01:
-        message = 'Error. cardiac_cycle_period != zero_d_results_for_var_names_last_cycle["time"][-1] - zero_d_results_for_var_names_last_cycle["time"][0]'
+        message = 'Error. cardiac_cycle_period != time_for_last_cardiac_cycle[-1] - time_for_last_cardiac_cycle[0]'
         raise RuntimeError(message)
-    return zero_d_results_for_var_names_last_cycle
+
+    return time_for_last_cardiac_cycle, res
 
 def save_directed_graph(block_list, connect_list, directed_graph_file_path):
     """
@@ -938,55 +1034,6 @@ def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # currently here 8
         print("Warning. Model has only a single element/segment. Collapse is not possible. Returning the original input dictionary.\n")
         return zero_d_cap_results
 
-def check_convergence_of_simulation_result_dif(time, result, number_of_values_to_check = 20, tolerance = 0.01):
-    """
-    Purpose:
-        Check if result has converged to a periodic state. result has converged to a periodic state if the percent differences between the last number_of_values_to_check values of result and the last value of result is equal to or smaller than the tolerance.
-    Caveat:
-        result must be a time-averaged waveform
-    Inputs:
-        np.array time
-            = np.array of time points
-        np.array result
-            = np.array of result values for which we want to check convergence
-            -- must have the same length as time
-        float tolerance
-            = convergence requires that the last 2 values of result is equal to or smaller than the tolerance
-    Returns:
-        boolean converged
-            = True if result has converged; otherwise, False
-    """
-    start_index = -1*number_of_values_to_check
-    for i in range(start_index, 0):
-        if (100.0*np.abs((result[i] - result[-1])/result[-1]) > tolerance):
-            return False
-    return True
-
-def check_convergence_of_simulation_result_max(time, result, number_of_values_to_check = 20, tolerance = 0.01):
-    """
-    Purpose:
-        Check if result has converged to a periodic state. result has converged to a periodic state if the percent differences between the last number_of_values_to_check values of result and the last value of result is equal to or smaller than the tolerance.
-    Caveat:
-        result must be a time-averaged waveform
-    Inputs:
-        np.array time
-            = np.array of time points
-        np.array result
-            = np.array of result values for which we want to check convergence
-            -- must have the same length as time
-        float tolerance
-            = convergence requires that the last 2 values of result is equal to or smaller than the tolerance
-    Returns:
-        boolean converged
-            = True if result has converged; otherwise, False
-    """
-    max_result = np.amax(result)
-    start_index = -1*number_of_values_to_check
-    for i in range(start_index, 0):
-        if (100.0*np.abs((result[i] - result[-1])/max_result) > tolerance):
-            return False
-    return True
-
 def compute_time_averaged_result(time, result, parameters):
     """
     Purpose:
@@ -1020,83 +1067,31 @@ def compute_time_averaged_result(time, result, parameters):
     time_of_time_averaged_result = time[parameters["number_of_time_pts_per_cardiac_cycle"] - 1:]
     return time_of_time_averaged_result, time_averaged_result
 
-def run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters):# currently here 8/18/20: need to make sure that this function works correctly
+def get_zero_input_file_name(zero_d_solver_input_file_path):
     """
-    Purpose:
-        Check if all 0d simulation results in zero_d_results_for_var_names have converged to a periodic state.
     Inputs:
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
-        dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
-    Returns:
-        boolean all_results_converged
-            = True if all results in zero_d_results_for_var_names have converged to a periodic state; otherwise, False
+        string zero_d_solver_input_file_path
+            = path to the 0d solver input file
     """
-    all_results_converged = True
-    time = zero_d_results_for_var_names["time"]
-    for qoi in list(zero_d_results_for_var_names.keys()):
-        if qoi != "time":
-            for var_name in list(zero_d_results_for_var_names[qoi].keys()):
-                result = zero_d_results_for_var_names[qoi][var_name]
-                time_of_time_averaged_result, time_averaged_result = compute_time_averaged_result(time, result, parameters)
-                if qoi == "flow" or "wss":
-                    # Reference: Xiao N, Alastruey J, Figueroa C. A systematic comparison between 1-D and 3-D hemodynamics in compliant arterial models. International Journal of Numerical Methods in Biomedical Engineering 2014; 30:204–231
+    zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
+    return zero_d_input_file_name
 
-                    time_of_time_averaged_result, time_averaged_result = extract_last_cardiac_cycle_simulation_results(time_of_time_averaged_result, time_averaged_result, parameters["number_of_time_pts_per_cardiac_cycle"])
-
-                    converged = check_convergence_of_simulation_result_max(time_of_time_averaged_result, time_averaged_result)
-                else:
-                    converged = check_convergence_of_simulation_result_dif(time_of_time_averaged_result, time_averaged_result) # changed from using the gradient-based convergence check to the difference-based check on 10/21/20
-                if not converged:
-                    print("------> Warning: the 0d simulation result for " + var_name + " has not yet converged to a periodic state.\n")
-                    all_results_converged = False
-    return all_results_converged
-
-def save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_var_names):
+def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results):
     """
     Purpose:
         Save the 0d simulation results to a .npy file.
     Usage:
         To open and load the .npy file to extract the 0d simulation results, use the following command:
-            zero_d_results_for_var_names = np.load(/path/to/zero/d/simulation/results/npy/file, allow_pickle = True).item()
+            zero_d_results = np.load(/path/to/zero/d/simulation/results/npy/file, allow_pickle = True).item()
     Inputs:
-        string zero_d_solver_input_file_path
-            = path to the 0d solver input file
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
+        dict zero_d_results
+            = obtained from reformat_network_util_results_all or reformat_network_util_results_branch
     Returns:
-        void, but saves a .npy file storing the 0d simulation results (zero_d_results_for_var_names) as a dictionary.
+        void, but saves a .npy file storing the 0d simulation results (zero_d_results) as a dictionary.
     """
-    zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
-    zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
-    np.save(zero_d_simulation_results_file_path, zero_d_results_for_var_names)
+    np.save(zero_d_simulation_results_file_path, zero_d_results)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_0d_simulation_data = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, check_convergence = True, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = False, save_results_branch = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1107,33 +1102,20 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
         boolean last_cycle
             = True to return 0d simulation results for only the last cycle; False to return the results for all simulated cycles
-        boolean save_0d_simulation_data
-            = True to save the 0d simulation results (zero_d_results_for_var_names) to a .npy file
+        boolean save_results_all
+            = True to save all 0d simulation results (reformatted to a readable dictionary format) to a .npy file
+        boolean save_results_branch
+            = True to save the 0d simulation results for just the branches (reformatted to a readable dictionary format, while preserving the 1d/centerline branch structure) to a .npy file
         boolean use_custom_0d_elements
             = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
         string custom_0d_elements_arguments_file_path
             = path to user-defined custom 0d element file
-        boolean check_convergence
-            = True to check if all 0d simulation results have converged to a periodic state; False, otherwise
         float simulation_start_time
             = time at which to begin the 0d simulation
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
             -- 0.0 <= simulation_start_time <= cardiac_cycle_period
     Returns:
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
+        void
     """
     if use_custom_0d_elements:
         custom_0d_elements_arguments = import_custom_0d_elements(custom_0d_elements_arguments_file_path)
@@ -1145,14 +1127,18 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     set_solver_parameters(parameters)
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
-    zero_d_results_for_var_names = reformat_network_util_results(zero_d_time, results_0d, var_name_list)
-    if check_convergence:
-        all_results_converged = run_convergence_check_of_0d_results(zero_d_results_for_var_names, parameters)
     if last_cycle == True:
-        zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
-    if save_0d_simulation_data:
-        save_simulation_results(zero_d_solver_input_file_path, zero_d_results_for_var_names)
-    return zero_d_results_for_var_names
+        zero_d_time, results_0d = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_time, results_0d)
+    if save_results_all or save_results_branch:
+        zero_d_input_file_name = get_zero_input_file_name(zero_d_solver_input_file_path)
+        if save_results_all:
+            zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
+            zero_d_results = reformat_network_util_results_all(zero_d_time, results_0d, var_name_list)
+            save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
+        if save_results_branch:
+            zero_d_simulation_results_file_path = zero_d_input_file_name + "_branch_results"
+            zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters)
+            save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
 
 def main(args):
     # references:
@@ -1165,10 +1151,10 @@ def main(args):
     parser.add_argument("zero", help = "Path to 0d solver input file")
     parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
     parser.add_argument("-l", "--last", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-s", "--save", default=True, action = 'store_true', help = "Save the simulation results to a .npy file")
+    parser.add_argument("-sa", "--saveAll", default=True, action = 'store_true', help = "Save all simulation results to a .npy file")
+    parser.add_argument("-sb", "--saveBranch", default=True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file")
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
-    parser.add_argument("-ck", "--check", action = 'store_true', help = "Check convergence of 0d simulation results")
     parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file")
     parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
     parser.add_argument("-y", "--useYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
@@ -1180,10 +1166,10 @@ def main(args):
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
                                     last_cycle = args.last,
-                                    save_0d_simulation_data = args.save,
+                                    save_results_all = args.saveAll,
+                                    save_results_branch = args.saveBranch,
                                     use_custom_0d_elements = args.useCustom,
                                     custom_0d_elements_arguments_file_path = args.customPath,
-                                    check_convergence = args.check,
                                     use_ICs_from_npy_file = args.useICs,
                                     ICs_npy_file_path = args.ICsPath,
                                     save_y_ydot_to_npy = args.useYydot,
