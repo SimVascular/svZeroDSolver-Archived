@@ -766,161 +766,6 @@ def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
             raise RuntimeError(message)
     return zero_d_results_for_var_names
 
-# def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters):
-#     """
-#     Purpose:
-#         Reformat the 0d simulation results for just the branches into a dictionary (zero_d_results)
-#     Inputs:
-#         np.array zero_d_time
-#             = np.array of simulated time points
-#         np.array results_0d
-#             = np.array of the 0d simulation results, where the rows correspond to the each simulated time point and column j corresponds to the 0d solution for the solution variable name in var_name_list[j]
-#         list var_name_list
-#             = list of the 0d simulation results' solution variable names; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connecting the 0d LPNBlock objects), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
-#                 Example:
-#                     for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6_outlet. This wire connects a resistance vessel block to an outlet BC block (specifically for vessel segment #6)
-#     Returns:
-#         dict zero_d_results
-#             =   {
-#                     "time" : 1d np.array of simulated time points,
-#
-#                     "distance" : {branch_id : 1d np.array of distance of the branch's 0d nodes along the centerline}
-#
-#                     "flow" : {var_name : 2d np.array of flow rate where each row represents a 0d node on the branch and each column represents a time point,
-#
-#                     "pressure" : {var_name : 2d np.array of pressure where each row represents a 0d node on the branch and each column represents a time point},
-#
-#                     "wss" : {var_name : 2d np.array of wall shear stress where each row represents a 0d node on the branch and each column represents a time point}
-#                 }
-#
-#             - examples:
-#                 1. plt.plot(zero_d_results["time"], zero_d_results["flow"][branch_id][0, :])
-#                         --> plot time vs the 0d flow waveform for the 0th node on branch, branch_id; this yields a plot that shows how the flow rate changes over time
-#
-#                 2. plt.plot(zero_d_results["distance"], zero_d_results["pressure"][branch_id][:, -1])
-#                         --> plot centerline distance vs the 0d pressure (at the last simulated time step); this yields a plot that shows how the pressure changes along the axial dimension of a vessel
-#     """
-#     zero_d_results = {"flow" : {}, "pressure" : {}, "wss" : {}, "time" : zero_d_time, "distance" : {}}
-#
-#     segment_names = parameters["segment_names"]
-#
-#     qoi_map = {"Q" : "flow", "P" : "pressure", "tau" : "wss"}
-#
-#     for i in range(len(var_name_list)):
-#
-#         if ("var" not in var_names[i]):
-#             if "V" not in var_names[i]:
-#                 message = 'Error. It is expected that every wire in the 0d model must be connected to at least one vessel block.'
-#                 raise RuntimeError(message)
-#             else:
-#                 # parse var_name
-#                 var_name_split = var_names[i].split("_")
-#                 qoi_header = var_name_split[0]
-#
-#                 # https://stackoverflow.com/questions/15022673/how-to-find-indexes-of-string-in-lists-which-starts-with-some-substring
-#                 vessel_indices = [n for n, l in enumerate(var_name_split) if l.startswith("V")]
-#                 if len(vessel_indices) != 1:
-#                     message = 'Error. It is expected that every wire in the 0d model is connected to only one vessel block.'
-#                     raise RuntimeError(message)
-#                 else:
-#                     # get segment_number
-#                     # https://stackoverflow.com/questions/430079/how-to-split-strings-into-text-and-number
-#                     segment_number = int((re.match(r"([a-z]+)([0-9]+)", var_name_split[vessel_indices[0]], re.I)).groups()[1])
-#
-#                     # get branch_id
-#                     segment_name = segment_names[segment_number]
-#                     segment_name_split = segment_name.split("_")
-#                     branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
-#
-#                     # get branch node_id
-#                     branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
-#
-#                     # the current wire, var_names[i], is either an inlet wire to the vessel or an outlet wire from the vessel
-#                     if vessel_indices[0] == 1: # an outlet wire from the vessel block
-#                         if "BC" in var_name_split[2]: # last wire for the vessel/branch. this is an outlet node
-#                             pass
-#                         else: # internal wire
-#                             pass
-#                     else: # an inlet wire to the vessel block
-#                         if vessel_indices[0] == 3: # first wire for the vessel/branch. This is the inlet node
-#                             pass
-#                         else: # internal wire
-#                             pass
-#
-#
-#
-#
-#                     if "BC" in var_name_split[1]: # this is an inlet vessel
-#                         pass
-#                     elif
-#                     elif "J" in var_name_split[1]: #
-#                         pass
-#
-#
-#
-#                     # check if node is first node on the branch
-#                     # check if node is last node on the branch
-#                     # check if node is internal node on the branch
-#
-#
-#
-#                     index = [i for i, s in enumerate(var_name_split) if "BC" in s][0]
-#                     segment_number = int(var_name_split[index][2:])
-#                     if "inlet" in var_names[i]: # this is the first node in the branch
-#                         zero_d_inlet_cap_results[qoi][segment_number] = zero_d_results_for_var_names[qoi][var_names[i]]
-#                     elif "outlet" in var_names[i]: # this is an outlet cap
-#                         zero_d_outlet_cap_results[qoi][segment_number] = zero_d_results_for_var_names[qoi][var_names[i]]
-#                     else:
-#
-#
-#
-#
-#                     res = results_0d[:, i]
-#                     zero_d_results[qoi_map[qoi_header]][branch_id] = np.zeros(num_nodes_for_branch, num_time_pts)
-#                     zero_d_results[qoi_map[qoi_header]][branch_id][branch_node_num, :] = res
-#
-# # results are stored by wire_names (var_names_list)
-# # we want to store the results, res, using a structure of: "zero_d_results[qoi][branch_id][branch_node_num, :] = res"
-# # so that means for each var_name, we need to obtain 1) the qoi 2) the corresponding branch_id and 3) branch_node_num
-# # 1) we can obtain qoi via: "qoi_map[qoi_header]"
-# # Then, the only things remaining for us to obtain are: 2) the corresponding branch_id and 3) branch_node_num
-# # Each var_name (wire) has one of the following connection combinations: 1) vessel <--> vessel 2) vessel <--> junction 3) vessel <--> boundary condition; in all of these cases, there is at least one vessel block ("V") in each wire_name
-# # For each vessel segment number, we can obtain the branch_id from the segment_name.
-# # Then depending on whether the vessel is listed 1st or 2nd in the wire name, that will decide if the
-# #
-# # 3 pieces of a branch:
-# # 1) inlet of a branch
-# # 2) interior of a branch
-# # 3) outlet of a branch
-# # For every branch, need to determine the inlet and outlet nodes, and then the interior nodes. All inlet nodes are such that the var_name_split[1].startswith("BC" or "J")
-#
-# ##### ignore #### From the branch_segment_id, we can then get the branch_node_num, because "branch_node_num = branch_segment_id"
-#
-# # Note that each vessel block is attached to 2 wires. Then means that the vessel block could either be the outlet of a wire or the inlet of a wire. But in both cases, the
-#
-#
-#     return zero_d_results
-
-# def temp(parameters):
-#     segment_names = parameters["segment_names"]
-#
-#     # on a branch, there are n segments and n + 1 nodes
-#
-#     branch_nodes = {}
-#
-#     for segment_number in segment_names:
-#         segment_name = segment_names[segment_number]
-#         segment_name_split = segment_name.split("_")
-#
-#         # get branch_id
-#         branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
-#
-#         # get branch node_id
-#         branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
-#
-#
-#         # branch_nodes[branch_id] =
-
 def initialize_0d_results_dict_branch(parameters, zero_d_time):
     zero_d_results = {"flow" : {}, "pressure" : {}, "wss" : {}, "distance" : {}}
     num_time_pts = len(zero_d_time)
@@ -937,18 +782,13 @@ def initialize_0d_results_dict_branch(parameters, zero_d_time):
 
     for branch_id in branch_segment_ids:
         num_nodes_for_branch = max(branch_segment_ids[branch_id]) + 2
-        # print("num_nodes_for_branch = ", num_nodes_for_branch)
-        # print("num_time_pts = ", num_time_pts)
         for qoi in zero_d_results:
             zero_d_results[qoi][branch_id] = np.zeros((num_nodes_for_branch, num_time_pts))
         zero_d_results["distance"][branch_id] = np.zeros(num_nodes_for_branch)
         branch_segment_ids[branch_id].sort() # sort by ascending order of branch_segment_id
         counter = 0
         for branch_segment_id in branch_segment_ids[branch_id]:
-            # print("branch_segment_id = ", branch_segment_id)
             segment_number = segment_numbers_to_branch_segment_ids_map[branch_id][branch_segment_id]
-            # print("segment_number = ", segment_number)
-            # print('parameters["lengths"][segment_number] = ', parameters["lengths"][segment_number])
             zero_d_results["distance"][branch_id][branch_segment_id + 1] = zero_d_results["distance"][branch_id][counter] + parameters["lengths"][segment_number]
             counter += 1
     zero_d_results["time"] = zero_d_time
@@ -988,12 +828,8 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
                 2. plt.plot(zero_d_results["distance"], zero_d_results["pressure"][branch_id][:, -1])
                         --> plot centerline distance vs the 0d pressure (at the last simulated time step); this yields a plot that shows how the pressure changes along the axial dimension of a vessel
     """
-    # dont worry about being efficient rn; just get something working first
-
     qoi_map = {"Q" : "flow", "P" : "pressure", "tau" : "wss"}
     zero_d_results = initialize_0d_results_dict_branch(parameters, zero_d_time)
-
-    # last here - need to test this code; code already done being checked
 
     for i in range(len(var_name_list)):
         if ("var" not in var_name_list[i]): # var_name_list[i] == wire_name
@@ -1013,7 +849,6 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
                     branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
                     branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
                     branch_node_id = branch_segment_id + 1
-                    # zero_d_results[qoi_map[qoi_header]][branch_id] = np.zeros(num_nodes_for_branch, num_time_pts)
                     zero_d_results[qoi_map[qoi_header]][branch_id][branch_node_id, :] = results_0d[:, i]
                 else: # need to find the inlet wire/node of the branch
                     if var_name_split[1].startswith("BC"): # inlet wire/node of the branch
@@ -1044,52 +879,6 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
                         raise RuntimeError(message)
 
     return zero_d_results
-
-# # https://stackoverflow.com/questions/15022673/how-to-find-indexes-of-string-in-lists-which-starts-with-some-substring
-# vessel_indices   = [n for n, l in enumerate(var_name_split) if l.startswith("V")]
-# junction_indices = [n for n, l in enumerate(var_name_split) if l.startswith("J")]
-# bc_indices       = [n for n, l in enumerate(var_name_split) if l.startswith("BC")]
-#
-# if len(vessel_indices) == 2: # this wire connects 2 vessel blocks
-#     for vi in vessel_indices:
-#         # get segment_number
-#         # https://stackoverflow.com/questions/430079/how-to-split-strings-into-text-and-number
-#         segment_number = int((re.match(r"([a-z]+)([0-9]+)", var_name_split[vessel_indices[vi]], re.I)).groups()[1])
-#
-#         # get branch_id
-#         segment_name = segment_names[segment_number]
-#         segment_name_split = segment_name.split("_")
-#         branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
-#
-#         # get branch node_id
-#         branch_segment_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[1], re.I)).groups()[1])
-#
-#         if branch_segment_id == 0: # inlet wire of the branch; also inlet node of the branch
-#             pass
-#         else:
-#             vessel_indices
-#
-# else: # len(vessel_indices) == 1; there is just 1 vessel block attached to this wire
-#     pass
-#
-#
-#
-#
-#
-#
-#
-#
-# # the current wire, var_names[i], is either an inlet wire to the vessel or an outlet wire from the vessel
-# if vessel_indices[0] == 1: # an outlet wire from the vessel block
-#     if "BC" in var_name_split[2]: # last wire for the vessel/branch. this is an outlet node
-#         pass
-#     else: # internal wire
-#         pass
-# else: # an inlet wire to the vessel block
-#     if vessel_indices[0] == 3: # first wire for the vessel/branch. This is the inlet node
-#         pass
-#     else: # internal wire
-#         pass
 
 def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_pts_per_cardiac_cycle):
     """
