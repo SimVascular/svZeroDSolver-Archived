@@ -1165,7 +1165,7 @@ def main(args):
     parser.add_argument("zero", help = "Path to 0d solver input file")
     parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
     parser.add_argument("-l", "--last", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-s", "--save", action = 'store_true', help = "Save the simulation results to a .npy file")
+    parser.add_argument("-s", "--save", default=True, action = 'store_true', help = "Save the simulation results to a .npy file")
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
     parser.add_argument("-ck", "--check", action = 'store_true', help = "Check convergence of 0d simulation results")
