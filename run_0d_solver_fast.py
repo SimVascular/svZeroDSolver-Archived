@@ -1150,32 +1150,34 @@ def main(args):
     parser = argparse.ArgumentParser(description = 'This code runs the 0d solver.')
     parser.add_argument("zero", help = "Path to 0d solver input file")
     parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
-    parser.add_argument("-l", "--last", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-sa", "--saveAll", default=True, action = 'store_true', help = "Save all simulation results to a .npy file")
-    parser.add_argument("-sb", "--saveBranch", default=True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file")
+    parser.add_argument("-l", "--returnLast", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
+    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true', help = "Save all simulation results to a .npy file")
+    parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
     parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file")
     parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
-    parser.add_argument("-y", "--useYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
+    parser.add_argument("-y", "--saveYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
     parser.add_argument("-py", "--yydotPath", help = "Path to the .npy file containing y and ydot")
-    parser.add_argument("-j", "--jacobian", action = 'store_true', help = "Check the Jacobian")
-    parser.add_argument("-it", "--initial", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
+    parser.add_argument("-j", "--checkJacobian", action = 'store_true', help = "Check the Jacobian")
+    parser.add_argument("-it", "--initialTime", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
+    # parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the solutions from the equivalent steady 0d model as the initial conditions.")
     args = parser.parse_args(args)
 
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
-                                    last_cycle = args.last,
+                                    last_cycle = args.returnLast,
                                     save_results_all = args.saveAll,
                                     save_results_branch = args.saveBranch,
                                     use_custom_0d_elements = args.useCustom,
                                     custom_0d_elements_arguments_file_path = args.customPath,
                                     use_ICs_from_npy_file = args.useICs,
                                     ICs_npy_file_path = args.ICsPath,
-                                    save_y_ydot_to_npy = args.useYydot,
+                                    save_y_ydot_to_npy = args.saveYydot,
                                     y_ydot_file_path = args.yydotPath,
-                                    check_jacobian = args.jacobian,
-                                    simulation_start_time = args.initial
+                                    check_jacobian = args.checkJacobian,
+                                    simulation_start_time = args.initialTime
+                                    # use_steady_soltns_as_ics = args.useSteadyIC
                                 )
 
 if __name__ == "__main__":
