@@ -880,6 +880,28 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
 
     return zero_d_results
 
+# def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_pts_per_cardiac_cycle):
+#     """
+#     Purpose:
+#         Extract the simulation results for the last cardiac cycle for the given np.arrays, time and results
+#     Inputs:
+#         np.array time
+#             = array of time points
+#         np.array results
+#             = array of simulation results
+#         int number_of_time_pts_per_cardiac_cycle
+#             = number of simulated time points per cycle
+#     Returns:
+#         np.array time_for_last_cardiac_cycle
+#             = time, but condensed to contain just the values for the last cardiac cycle
+#         np.array results_for_last_cardiac_cycle
+#             = results, but condensed to contain just the values for the last cardiac cycle
+#     """
+#     time_for_last_cardiac_cycle = time[-1*number_of_time_pts_per_cardiac_cycle:]
+#     results_for_last_cardiac_cycle =  results[-1*number_of_time_pts_per_cardiac_cycle:]
+#     time_for_last_cardiac_cycle = time_for_last_cardiac_cycle - time_for_last_cardiac_cycle[0] + time[0]
+#     return time_for_last_cardiac_cycle, results_for_last_cardiac_cycle
+
 def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_pts_per_cardiac_cycle):
     """
     Purpose:
@@ -888,7 +910,7 @@ def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_
         np.array time
             = array of time points
         np.array results
-            = array of simulation results
+            = 2d array of simulation results
         int number_of_time_pts_per_cardiac_cycle
             = number of simulated time points per cycle
     Returns:
@@ -898,11 +920,53 @@ def extract_last_cardiac_cycle_simulation_results(time, results, number_of_time_
             = results, but condensed to contain just the values for the last cardiac cycle
     """
     time_for_last_cardiac_cycle = time[-1*number_of_time_pts_per_cardiac_cycle:]
-    results_for_last_cardiac_cycle =  results[-1*number_of_time_pts_per_cardiac_cycle:]
     time_for_last_cardiac_cycle = time_for_last_cardiac_cycle - time_for_last_cardiac_cycle[0] + time[0]
-    return time_for_last_cardiac_cycle, results_for_last_cardiac_cycle
+    return time_for_last_cardiac_cycle, results_0d[-1*number_of_time_pts_per_cardiac_cycle:, :]
 
-def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_per_cardiac_cycle, zero_d_results_for_var_names):
+# def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_per_cardiac_cycle, zero_d_results_for_var_names):
+#     """
+#     Purpose:
+#         Extract the last cardiac cycle waveform for all 0d simulation results
+#     Inputs:
+#         float cardiac_cycle_period
+#             = period of a cardiac cycle
+#         int number_of_time_pts_per_cardiac_cycle
+#             = number of simulated 0d time points per cycle
+#         dict zero_d_results_for_var_names
+#             =   {
+#                     "time" : np.array of simulated time points,
+#
+#                     "flow" : {var_name : np.array of flow rate,
+#
+#                     "pressure" : {var_name : np.array of pressure},
+#
+#                     "wss" : {var_name : np.array of wall shear stress},
+#
+#                     "internal" : {var_name : np.array of internal block solutions},
+#
+#                         where var_name is an item in var_name_list (var_name_list generated from run_network_util)
+#                 }
+#     Returns:
+#         dict zero_d_results_for_var_names_last_cycle
+#             =   zero_d_results_for_var_names, but for just the last simulated cardiac cycle
+#     """
+#     zero_d_results_for_var_names_last_cycle = {}
+#     for qoi in list(zero_d_results_for_var_names.keys()):
+#         if qoi != "time":
+#             zero_d_results_for_var_names_last_cycle[qoi] = {}
+#             for var_name in list(zero_d_results_for_var_names[qoi].keys()):
+#                 time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_results_for_var_names["time"], zero_d_results_for_var_names[qoi][var_name], number_of_time_pts_per_cardiac_cycle)
+#                 zero_d_results_for_var_names_last_cycle[qoi][var_name] = res
+#     zero_d_results_for_var_names_last_cycle["time"] = time_for_last_cardiac_cycle
+#
+#     # check that the cardiac cycle period is correctly given by zero_d_time
+#     errr = (cardiac_cycle_period - (zero_d_results_for_var_names_last_cycle["time"][-1] - zero_d_results_for_var_names_last_cycle["time"][0]))/cardiac_cycle_period*100.0
+#     if errr > 0.01:
+#         message = 'Error. cardiac_cycle_period != zero_d_results_for_var_names_last_cycle["time"][-1] - zero_d_results_for_var_names_last_cycle["time"][0]'
+#         raise RuntimeError(message)
+#     return zero_d_results_for_var_names_last_cycle
+
+def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_per_cardiac_cycle, zero_d_time, results_0d):
     """
     Purpose:
         Extract the last cardiac cycle waveform for all 0d simulation results
@@ -911,39 +975,19 @@ def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_
             = period of a cardiac cycle
         int number_of_time_pts_per_cardiac_cycle
             = number of simulated 0d time points per cycle
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
     Returns:
-        dict zero_d_results_for_var_names_last_cycle
-            =   zero_d_results_for_var_names, but for just the last simulated cardiac cycle
+
     """
-    zero_d_results_for_var_names_last_cycle = {}
-    for qoi in list(zero_d_results_for_var_names.keys()):
-        if qoi != "time":
-            zero_d_results_for_var_names_last_cycle[qoi] = {}
-            for var_name in list(zero_d_results_for_var_names[qoi].keys()):
-                time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_results_for_var_names["time"], zero_d_results_for_var_names[qoi][var_name], number_of_time_pts_per_cardiac_cycle)
-                zero_d_results_for_var_names_last_cycle[qoi][var_name] = res
-    zero_d_results_for_var_names_last_cycle["time"] = time_for_last_cardiac_cycle
+
+    time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_time, results_0d, number_of_time_pts_per_cardiac_cycle)
 
     # check that the cardiac cycle period is correctly given by zero_d_time
-    errr = (cardiac_cycle_period - (zero_d_results_for_var_names_last_cycle["time"][-1] - zero_d_results_for_var_names_last_cycle["time"][0]))/cardiac_cycle_period*100.0
+    errr = (cardiac_cycle_period - (time_for_last_cardiac_cycle[-1] - time_for_last_cardiac_cycle[0]))/cardiac_cycle_period*100.0
     if errr > 0.01:
-        message = 'Error. cardiac_cycle_period != zero_d_results_for_var_names_last_cycle["time"][-1] - zero_d_results_for_var_names_last_cycle["time"][0]'
+        message = 'Error. cardiac_cycle_period != time_for_last_cardiac_cycle[-1] - time_for_last_cardiac_cycle[0]'
         raise RuntimeError(message)
-    return zero_d_results_for_var_names_last_cycle
+
+    return time_for_last_cardiac_cycle, res
 
 def save_directed_graph(block_list, connect_list, directed_graph_file_path):
     """
@@ -1148,8 +1192,9 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     set_solver_parameters(parameters)
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
-    # if last_cycle == True:
-    #     zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
+    if last_cycle == True:
+        # zero_d_results_for_var_names = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_results_for_var_names)
+        zero_d_time, results_0d = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_time, results_0d)
     if save_results_all or save_results_branch:
         zero_d_input_file_name = get_zero_input_file_name(zero_d_solver_input_file_path)
         if save_results_all:
