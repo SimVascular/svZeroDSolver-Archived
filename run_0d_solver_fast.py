@@ -39,10 +39,12 @@ import pdb
 import sys
 import re
 import os
+import copy
 import numpy as np
 import scipy.interpolate
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import use_mean_bcs
 try:
     import oneD_to_zeroD_convertor
 except ImportError:
@@ -196,7 +198,7 @@ def create_bc_equations(parameters):
                 bc_equations[location][segment_number] = list_of_unsteady_functions
 
     if cardiac_cycle_period == temp:
-        cardiac_cycle_period = float(input("\nEnter the period of one cardiac cycle for your 0d simulation. All 0d simulation results will be periodic with a period of this value: "))
+        cardiac_cycle_period = float(input("\nEnter the period of one cardiac cycle for your 0d simulation. All 0d simulation results will be periodic with a period of this value: ")) # todo: get rid of this and set a default cardiac cycle period
         if cardiac_cycle_period <= 0:
             message = "Error. The prescribed cardiac cycle period must be greater than 0."
             raise ValueError(message)
@@ -554,7 +556,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
 
     block_list = list(parameters["blocks"].values())
     connect_list, wire_dict = connections.connect_blocks_by_inblock_list(block_list)
-    if draw_directed_graph == True:
+    if draw_directed_graph == True: # todo: should I move this draw_directed_graph to a separate function outside of run_network_util, since this stuff is completely separate
         zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
         directed_graph_file_path = zero_d_input_file_name + "_directed_graph"
         save_directed_graph(block_list, connect_list, directed_graph_file_path)
@@ -1034,7 +1036,7 @@ def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # currently here 8
         print("Warning. Model has only a single element/segment. Collapse is not possible. Returning the original input dictionary.\n")
         return zero_d_cap_results
 
-def compute_time_averaged_result(time, result, parameters):
+def compute_time_averaged_result(time, result, parameters): # todo: delete this function because it is not in use right now
     """
     Purpose:
         Compute a continuous time-average of result.
@@ -1091,7 +1093,7 @@ def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
     """
     np.save(zero_d_simulation_results_file_path, zero_d_results)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = True, save_results_all = False, save_results_branch = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = False, save_results_all = False, save_results_branch = False, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0, use_steady_soltns_as_ics = False):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -1114,6 +1116,10 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             = time at which to begin the 0d simulation
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
             -- 0.0 <= simulation_start_time <= cardiac_cycle_period
+        boolean use_steady_soltns_as_ics
+            = True to 1) run the 0d simulation using steady mean flow BCs and zero initial conditions and then 2) use the steady-state solution from the previous part as the initial condition for the original pulsatile simulation
+    Caveats:
+        The save_results_branch option works only for 0d models with the branching structure where each vessel is modeled as a single branch with 1 or multiple sub-segments
     Returns:
         void
     """
@@ -1121,12 +1127,33 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         custom_0d_elements_arguments = import_custom_0d_elements(custom_0d_elements_arguments_file_path)
     else:
         custom_0d_elements_arguments = None
+
     parameters = oneD_to_zeroD_convertor.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
     parameters["check_jacobian"] = check_jacobian
+
+    if use_steady_soltns_as_ics:
+        parameters_mean = copy.deepcopy(parameters)
+        parameters_mean = use_mean_bcs.use_mean_values_for_bcs(parameters_mean)
+
+        save_y_ydot_to_npy_temp = True
+        zero_d_input_file_name = get_zero_input_file_name(zero_d_solver_input_file_path)
+        y_ydot_file_path_temp = zero_d_input_file_name + "_initial_conditions.npy"
+
+        create_LPN_blocks(parameters_mean, custom_0d_elements_arguments)
+        set_solver_parameters(parameters_mean)
+        run_network_util(zero_d_solver_input_file_path, parameters_mean, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy_temp, y_ydot_file_path_temp, simulation_start_time)
+
+        use_ICs_from_npy_file = True
+        ICs_npy_file_path = y_ydot_file_path
+
     create_LPN_blocks(parameters, custom_0d_elements_arguments)
     set_solver_parameters(parameters)
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
+
+    last here - i think this code is ready for testing 
+
+    # postprocessing
     if last_cycle == True:
         zero_d_time, results_0d = run_last_cycle_extraction_routines(parameters["cardiac_cycle_period"], parameters["number_of_time_pts_per_cardiac_cycle"], zero_d_time, results_0d)
     if save_results_all or save_results_branch:
@@ -1161,8 +1188,9 @@ def main(args):
     parser.add_argument("-py", "--yydotPath", help = "Path to the .npy file containing y and ydot")
     parser.add_argument("-j", "--checkJacobian", action = 'store_true', help = "Check the Jacobian")
     parser.add_argument("-it", "--initialTime", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
-    # parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the solutions from the equivalent steady 0d model as the initial conditions.")
+    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the solutions from the equivalent steady 0d model as the initial conditions.") # caveat - this option works only for 0d models with inflow BC
     args = parser.parse_args(args)
+    # todo: need to prevent users from using both: useSteadyIC and useICs
 
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
@@ -1176,8 +1204,8 @@ def main(args):
                                     save_y_ydot_to_npy = args.saveYydot,
                                     y_ydot_file_path = args.yydotPath,
                                     check_jacobian = args.checkJacobian,
-                                    simulation_start_time = args.initialTime
-                                    # use_steady_soltns_as_ics = args.useSteadyIC
+                                    simulation_start_time = args.initialTime,
+                                    use_steady_soltns_as_ics = args.useSteadyIC
                                 )
 
 if __name__ == "__main__":
