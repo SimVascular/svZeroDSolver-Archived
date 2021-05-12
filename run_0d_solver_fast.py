@@ -42,14 +42,20 @@ import os
 import copy
 import numpy as np
 import scipy.interpolate
-import matplotlib.pyplot as plt
 from tqdm import tqdm
-import use_mean_bcs
 try:
     import oneD_to_zeroD_convertor
 except ImportError:
     message = "Error. oneD_to_zeroD_convertor.py was not imported. This code is needed to extract relevant information from the 0D solver input file."
     raise ImportError(message)
+try:
+    import use_mean_bcs # only needed if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation
+except ImportError:
+    print("\nuse_mean_bcs not found. use_mean_bcs is needed only if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation.")
+try:
+    import matplotlib.pyplot as plt # only needed if you want to visualize the 0d model as a directed graph
+except ImportError:
+    print("\nmatplotlib.pyplot not found. matplotlib.pyplot is needed only if you want to visualize your 0d model as a directed graph.")
 try:
     import networkx as nx # only needed if you want to visualize the 0d model as a directed graph
 except ImportError:
@@ -1117,7 +1123,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
             -- 0.0 <= simulation_start_time <= cardiac_cycle_period
         boolean use_steady_soltns_as_ics
-            = True to 1) run the 0d simulation using steady mean flow BCs and zero initial conditions and then 2) use the steady-state solution from the previous part as the initial condition for the original pulsatile simulation
+            = True to 1) run the 0d simulation using steady mean BCs and zero initial conditions and then 2) use the steady-state solution from the previous part as the initial condition for the original pulsatile simulation
     Caveats:
         The save_results_branch option works only for 0d models with the branching structure where each vessel is modeled as a single branch with 1 or multiple sub-segments
     Returns:
@@ -1135,23 +1141,27 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         parameters_mean = copy.deepcopy(parameters)
         parameters_mean = use_mean_bcs.use_mean_values_for_bcs(parameters_mean)
 
-        save_y_ydot_to_npy_temp = True
-        zero_d_input_file_name = get_zero_input_file_name(zero_d_solver_input_file_path)
-        y_ydot_file_path_temp = zero_d_input_file_name + "_initial_conditions.npy"
+        y_ydot_file_path_temp = get_zero_input_file_name(zero_d_solver_input_file_path) + "_initial_conditions.npy"
 
         create_LPN_blocks(parameters_mean, custom_0d_elements_arguments)
         set_solver_parameters(parameters_mean)
-        run_network_util(zero_d_solver_input_file_path, parameters_mean, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy_temp, y_ydot_file_path_temp, simulation_start_time)
+        run_network_util(   zero_d_solver_input_file_path,
+                            parameters_mean,
+                            draw_directed_graph = False,
+                            use_ICs_from_npy_file = False,
+                            ICs_npy_file_path = None,
+                            save_y_ydot_to_npy = True,
+                            y_ydot_file_path = y_ydot_file_path_temp,
+                            simulation_start_time = simulation_start_time
+                        )
 
         use_ICs_from_npy_file = True
-        ICs_npy_file_path = y_ydot_file_path
+        ICs_npy_file_path = y_ydot_file_path_temp
 
     create_LPN_blocks(parameters, custom_0d_elements_arguments)
     set_solver_parameters(parameters)
     zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
-
-    last here - i think this code is ready for testing 
 
     # postprocessing
     if last_cycle == True:
@@ -1182,15 +1192,14 @@ def main(args):
     parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
-    parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file")
+    parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file") # todo: need to prevent users from using both: useSteadyIC and useICs
     parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
     parser.add_argument("-y", "--saveYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
     parser.add_argument("-py", "--yydotPath", help = "Path to the .npy file containing y and ydot")
     parser.add_argument("-j", "--checkJacobian", action = 'store_true', help = "Check the Jacobian")
     parser.add_argument("-it", "--initialTime", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
-    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the solutions from the equivalent steady 0d model as the initial conditions.") # caveat - this option works only for 0d models with inflow BC
+    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the steady-state solution from the equivalent steady 0d model as the initial conditions.") # caveat - does not work with custom, user-defined BCs
     args = parser.parse_args(args)
-    # todo: need to prevent users from using both: useSteadyIC and useICs
 
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
