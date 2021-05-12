@@ -605,7 +605,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
 
     if save_y_ydot_to_npy:
         np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
-        print("var_name_list = ", var_name_list)
+        # print("var_name_list = ", var_name_list) 
 
     results_0d = np.array(ylist)
     ylist, var_name_list = compute_wss(parameters, results_0d, ylist, var_name_list)
@@ -1140,6 +1140,10 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     if use_steady_soltns_as_ics:
         parameters_mean = copy.deepcopy(parameters)
         parameters_mean = use_mean_bcs.use_mean_values_for_bcs(parameters_mean)
+
+        # to run the 0d model with steady BCs to steady-state, simulate this model with large time step size for an arbitrarily large number of cardiac cycles
+        parameters_mean["number_of_time_pts_per_cardiac_cycle"] = 11
+        parameters_mean["number_of_cardiac_cycles"] = 100
 
         y_ydot_file_path_temp = get_zero_input_file_name(zero_d_solver_input_file_path) + "_initial_conditions.npy"
 

@@ -1,4 +1,5 @@
 import numpy as np
+import run_0d_solver_fast
 
 def compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period):
     """
@@ -35,7 +36,7 @@ def use_mean_values_for_bcs(parameters):
                     for k in range(num_variables):
                         start_index = k*num_values_per_variable
                         end_index = start_index + num_values_per_variable
-                        time, bc_values = extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
+                        time, bc_values = run_0d_solver_fast.extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
                         if len(time) < 2:
                                 message = "Error. len(time) < 2"
                                 raise RuntimeError(message)
@@ -43,11 +44,16 @@ def use_mean_values_for_bcs(parameters):
                         time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period)
                         new_datatable_values = new_datatable_values + [time[0], time_averaged_value, time[-1], time_averaged_value]
                     parameters["datatable_values"][datatable_name] = new_datatable_values
+                    # print("datatable_name = ", datatable_name)
+                    # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
             elif bc_type == "CORONARY":
                 # use mean intramyocardial pressure for the CORONARY BCs
-                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
+                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = run_0d_solver_fast.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
                 if len(time_of_intramyocardial_pressure) >= 2:
                     cardiac_cycle_period = time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]
                     time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, cardiac_cycle_period)
                     parameters["datatable_values"][datatable_name] = parameters["datatable_values"][datatable_name][:12] + [time_of_intramyocardial_pressure[0], time_averaged_value, time_of_intramyocardial_pressure[-1], time_averaged_value]
+                    # print("datatable_name = ", datatable_name)
+                    # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
+
     return parameters
