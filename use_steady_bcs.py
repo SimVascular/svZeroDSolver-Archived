@@ -13,13 +13,16 @@ def compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, car
     time_averaged_value = (1.0/cardiac_cycle_period)*np.trapz(bc_values, time)
     return time_averaged_value
 
-def use_mean_values_for_bcs(parameters):
+def use_steady_state_values_for_bcs(parameters):
     locations = ["inlet", "outlet"]
     num_variables_for_BCs = ({  "FLOW"          : 1, # [Q]
                                 "PRESSURE"      : 1, # [P]
                                 "RESISTANCE"    : 2, # [R, distal_pressure]
                                 "RCR"           : 3  # [Rp, C, Rd]
                             })
+    capacitor_indices = ({  "RCR"       : [3],    # DATATABLE format: [t, Rp, t, C, t, Rd]
+                            "CORONARY"  : [5, 7]  # [t, Ra1, t, Ra2, t, Ca, t, Cc, t, Rv1, t, Pv_distal_pressure, P_im]
+                        })
     for location in locations:
         for segment_number in parameters["boundary_condition_types"][location]:
             datatable_name = parameters["boundary_condition_datatable_names"][location][segment_number]
@@ -44,6 +47,9 @@ def use_mean_values_for_bcs(parameters):
                         time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period)
                         new_datatable_values = new_datatable_values + [time[0], time_averaged_value, time[-1], time_averaged_value]
                     parameters["datatable_values"][datatable_name] = new_datatable_values
+                    if bc_type in capacitor_indices:
+                        for ind in capacitor_indices[bc_type]:
+                            parameters["datatable_values"][datatable_name][ind] = 0 # change capacitance to zero
                     # print("datatable_name = ", datatable_name)
                     # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
             elif bc_type == "CORONARY":
@@ -53,6 +59,8 @@ def use_mean_values_for_bcs(parameters):
                     cardiac_cycle_period = time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]
                     time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, cardiac_cycle_period)
                     parameters["datatable_values"][datatable_name] = parameters["datatable_values"][datatable_name][:12] + [time_of_intramyocardial_pressure[0], time_averaged_value, time_of_intramyocardial_pressure[-1], time_averaged_value]
+                    for ind in capacitor_indices[bc_type]:
+                        parameters["datatable_values"][datatable_name][ind] = 0 # change capacitance to zero
                     # print("datatable_name = ", datatable_name)
                     # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
 

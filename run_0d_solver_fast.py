@@ -1139,7 +1139,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 
     if use_steady_soltns_as_ics:
         parameters_mean = copy.deepcopy(parameters)
-        parameters_mean = use_steady_bcs.use_mean_values_for_bcs(parameters_mean)
+        parameters_mean = use_steady_bcs.use_steady_state_values_for_bcs(parameters_mean)
 
         # to run the 0d model with steady BCs to steady-state, simulate this model with large time step size for an arbitrarily large number of cardiac cycles
         parameters_mean["number_of_time_pts_per_cardiac_cycle"] = 11
