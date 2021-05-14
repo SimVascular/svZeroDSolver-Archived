@@ -428,7 +428,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
 
                 if "cardiac_cycle_period" in parameters:
                     if time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0] != parameters["cardiac_cycle_period"]:
-                        message = "Error. The time history of the intramyocadial pressure for the coronary boundary condition for segment #" + str(segment_number) + " does not have the same cardiac cycle period as the other boundary conditions.  All boundary conditions, including the inlet and outlet boundary conditions, should have the same prescribed cardiac cycle period. Note that each boundary conditions must be prescribed over exactly one cardiac cycle."
+                        message = "Error. The time history of the intramyocadial pressure for the coronary boundary condition for segment #" + str(segment_number) + " does not have the same cardiac cycle period as the other boundary conditions.  All boundary conditions, including the inlet and outlet boundary conditions, should have the same prescribed cardiac cycle period. Note that each boundary conditions must be prescribed over exactly one cardiac cycle." # todo: fix bug where this code does not work if the user prescribes only a single time point for the intramyocadial pressure time history (the code should work though b/c prescription of a single time point for the intramyocardial pressure suggests a steady intramyocadial pressure)
                         raise RuntimeError(message)
                 else:
                     parameters.update({"cardiac_cycle_period": time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]})
@@ -1143,13 +1143,13 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 
         # to run the 0d model with steady BCs to steady-state, simulate this model with large time step size for an arbitrarily large number of cardiac cycles
         parameters_mean["number_of_time_pts_per_cardiac_cycle"] = 11
-        parameters_mean["number_of_cardiac_cycles"] = 100
+        parameters_mean["number_of_cardiac_cycles"] = 3
 
         y_ydot_file_path_temp = get_zero_input_file_name(zero_d_solver_input_file_path) + "_initial_conditions.npy"
 
         create_LPN_blocks(parameters_mean, custom_0d_elements_arguments)
         set_solver_parameters(parameters_mean)
-        run_network_util(   zero_d_solver_input_file_path,
+        zero_d_time, results_0d, var_name_list = run_network_util(   zero_d_solver_input_file_path,
                             parameters_mean,
                             draw_directed_graph = False,
                             use_ICs_from_npy_file = False,
@@ -1158,6 +1158,17 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
                             y_ydot_file_path = y_ydot_file_path_temp,
                             simulation_start_time = simulation_start_time
                         )
+        zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters_mean)
+        #######
+        fig, axs = plt.subplots(1, 2)
+        axs[0].plot(zero_d_results["time"], zero_d_results["flow"][0][0, :], "*-", label = "in")
+        axs[0].plot(zero_d_results["time"], zero_d_results["flow"][0][1, :], "--", label = "out")
+        axs[1].plot(zero_d_results["time"], zero_d_results["pressure"][0][0, :], "*-", label = "in")
+        axs[1].plot(zero_d_results["time"], zero_d_results["pressure"][0][1, :], "--", label = "out")
+        axs[0].set_title("steady state simulation results")
+        axs[0].legend()
+        axs[1].legend()
+        #######
 
         use_ICs_from_npy_file = True
         ICs_npy_file_path = y_ydot_file_path_temp
