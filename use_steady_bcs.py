@@ -47,8 +47,6 @@ def use_steady_state_values_for_bcs(parameters):
                         time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period)
                         new_datatable_values = new_datatable_values + [time[0], time_averaged_value]
                     parameters["datatable_values"][datatable_name] = new_datatable_values
-                    # print("datatable_name = ", datatable_name)
-                    # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
             elif bc_type == "CORONARY":
                 # use mean intramyocardial pressure for the CORONARY BCs
                 time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = run_0d_solver_fast.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
@@ -56,14 +54,10 @@ def use_steady_state_values_for_bcs(parameters):
                     cardiac_cycle_period = time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]
                     time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, cardiac_cycle_period)
                     parameters["datatable_values"][datatable_name] = parameters["datatable_values"][datatable_name][:12] + [time_of_intramyocardial_pressure[0], time_averaged_value, time_of_intramyocardial_pressure[-1], time_averaged_value]
-                    # print("datatable_name = ", datatable_name)
-                    # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
 
             # set capacitances to zero for steady simulation
             if bc_type in capacitor_indices:
                 for ind in capacitor_indices[bc_type]:
                     parameters["datatable_values"][datatable_name][ind] = 0
-                    # print("datatable_name = ", datatable_name)
-                    # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
 
     return parameters

@@ -1149,7 +1149,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 
         create_LPN_blocks(parameters_mean, custom_0d_elements_arguments)
         set_solver_parameters(parameters_mean)
-        zero_d_time, results_0d, var_name_list = run_network_util(   zero_d_solver_input_file_path,
+        run_network_util(   zero_d_solver_input_file_path,
                             parameters_mean,
                             draw_directed_graph = False,
                             use_ICs_from_npy_file = False,
@@ -1158,17 +1158,6 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
                             y_ydot_file_path = y_ydot_file_path_temp,
                             simulation_start_time = simulation_start_time
                         )
-        zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters_mean)
-        #######
-        fig, axs = plt.subplots(1, 2)
-        axs[0].plot(zero_d_results["time"], zero_d_results["flow"][0][0, :], "*-", label = "in")
-        axs[0].plot(zero_d_results["time"], zero_d_results["flow"][0][1, :], "--", label = "out")
-        axs[1].plot(zero_d_results["time"], zero_d_results["pressure"][0][0, :], "*-", label = "in")
-        axs[1].plot(zero_d_results["time"], zero_d_results["pressure"][0][1, :], "--", label = "out")
-        axs[0].set_title("steady state simulation results")
-        axs[0].legend()
-        axs[1].legend()
-        #######
 
         use_ICs_from_npy_file = True
         ICs_npy_file_path = y_ydot_file_path_temp
