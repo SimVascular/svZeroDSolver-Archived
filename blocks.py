@@ -424,6 +424,9 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         P_tt = np.interp(td, tt, P_val)
         return P_tt
 
+    def get_Cim(self):
+        return self.eps if self.Cim < self.eps else self.Cim
+
     def update_time(self, args):
         # For this open-loop coronary BC, the ordering of solution unknowns is : (P_in, Q_in, V_im)
         # where V_im is the volume of the second capacitor, Cim
@@ -436,11 +439,12 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
                          -1.0 * (self.Rv + self.Ram) * Pim_value + self.Ram * Pv_value]
 
     def update_constant(self):
+        Cim = self.get_Cim()
         self.mat['E'] = [
             (-1.0 * self.Ca * self.Rv, self.Ra * self.Ca * self.Rv, -1.0 * self.Rv),
             (0.0, 0.0, -1.0 * self.Rv * self.Ram)]
-        self.mat['F'] = [(0.0, self.Rv, -1.0 / (self.Cim + self.eps)),
-                         (self.Rv, -1.0 * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram) / (self.Cim + self.eps))]
+        self.mat['F'] = [(0.0, self.Rv, -1.0 / Cim),
+                         (self.Rv, -1.0 * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram) / Cim)]
 
 
 class Inductance(LPNBlock):
