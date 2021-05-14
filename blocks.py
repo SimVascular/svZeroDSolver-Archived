@@ -415,7 +415,6 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.Pim = Pim
         self.Pv = Pv
         self.cardiac_cycle_period = cardiac_cycle_period
-        self.eps = 1e-8 # to prevent division by zero
 
     def get_P_at_t(self, P, t):
         tt = P[:, 0]
@@ -423,9 +422,6 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         ti, td = divmod(t, self.cardiac_cycle_period)
         P_tt = np.interp(td, tt, P_val)
         return P_tt
-
-    def get_Cim(self):
-        return self.eps if self.Cim < self.eps else self.Cim
 
     def update_time(self, args):
         # For this open-loop coronary BC, the ordering of solution unknowns is : (P_in, Q_in, V_im)
@@ -435,16 +431,15 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         ttt = args['Time']
         Pim_value = self.get_P_at_t(self.Pim, ttt)
         Pv_value = self.get_P_at_t(self.Pv, ttt)
-        self.mat['C'] = [-1.0 * Pim_value + Pv_value,
-                         -1.0 * (self.Rv + self.Ram) * Pim_value + self.Ram * Pv_value]
+        self.mat['C'] = [-1.0 * self.Cim * Pim_value + self.Cim * Pv_value,
+                         -1.0 * self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value]
 
     def update_constant(self):
-        Cim = self.get_Cim()
         self.mat['E'] = [
-            (-1.0 * self.Ca * self.Rv, self.Ra * self.Ca * self.Rv, -1.0 * self.Rv),
-            (0.0, 0.0, -1.0 * self.Rv * self.Ram)]
-        self.mat['F'] = [(0.0, self.Rv, -1.0 / Cim),
-                         (self.Rv, -1.0 * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram) / Cim)]
+            (-1.0 * self.Ca * self.Cim * self.Rv, self.Ra * self.Ca * self.Cim * self.Rv, -1.0 * self.Cim * self.Rv),
+            (0.0, 0.0, -1.0 * self.Cim * self.Rv * self.Ram)]
+        self.mat['F'] = [(0.0, self.Cim * self.Rv, -1.0),
+                         (self.Cim * self.Rv, -1.0 * self.Cim * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram))]
 
 
 class Inductance(LPNBlock):
