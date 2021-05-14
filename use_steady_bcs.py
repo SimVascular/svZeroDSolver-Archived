@@ -21,7 +21,7 @@ def use_steady_state_values_for_bcs(parameters):
                                 "RCR"           : 3  # [Rp, C, Rd]
                             })
     capacitor_indices = ({  "RCR"       : [3],    # DATATABLE format: [t, Rp, t, C, t, Rd]
-                            "CORONARY"  : [5, 7]  # [t, Ra1, t, Ra2, t, Ca, t, Cc, t, Rv1, t, Pv_distal_pressure, P_im]
+                            "CORONARY"  : [5, 7]  # [t, Ra1, t, Ra2, t, Ca, t, Cc, t, Rv1, t, Pv_distal_pressure, t0, P_im_0, t1, P_im_1]
                         })
     for location in locations:
         for segment_number in parameters["boundary_condition_types"][location]:
@@ -45,7 +45,7 @@ def use_steady_state_values_for_bcs(parameters):
                                 raise RuntimeError(message)
                         cardiac_cycle_period = time[-1] - time[0]
                         time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period)
-                        new_datatable_values = new_datatable_values + [time[0], time_averaged_value, time[-1], time_averaged_value]
+                        new_datatable_values = new_datatable_values + [time[0], time_averaged_value]
                     parameters["datatable_values"][datatable_name] = new_datatable_values
                     # print("datatable_name = ", datatable_name)
                     # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
@@ -63,5 +63,7 @@ def use_steady_state_values_for_bcs(parameters):
             if bc_type in capacitor_indices:
                 for ind in capacitor_indices[bc_type]:
                     parameters["datatable_values"][datatable_name][ind] = 0
+                    # print("datatable_name = ", datatable_name)
+                    # print('parameters["datatable_values"][datatable_name] = ', parameters["datatable_values"][datatable_name])
 
     return parameters
