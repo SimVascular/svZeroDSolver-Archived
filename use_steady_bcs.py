@@ -1,5 +1,14 @@
+import copy
 import numpy as np
 import run_0d_solver_fast
+
+class altered_bc_block:
+    def __init__(self, name, type, segment_number, location, parameter_list):
+        self.block_name = name
+        self.type = type
+        self.segment_number = segment_number
+        self.parameter_list = parameter_list
+        self.location = location
 
 def compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period):
     """
@@ -14,15 +23,22 @@ def compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, car
     return time_averaged_value
 
 def use_steady_state_values_for_bcs(parameters):
+    """
+    Convert pulsatile BCs into equivalent steady BC by
+        1. using mean value as the value of the steady BC
+        2. removing capacitors from BCs (convert RCR and CORONARY into equivalent resistance-only BCs)
+
+    Caveats:
+        - removing the capacitors from the RCR and Coronary changes the 0d simulation results outputted by run_0d_solver_fast.run_network_util() because the internal variables originally present in the RCR and Coronary BCs are removed. These internal variables must be restored (and set to their steady state values) to use the steady state solutions as the initial conditions for the pulsatile simulations.
+    """
     locations = ["inlet", "outlet"]
     num_variables_for_BCs = ({  "FLOW"          : 1, # [Q]
                                 "PRESSURE"      : 1, # [P]
                                 "RESISTANCE"    : 2, # [R, distal_pressure]
                                 "RCR"           : 3  # [Rp, C, Rd]
                             })
-    capacitor_indices = ({  "RCR"       : [3],    # DATATABLE format: [t, Rp, t, C, t, Rd]
-                            "CORONARY"  : [5, 7]  # [t, Ra1, t, Ra2, t, Ca, t, Cc, t, Rv1, t, Pv_distal_pressure, t0, P_im_0, t1, P_im_1]
-                        })
+    # altered_bc_blocks = {"RCR" : [], "CORONARY" : []} # a dict where the keys are the type of boundary condition and the values are lists of the names of the modified BC block (modified meaning "converted from RCR or coronary to resistance"), where the block names use the convention used in the 0d solver
+    altered_bc_blocks = []
     for location in locations:
         for segment_number in parameters["boundary_condition_types"][location]:
             datatable_name = parameters["boundary_condition_datatable_names"][location][segment_number]
@@ -47,6 +63,19 @@ def use_steady_state_values_for_bcs(parameters):
                         time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period)
                         new_datatable_values = new_datatable_values + [time[0], time_averaged_value]
                     parameters["datatable_values"][datatable_name] = new_datatable_values
+                if bc_type == "RCR":
+                    t = parameters["datatable_values"][datatable_name][0]
+                    Rp = parameters["datatable_values"][datatable_name][1]
+                    Rd = parameters["datatable_values"][datatable_name][5]
+                    equivalent_R = Rp + Rd # add resistances in series
+                    parameters["datatable_values"][datatable_name] = [t, equivalent_R, t, 0] # setting distal pressure to zero b/c default RCR BC has a distal pressure of zero
+                    parameters["boundary_condition_types"][location][segment_number] = "RESISTANCE"
+                    # altered_bc_blocks.append("BC" + str(segment_name) + "_" + location)
+                    altered_bc_blocks.append(altered_bc_block("BC" + str(segment_number) + "_" + location, bc_type, segment_number, location, [Rp]))
+
+                    # print("datatable_name                                                   = ", datatable_name)
+                    # print('parameters["boundary_condition_types"][location][segment_number] = ', parameters["boundary_condition_types"][location][segment_number])
+                    # print('parameters["datatable_values"][datatable_name]                   = ', parameters["datatable_values"][datatable_name])
             elif bc_type == "CORONARY":
                 # use mean intramyocardial pressure for the CORONARY BCs
                 time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = run_0d_solver_fast.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
@@ -55,9 +84,66 @@ def use_steady_state_values_for_bcs(parameters):
                     time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, cardiac_cycle_period)
                     parameters["datatable_values"][datatable_name] = parameters["datatable_values"][datatable_name][:12] + [time_of_intramyocardial_pressure[0], time_averaged_value, time_of_intramyocardial_pressure[-1], time_averaged_value]
 
-            # set capacitances to zero for steady simulation
-            if bc_type in capacitor_indices:
-                for ind in capacitor_indices[bc_type]:
-                    parameters["datatable_values"][datatable_name][ind] = 0
+                t = parameters["datatable_values"][datatable_name][12]
+                Pv_distal_pressure = parameters["datatable_values"][datatable_name][11]
+                Ra1 = parameters["datatable_values"][datatable_name][1]
+                Ra2 = parameters["datatable_values"][datatable_name][3]
+                Cim = parameters["datatable_values"][datatable_name][7]
+                Rv1 =  parameters["datatable_values"][datatable_name][9]
+                Pim =  parameters["datatable_values"][datatable_name][13]
+                equivalent_R = Ra1 + Ra2 + Rv1
+                parameters["datatable_values"][datatable_name] = [t, equivalent_R, t, Pv_distal_pressure]
+                parameters["boundary_condition_types"][location][segment_number] = "RESISTANCE"
+                # altered_bc_blocks.append("BC" + str(segment_name) + "_" + location)
+                altered_bc_blocks.append(altered_bc_block("BC" + str(segment_number) + "_" + location, bc_type, segment_number, location, [Ra1, Ra2, Cim, Pim]))
 
-    return parameters
+                # print("datatable_name                                                   = ", datatable_name)
+                # print('parameters["boundary_condition_types"][location][segment_number] = ', parameters["boundary_condition_types"][location][segment_number])
+                # print('*parameters["datatable_values"][datatable_name]                  = ', parameters["datatable_values"][datatable_name])
+    return parameters, altered_bc_blocks
+
+def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_f, altered_bc_blocks):
+    """
+    Restore the internal variables (and set them to their steady state values).
+    """
+    y0 = copy.deepcopy(y_f)
+    ydot0 = copy.deepcopy(ydot_f)
+    var_name_list = copy.deepcopy(var_name_list_f)
+    # print("len(y0) = ", len(y0))
+    # print("len(ydot0) = ", len(ydot0))
+    # print("len(var_name_list) = ", len(var_name_list))
+    for block in altered_bc_blocks:
+        if block.type in ["RCR", "CORONARY"]:
+            if block.location == "outlet":
+                if block.type == "RCR":
+                    # get BC parameters
+                    Rp = block.parameter_list[0]
+                    # get soltns
+                    Pin = y0[var_name_list.index("P_V" + str(block.segment_number) + "_" + block.block_name)]
+                    Qin = y0[var_name_list.index("Q_V" + str(block.segment_number) + "_" + block.block_name)]
+
+                    P_internal = Pin - Rp * Qin
+                    var_name_list.append("var_0_" + block.block_name)
+                    y0 = np.append(y0, np.array(P_internal))
+                if block.type == "CORONARY":
+                    # get BC parameters
+                    Ra1 = block.parameter_list[0]
+                    Ra2 = block.parameter_list[1]
+                    Cim = block.parameter_list[2]
+                    Pim = block.parameter_list[3]
+                    # get soltns
+                    Pin = y0[var_name_list.index("P_V" + str(block.segment_number) + "_" + block.block_name)]
+                    Qin = y0[var_name_list.index("Q_V" + str(block.segment_number) + "_" + block.block_name)]
+
+                    Pd = Pin - Qin * (Ra1 + Ra2)
+                    volume_internal = Cim * (Pd - Pim)
+                    var_name_list.append("var_0_" + block.block_name)
+                    y0 = np.append(y0, np.array(volume_internal))
+                ydot0 = np.append(ydot0, np.zeros(1)) # the time derivative of the soltn is zero b/c at steady-state
+            else:
+                message = "Error. This function does not work for 'location' = " + block.location
+                raise RuntimeError(message)
+    # print("len(y0) = ", len(y0))
+    # print("len(ydot0) = ", len(ydot0))
+    # print("len(var_name_list) = ", len(var_name_list))
+    return y0, ydot0, var_name_list

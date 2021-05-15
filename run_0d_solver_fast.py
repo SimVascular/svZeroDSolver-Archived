@@ -204,10 +204,7 @@ def create_bc_equations(parameters):
                 bc_equations[location][segment_number] = list_of_unsteady_functions
 
     if cardiac_cycle_period == temp:
-        cardiac_cycle_period = float(input("\nEnter the period of one cardiac cycle for your 0d simulation. All 0d simulation results will be periodic with a period of this value: ")) # todo: get rid of this and set a default cardiac cycle period
-        if cardiac_cycle_period <= 0:
-            message = "Error. The prescribed cardiac cycle period must be greater than 0."
-            raise ValueError(message)
+        cardiac_cycle_period = 1.0 # default cardiac cycle period
     parameters.update({"cardiac_cycle_period" : cardiac_cycle_period})
     parameters.update({"bc_equations" : bc_equations})
 
@@ -523,10 +520,14 @@ def set_solver_parameters(parameters):
 
 def load_in_ics(var_name_list, ICs_dict):
 
+    # print("-len(var_name_list) = ", len(var_name_list))
     var_name_list_loaded = ICs_dict["var_name_list"]
     y_initial_loaded = ICs_dict["y"]
     ydot_initial_loaded = ICs_dict["ydot"]
 
+    # print("len(y_initial_loaded) = ", len(y_initial_loaded))
+    # print("len(ydot_initial_loaded) = ", len(ydot_initial_loaded))
+    # print("len(var_name_list_loaded) = ", len(var_name_list_loaded))
     y_initial = np.zeros(len(var_name_list))
     ydot_initial = np.zeros(len(var_name_list))
     for i in range(len(var_name_list)):
@@ -604,15 +605,20 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
         ylist.append(y_next)
 
     if save_y_ydot_to_npy:
-        np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
+        # np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
+        save_ics(y_ydot_file_path, y_next, ydot_next, var_name_list)
         # print("var_name_list = ", var_name_list)
 
+    var_name_list_original = copy.deepcopy(var_name_list)
     results_0d = np.array(ylist)
     ylist, var_name_list = compute_wss(parameters, results_0d, ylist, var_name_list)
     results_0d = np.array(ylist)
     zero_d_time = tlist
     # print("var_name_list = ", var_name_list)
-    return zero_d_time, results_0d, var_name_list
+    return zero_d_time, results_0d, var_name_list, y_next, ydot_next, var_name_list_original
+
+def save_ics(y_ydot_file_path, y_next, ydot_next, var_name_list):
+    np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
 
 def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 8/13/20: need to recheck that this function correctly computes wss...
     """
@@ -1139,7 +1145,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 
     if use_steady_soltns_as_ics:
         parameters_mean = copy.deepcopy(parameters)
-        parameters_mean = use_steady_bcs.use_steady_state_values_for_bcs(parameters_mean)
+        parameters_mean, altered_bc_blocks = use_steady_bcs.use_steady_state_values_for_bcs(parameters_mean)
 
         # to run the 0d model with steady BCs to steady-state, simulate this model with large time step size for an arbitrarily large number of cardiac cycles
         parameters_mean["number_of_time_pts_per_cardiac_cycle"] = 11
@@ -1149,22 +1155,40 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 
         create_LPN_blocks(parameters_mean, custom_0d_elements_arguments)
         set_solver_parameters(parameters_mean)
-        run_network_util(   zero_d_solver_input_file_path,
+        zero_d_time, results_0d, var_name_list, y_f, ydot_f, var_name_list_original = run_network_util(   zero_d_solver_input_file_path,
                             parameters_mean,
                             draw_directed_graph = False,
                             use_ICs_from_npy_file = False,
                             ICs_npy_file_path = None,
-                            save_y_ydot_to_npy = True,
-                            y_ydot_file_path = y_ydot_file_path_temp,
+                            save_y_ydot_to_npy = False,
+                            y_ydot_file_path = None,
                             simulation_start_time = simulation_start_time
                         )
+        # zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters_mean)
+        # #######
+        # fig, axs = plt.subplots(1, 2)
+        # axs[0].plot(zero_d_results["time"], zero_d_results["flow"][0][0, :], "*-", label = "in")
+        # axs[0].plot(zero_d_results["time"], zero_d_results["flow"][0][1, :], "--", label = "out")
+        # axs[1].plot(zero_d_results["time"], zero_d_results["pressure"][0][0, :], "*-", label = "in")
+        # axs[1].plot(zero_d_results["time"], zero_d_results["pressure"][0][1, :], "--", label = "out")
+        # axs[0].set_title("steady state simulation results")
+        # axs[0].legend()
+        # axs[1].legend()
+        # #######
+
+        y0, ydot0, var_name_list = use_steady_bcs.restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_original, altered_bc_blocks)
+
+        # print("+len(y0) = ", len(y0))
+        # print("+len(ydot0) = ", len(ydot0))
+        # print("+len(var_name_list) = ", len(var_name_list))
+        save_ics(y_ydot_file_path_temp, y0, ydot0, var_name_list)
 
         use_ICs_from_npy_file = True
         ICs_npy_file_path = y_ydot_file_path_temp
 
     create_LPN_blocks(parameters, custom_0d_elements_arguments)
     set_solver_parameters(parameters)
-    zero_d_time, results_0d, var_name_list = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
+    zero_d_time, results_0d, var_name_list, _, _, _ = run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time)
     print("0D simulation completed!\n")
 
     # postprocessing
