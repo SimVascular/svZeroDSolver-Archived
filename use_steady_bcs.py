@@ -37,8 +37,7 @@ def use_steady_state_values_for_bcs(parameters):
                                 "RESISTANCE"    : 2, # [R, distal_pressure]
                                 "RCR"           : 3  # [Rp, C, Rd]
                             })
-    # altered_bc_blocks = {"RCR" : [], "CORONARY" : []} # a dict where the keys are the type of boundary condition and the values are lists of the names of the modified BC block (modified meaning "converted from RCR or coronary to resistance"), where the block names use the convention used in the 0d solver
-    altered_bc_blocks = []
+    altered_bc_blocks = [] # a list of the modified BC blocks (modified meaning "converted from RCR or coronary to resistance"); these BC blocks lost their internal variable in the modification
     for location in locations:
         for segment_number in parameters["boundary_condition_types"][location]:
             datatable_name = parameters["boundary_condition_datatable_names"][location][segment_number]
@@ -70,12 +69,7 @@ def use_steady_state_values_for_bcs(parameters):
                     equivalent_R = Rp + Rd # add resistances in series
                     parameters["datatable_values"][datatable_name] = [t, equivalent_R, t, 0] # setting distal pressure to zero b/c default RCR BC has a distal pressure of zero
                     parameters["boundary_condition_types"][location][segment_number] = "RESISTANCE"
-                    # altered_bc_blocks.append("BC" + str(segment_name) + "_" + location)
                     altered_bc_blocks.append(altered_bc_block("BC" + str(segment_number) + "_" + location, bc_type, segment_number, location, [Rp]))
-
-                    # print("datatable_name                                                   = ", datatable_name)
-                    # print('parameters["boundary_condition_types"][location][segment_number] = ', parameters["boundary_condition_types"][location][segment_number])
-                    # print('parameters["datatable_values"][datatable_name]                   = ', parameters["datatable_values"][datatable_name])
             elif bc_type == "CORONARY":
                 # use mean intramyocardial pressure for the CORONARY BCs
                 time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = run_0d_solver_fast.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
@@ -94,12 +88,7 @@ def use_steady_state_values_for_bcs(parameters):
                 equivalent_R = Ra1 + Ra2 + Rv1
                 parameters["datatable_values"][datatable_name] = [t, equivalent_R, t, Pv_distal_pressure]
                 parameters["boundary_condition_types"][location][segment_number] = "RESISTANCE"
-                # altered_bc_blocks.append("BC" + str(segment_name) + "_" + location)
                 altered_bc_blocks.append(altered_bc_block("BC" + str(segment_number) + "_" + location, bc_type, segment_number, location, [Ra1, Ra2, Cim, Pim]))
-
-                # print("datatable_name                                                   = ", datatable_name)
-                # print('parameters["boundary_condition_types"][location][segment_number] = ', parameters["boundary_condition_types"][location][segment_number])
-                # print('*parameters["datatable_values"][datatable_name]                  = ', parameters["datatable_values"][datatable_name])
     return parameters, altered_bc_blocks
 
 def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_f, altered_bc_blocks):
@@ -109,9 +98,6 @@ def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_l
     y0 = copy.deepcopy(y_f)
     ydot0 = copy.deepcopy(ydot_f)
     var_name_list = copy.deepcopy(var_name_list_f)
-    # print("len(y0) = ", len(y0))
-    # print("len(ydot0) = ", len(ydot0))
-    # print("len(var_name_list) = ", len(var_name_list))
     for block in altered_bc_blocks:
         if block.type in ["RCR", "CORONARY"]:
             if block.location == "outlet":
@@ -143,7 +129,4 @@ def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_l
             else:
                 message = "Error. This function does not work for 'location' = " + block.location
                 raise RuntimeError(message)
-    # print("len(y0) = ", len(y0))
-    # print("len(ydot0) = ", len(ydot0))
-    # print("len(var_name_list) = ", len(var_name_list))
     return y0, ydot0, var_name_list
