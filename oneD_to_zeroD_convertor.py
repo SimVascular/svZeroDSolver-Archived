@@ -300,10 +300,10 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
     segment_numbers_list.sort()
     if len(segment_numbers_list) == 1:
         if segment_numbers_list != inlet_segments_of_model:
-            message = "Error in file, " + solver_input_file_path + ". This model has only 1 segment but this segment isn't equal to inlet_segments_of_model[0]."
+            message = "Error in file, " + solver_input_file_path + ". This model has only 1 segment, segment #" + str(segment_numbers_list[0]) + ", but this segment isn't equal to inlet_segments_of_model[0], " + str(inlet_segments_of_model[0]) + "."
             raise RuntimeError(message)
         elif segment_numbers_list != outlet_segments_of_model:
-            message = "Error in file, " + solver_input_file_path + ". This model has only 1 segment but this segment isn't equal to outlet_segments_of_model[0]."
+            message = "Error in file, " + solver_input_file_path + ". This model has only 1 segment, segment #" + str(segment_numbers_list[0]) + ", but this segment isn't equal to outlet_segments_of_model[0], " + str(outlet_segments_of_model[0]) + "."
             raise RuntimeError(message)
 
     for joint_name in list(joint_node_numbers.keys()):
