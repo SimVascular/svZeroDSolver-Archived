@@ -256,8 +256,8 @@ class Resistance(LPNBlock):
 class StenosisBlock(LPNBlock):
     """
     Stenosis:
-        equation:   delta_P = ( K_t * rho / ( 2 * (A_0)**2 ) ) * ( ( A_0 / A_s ) - 1 )**2 * Q * abs(Q)
-                            =               stenosis_coefficient                          * Q * abs(Q)
+        equation: delta_P = ( K_t * rho / ( 2 * (A_0)**2 ) ) * ( ( A_0 / A_s ) - 1 )**2 * Q * abs(Q) + R_poiseuille * Q
+                          =               stenosis_coefficient                          * Q * abs(Q) + R_poiseuille * Q
 
         source: Mirramezani, M., Shadden, S.C. A distributed lumped parameter model of blood flow. Annals of Biomedical Engineering. 2020.
     """
