@@ -1,0 +1,109 @@
+# ================================
+# steady flow -> bifurcation (with R's) -> R
+# ================================
+
+# ==========
+# MODEL CARD
+# ==========
+# - Name of the model (string)
+
+MODEL results_steadyFlow_bifurcationR_R_
+
+### DO NOT CHANGE THIS SECTION - generated automatically
+#
+# ==========
+# NODE CARD
+# ==========
+# - Node Name (double)
+# - Node X Coordinate (double)
+# - Node Y Coordinate (double)
+# - Node Z Coordinate (double)
+
+NODE 0 0.0 0.0 0.0
+NODE 1 0.0 0.0 10.0
+NODE 2 0.0  7.0710678118654755 17.0710678118654755
+NODE 3 0.0 -7.0710678118654755 17.0710678118654755
+
+### DO NOT CHANGE THIS SECTION - generated automatically
+#
+# ==========
+# JOINT CARD
+# ==========
+# - Joint Name (string)
+# - Joint Node (double)
+# - Joint Inlet Name (string)
+# - Joint Outlet Name (string)
+
+### DO NOT CHANGE THIS SECTION - generated automatically
+#
+# ================================
+# JOINTINLET AND JOINTOUTLET CARDS
+# ================================
+# - Inlet/Outlet Name (string)
+# - Total Number of segments (int)
+# - List of segments (list of int)
+
+JOINT J0 1 IN0 OUT0
+JOINTINLET IN0 1 0
+JOINTOUTLET OUT0 2 1 2
+
+### DO NOT CHANGE THIS SECTION - generated automatically
+#
+# ==========
+# JUNCTION MODEL CARD
+# ==========
+# - joint_name
+# - junction_type, i.e. NORMAL_JUNCTION, etc.
+
+JUNCTION_MODEL J0 NORMAL_JUNCTION
+
+# =============
+# ELEMENT CARD
+# =============
+# - 1d_segment_name
+# - 1d_segment_number / 0d_element_number
+# - average_radius
+# - length
+# - blood_density
+# - blood_dynamic_viscosity
+# - Eh/r
+# - inlet_node_number
+# - outlet_node_number
+# - vessel_vector_x_coor
+# - vessel_vector_y_coor
+# - vessel_vector_z_coor
+# - boundary_condition_type
+# - boundary_condition_datatable_name
+# - 0d_element_type, i.e. R, RC, RL, RCL, L, C, etc.
+# - 0d_element_values in format of: R or R C or R L or R C L or L or C or blank for custom 0d elements
+
+ELEMENT branch0_seg0 0 -1 10.0 1.06 0.04 -1 0 1 -1 -1 -1 NOBOUND   NONE R 100.0
+ELEMENT branch1_seg0 1 -1 10.0 1.06 0.04 -1 1 2 -1 -1 -1 RESISTANCE OUT R 100.0
+ELEMENT branch2_seg0 2 -1 10.0 1.06 0.04 -1 1 3 -1 -1 -1 RESISTANCE OUT R 100.0
+
+DATATABLE INFLOW LIST
+0.0 5.0
+1.0 5.0
+ENDDATATABLE
+
+DATATABLE OUT LIST
+0.0 100.0
+0.0 100.0
+ENDDATATABLE
+
+# ==============================
+# INLET BOUNDARY CONDITION CARD
+# ==============================
+# - inlet_segment_number
+# - inlet_boundary_condition_type
+# - inlet_boundary_condition_datatable_name
+
+INLET_BOUNDARY_CONDITION 0 FLOW INFLOW
+
+# ==================
+# SOLVEROPTIONS_0D CARD
+# ==================
+# - number_of_time_pts_per_cardiac_cycle (int)
+# - number_of_cardiac_cycles (int)
+
+SOLVEROPTIONS_0D 5 2

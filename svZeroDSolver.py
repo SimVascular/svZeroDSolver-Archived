@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# coding=utf-8
+
 # Copyright (c) Stanford University, The Regents of the University of
 #               California, and others.
 #
@@ -29,8 +32,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-Author: Pham, Jonathan
-
 This code simulates the 0D model described in the 0D solver input file by creating network_util_NR::LPNBlock objects for each 0D element and running the network_util_NR solver routines.
 
 Available vessel modeling types:
@@ -1225,7 +1226,7 @@ def main(args):
     parser.add_argument("zero", help = "Path to 0d solver input file")
     parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
     parser.add_argument("-l", "--returnLast", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true', help = "Save all simulation results to a .npy file")
+    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true', help = "Save all simulation results to a .npy file") # todo: do we need to change action to 'store_false' here?
     parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
     parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
     parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
