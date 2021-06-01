@@ -1,0 +1,30 @@
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      dist: bionic
+      sudo: required
+    - os: linux
+      compiler: gcc
+      dist: xenial
+      sudo: required
+
+git:
+  submodules: false
+
+python:
+  - "3.6"
+
+before_install:
+  - export cwd=$(pwd)
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cwd=$(pwd -W); fi
+  - echo "CWD=$cwd"
+  - export TEST_DIR=$cwd/test
+  - export SV_TOP_DIR=$cwd
+  - $SCRIPTS/travis_get_cmake_latest.sh
+  - pip install --user numpy
+
+script:
+  - $SCRIPTS/travis_result_test.sh
