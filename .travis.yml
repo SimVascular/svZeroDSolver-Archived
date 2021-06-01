@@ -23,6 +23,7 @@ before_install:
   - echo "CWD=$cwd"
   - export TEST_DIR=$cwd/test
   - export SV_TOP_DIR=$cwd
+  - export SCRIPTS=$cwd/travis
   - pip install --user numpy
 
 script:
