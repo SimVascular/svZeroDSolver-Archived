@@ -21,8 +21,6 @@ before_install:
   - export cwd=$(pwd)
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cwd=$(pwd -W); fi
   - echo "CWD=$cwd"
-  - export TEST_DIR=$cwd/test
-  - export SV_TOP_DIR=$cwd
   - export SCRIPTS=$cwd/travis
   - pip install --user numpy
 

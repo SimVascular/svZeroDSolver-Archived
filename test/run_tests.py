@@ -222,16 +222,9 @@ def main():
     Loop over all test cases and check if all results match
     """
     # set paths
-    if 'BUILD_DIR' not in os.environ and 'TEST_DIR' not in os.environ:
-        # run locally
-        fpath = os.path.dirname(os.path.realpath(__file__))
-        build_dir = os.path.join(fpath, '..')
-        test_dir = fpath
-    else:
-        # run on Travis
-        build_dir = os.environ['BUILD_DIR']
-        test_dir = os.environ['TEST_DIR']
-        # todo: need to use Travis to do automatic testing
+    fpath = os.path.dirname(os.path.realpath(__file__))
+    build_dir = os.path.join(fpath, '..')
+    test_dir = fpath
 
     # get test cases
     try:
