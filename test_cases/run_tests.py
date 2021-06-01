@@ -6,9 +6,6 @@ import pdb
 import subprocess
 import numpy as np
 
-# last here - then run this code to see if it works for the below single test case.
-# Then add more test cases if the below R_R test works
-
 def get_tests():
     """
     Add new test cases here
@@ -23,24 +20,69 @@ def get_tests():
     """
     tests = {}
 
-    # field, branch, branch_node, time_step, res, tol, fun -- last here: delete this line when I finish making all test cases
-    tests['steadyFlow_R_R'] = [ Test('pressure', 0,  0, -1, 1000.0, 1.0e-10, 'point'),
-                                Test('pressure', 0, -1, -1,  500.0, 1.0e-10, 'point'),
-                                Test('flow',     0,  0, -1,    5.0, 1.0e-16, 'point'),
-                                Test('flow',     0, -1, -1,    5.0, 1.0e-16, 'point')   ]
+    tests['steadyFlow_R_R'] = [ Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
+                                Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
+                                Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_R_coronary'] = [  Test('pressure', 0,  0, -1, 2000.0, 1.0e-7, 'point'),
+                                        Test('pressure', 0, -1, -1, 1500.0, 1.0e-7, 'point'),
+                                        Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                        Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_RLC_R'] = [   Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
+                                    Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
+                                    Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                    Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_RC_R'] = [    Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
+                                    Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
+                                    Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                    Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_RL_R'] = [    Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
+                                    Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
+                                    Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                    Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_R_RCR'] = [   Test('pressure', 0,  0, -1, 10500.0, 1.0e-7, 'point'),
+                                    Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'),
+                                    Test('flow',     0,  0, -1,     5.0, 1.0e-8, 'point'),
+                                    Test('flow',     0, -1, -1,     5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_R_steadyPressure'] = [    Test('pressure', 0,  0, -1, 1500.0, 1.0e-7, 'point'),
+                                                Test('pressure', 0, -1, -1, 1000.0, 1.0e-7, 'point'),
+                                                Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                                Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_stenosis_R'] = [  Test('pressure', 0,  0, -1, 3600.0, 1.0e-7, 'point'),
+                                        Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
+                                        Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                        Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+
+    tests['steadyFlow_bifurcationR_R'] = [  Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
+                                            Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
+                                            Test('pressure', 1,  0, -1,  600.0, 1.0e-7, 'point'),
+                                            Test('pressure', 1, -1, -1,  350.0, 1.0e-7, 'point'),
+                                            Test('pressure', 2,  0, -1,  600.0, 1.0e-7, 'point'),
+                                            Test('pressure', 2, -1, -1,  350.0, 1.0e-7, 'point'),
+                                            Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
+                                            Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point'),
+                                            Test('flow',     1,  0, -1,    2.5, 1.0e-8, 'point'),
+                                            Test('flow',     1, -1, -1,    2.5, 1.0e-8, 'point'),
+                                            Test('flow',     2,  0, -1,    2.5, 1.0e-8, 'point'),
+                                            Test('flow',     2, -1, -1,    2.5, 1.0e-8, 'point')    ]
 
     return tests
 
 
 class Test:
     """
-    GOOD
     Class to define (and check) test cases
     """
 
     def __init__(self, field, branch, branch_node, time_step, res, tol, fun):
         """
-        GOOD
         Args:
             field: field to check ('flow', 'pressure')
             branch: branch to check
@@ -71,7 +113,6 @@ class Test:
 
     def check(self, results):
         """
-        GOOD
         Perform the actual result check
         """
         # read result from svZeroDSolver
@@ -88,7 +129,6 @@ class Test:
 
     def read_result(self, results):
         """
-        GOOD
         Read results and select function
         """
         # extract result
@@ -108,7 +148,6 @@ class Test:
 
     def print_err(self, res, diff):
         """
-        GOOD
         Create error string for user
         """
         err = 'Test failed. ' + self.field + ' in branch ' + str(self.branch)
@@ -119,7 +158,6 @@ class Test:
 
 def read_results_0d(zero_d_simulation_results_file_path):
     """
-    GOOD
     Read results from svZeroDSolver
     Args:
         str zero_d_simulation_results_file_path: path to 0d simulation results (saved from svZeroDSolver using branching structure)
@@ -127,14 +165,13 @@ def read_results_0d(zero_d_simulation_results_file_path):
         dictionary res[result field][branch id][branch_node, time step]
     """
     res = np.load(zero_d_simulation_results_file_path, allow_pickle = True).item()
-    os.remove(zero_d_simulation_results_file_path)
-    os.remove(zero_d_simulation_results_file_path[:-18] + "all_results.npy")
+    os.remove(zero_d_simulation_results_file_path) # branching structure results
+    os.remove(zero_d_simulation_results_file_path[:-18] + "all_results.npy") # remove all results
     return res
 
 
 def run_check(results, result_checks):
     """
-    GOOD
     Check the results of a test
     """
     # loop all results
@@ -150,7 +187,6 @@ def run_check(results, result_checks):
 
 def run_test(build_dir, test_dir, name, check):
     """
-    GOOD
     Run a test case and check the results
     """
     # name of svZeroDSolver executable
@@ -183,7 +219,6 @@ def run_test(build_dir, test_dir, name, check):
 
 def main():
     """
-    GOOD
     Loop over all test cases and check if all results match
     """
     # set paths
@@ -196,6 +231,7 @@ def main():
         # run on Travis
         build_dir = os.environ['BUILD_DIR']
         test_dir = os.environ['TEST_DIR']
+        # todo: need to use Travis to do automatic testing
 
     # get test cases
     try:

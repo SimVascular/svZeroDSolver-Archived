@@ -69,4 +69,4 @@ INLET_BOUNDARY_CONDITION 0 FLOW INFLOW
 # - number_of_time_pts_per_cardiac_cycle (int)
 # - number_of_cardiac_cycles (int)
 
-SOLVEROPTIONS_0D 5 2
+SOLVEROPTIONS_0D 101 30
