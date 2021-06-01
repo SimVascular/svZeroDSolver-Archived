@@ -23,7 +23,6 @@ before_install:
   - echo "CWD=$cwd"
   - export TEST_DIR=$cwd/test
   - export SV_TOP_DIR=$cwd
-  - $SCRIPTS/travis_get_cmake_latest.sh
   - pip install --user numpy
 
 script:
