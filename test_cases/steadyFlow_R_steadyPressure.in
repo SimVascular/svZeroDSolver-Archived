@@ -7,7 +7,7 @@
 # ==========
 # - Name of the model (string)
 
-MODEL name
+MODEL results_steadyFlow_R_steadyPressure_
 
 ### DO NOT CHANGE THIS SECTION - generated automatically
 #
