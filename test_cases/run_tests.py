@@ -165,7 +165,7 @@ def read_results_0d(zero_d_simulation_results_file_path):
         dictionary res[result field][branch id][branch_node, time step]
     """
     res = np.load(zero_d_simulation_results_file_path, allow_pickle = True).item()
-    os.remove(zero_d_simulation_results_file_path) # branching structure results
+    os.remove(zero_d_simulation_results_file_path) # remove branching structure results
     os.remove(zero_d_simulation_results_file_path[:-18] + "all_results.npy") # remove all results
     return res
 
