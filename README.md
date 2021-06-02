@@ -6,13 +6,13 @@ svZeroDSolver uses a highly modular framework to model the vascular anatomy, usi
 
 svZeroDSolver currently supports the following vascular 0D modeling options and boundary conditions:
 
-\textbf{Vascular 0D elements}:
+### Vascular 0D elements:
 - Resistor
 - Resistor-capacitor
 - Resistor-inductor
 - Resistor-capacitor-inductor
 
-\textbf{Boundary conditions}:
+### Boundary conditions:
 - Pressure
 - Resistor
 - RCR
@@ -49,4 +49,4 @@ The following Python packages are required:
 ./svZeroDSolver <path to 0D input file>
 ~~~
 
-Addiitonal options are defined in svZeroDSolver.py.
+Addiitonal options are defined in `svZeroDSolver.py`.
