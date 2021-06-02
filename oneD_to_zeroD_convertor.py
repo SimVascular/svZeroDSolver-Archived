@@ -29,8 +29,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-Author: Pham, Jonathan
-
 This code converts a 1D model into a 0D model by reading in the 1D solver input file, extracting relevant geometry and material properties, and creating the resulting 0D solver input file. The 0D model can then be simulated with the 0D solver via the 0D solver linker code, run_0d_solver.py.
 
 Available vessel models:
