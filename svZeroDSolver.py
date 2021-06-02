@@ -32,7 +32,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-This code simulates the 0D model described in the 0D solver input file by creating network_util_NR::LPNBlock objects for each 0D element and running the network_util_NR solver routines.
+This code simulates the 0D model.
 
 Available vessel modeling types:
     1) R (constant resistor)
@@ -644,7 +644,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
 def save_ics(y_ydot_file_path, y_next, ydot_next, var_name_list):
     np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
 
-def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 8/13/20: need to recheck that this function correctly computes wss...
+def compute_wss(parameters, results_0d, ylist, var_name_list): # todo: need to recheck that this function correctly computes wss...
     """
     Purpose:
         Compute the wall shear stress (wss) using Poiseuille flow. Compute wss only for all blocks' inlet and outlet wires that have both flow and pressure results.
@@ -693,7 +693,7 @@ def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 
                 ylist[j].append(tau[j])
     return ylist, var_name_list
 
-def extract_0d_cap_results(zero_d_results_for_var_names): # currently here 8/18/20: need to run some simple test cases to make sure that this function works correctly
+def extract_0d_cap_results(zero_d_results_for_var_names): # todo: need to run some simple test cases to make sure that this function works correctly
     """
     Purpose:
         Extract the 0d simulation results (pressure, flow rate, and wall shear stress) at only the model's caps.
@@ -747,13 +747,13 @@ def extract_0d_cap_results(zero_d_results_for_var_names): # currently here 8/18/
         zero_d_outlet_cap_results[qoi] = {}
         var_names = list(zero_d_results_for_var_names[qoi].keys())
         for i in range(len(var_names)):
-            if ("BC" in var_names[i]) and ("var" not in var_names[i]) and (var_names[i].startswith(solution_type)): # at a cap segment # currently here 12/3/20: should check to see if var_names[i] also includes "V" here
+            if ("BC" in var_names[i]) and ("var" not in var_names[i]) and (var_names[i].startswith(solution_type)): # at a cap segment # todo: should check to see if var_names[i] also includes "V" here
                 var_names_split = var_names[i].split("_")
                 index = [i for i, s in enumerate(var_names_split) if "BC" in s][0]
                 segment_number = int(var_names_split[index][2:])
                 if "inlet" in var_names[i]: # this is an inlet cap
                     zero_d_inlet_cap_results[qoi][segment_number] = zero_d_results_for_var_names[qoi][var_names[i]]
-                else: # this is an outlet cap # currently here 9/24/20: should add a "elif "outlet" in var_names[i]
+                else: # this is an outlet cap # todo: should add a "elif "outlet" in var_names[i]
                     zero_d_outlet_cap_results[qoi][segment_number] = zero_d_results_for_var_names[qoi][var_names[i]]
     zero_d_cap_results = {"inlet" : zero_d_inlet_cap_results, "outlet" : zero_d_outlet_cap_results, "time" : zero_d_results_for_var_names["time"]}
     return zero_d_cap_results
@@ -1011,7 +1011,7 @@ def save_directed_graph(block_list, connect_list, directed_graph_file_path):
     # To extract coordinates and structure from the graphviz post-processor, use:
     # neato.exe test.dot -Gsplines=ortho -Gnodesep=1 -Goverlap=scale
 
-def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # currently here 8/18/20: need to run some simple test cases to make sure that this function works correctly
+def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # todo: need to run some simple test cases to make sure that this function works correctly
     """
     Purpose:
         Collapse zero_d_cap_results into a simpler dictionary, zero_d_cap_results_collapsed. This collapse is performed only for 0d models with more than one vessel element (listed in the ELEMENT card of 0d solver input file).
