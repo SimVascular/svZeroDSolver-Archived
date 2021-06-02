@@ -31,8 +31,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from blocks import wire
-
+from .  blocks import wire
 
 def check_block_pair_flow_consistency(bA, bB):
     if bB.name not in bA.connecting_block_list:

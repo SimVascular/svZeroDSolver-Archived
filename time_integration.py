@@ -36,8 +36,11 @@ import scipy.sparse.linalg
 from scipy.sparse import csr_matrix
 import pdb
 import copy
-import matplotlib.pyplot as plt
 
+try:
+    import matplotlib.pyplot as plt
+except:
+    pass
 
 class GenAlpha:
     """
