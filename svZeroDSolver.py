@@ -75,9 +75,9 @@ import numpy as np
 import scipy.interpolate
 from tqdm import tqdm
 try:
-    import oneD_to_zeroD_convertor
+    import utils
 except ImportError:
-    message = "Error. oneD_to_zeroD_convertor.py was not imported. This code is needed to extract relevant information from the 0D solver input file."
+    message = "Error. utils.py was not imported. This code is needed to extract relevant information from the 0D solver input file."
     raise ImportError(message)
 try:
     import use_steady_bcs # only needed if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation
@@ -179,7 +179,7 @@ def create_bc_equations(parameters):
         Time-dependent boundary conditions must be prescribed over a single cardiac cycle only.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         void but updates parameters to include:
             float cardiac_cycle_period
@@ -250,7 +250,7 @@ def extract_bc_time_and_values(start_index, end_index, parameters, segment_numbe
         int end_index
             = index of parameters["datatable_values"][datatable_name] at which to terminate the extraction
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         int segment_number
             = segment number of the 0d vessel element (in the ELEMENT card of the 0d solver input file) for which we want to extract the time points and BC values
         string location
@@ -281,7 +281,7 @@ def create_junction_blocks(parameters, custom_0d_elements_arguments):
         Create the junction blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -319,7 +319,7 @@ def get_vessel_block_helpers(parameters):
         Create helper dictionaries to support the creation of the vessel blocks.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         dict vessel_blocks_connecting_block_lists
             = {segment_number : connecting_block_list}
@@ -363,7 +363,7 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
         Create the vessel blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -413,7 +413,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
         Create the outlet bc (boundary condition) blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -483,7 +483,7 @@ def create_inlet_bc_blocks(parameters, custom_0d_elements_arguments):
         Create the inlet bc (boundary condition) blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -512,7 +512,7 @@ def create_LPN_blocks(parameters, custom_0d_elements_arguments):
         Create all LPNBlock objects for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -536,7 +536,7 @@ def set_solver_parameters(parameters):
         Set the 0d simulation time-stepping parameters
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         void, but updates parameters to include:
             float delta_t
@@ -574,7 +574,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
         string zero_d_solver_input_file_path
             = path to the 0d solver input file
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         boolean draw_directed_graph
             = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
     Returns:
@@ -651,7 +651,7 @@ def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 
         wss = tau = 4.0*mu*Q/np.pi/R^3
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         np.array results_0d
             = np.array of the 0d simulation results, where the rows correspond to the each simulated time point and column j corresponds to the 0d solution for the solution variable name in var_name_list[j]
         list ylist
@@ -1082,7 +1082,7 @@ def compute_time_averaged_result(time, result, parameters): # todo: delete this 
         np.array result
             = np.array of result values
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         np.array time_of_time_averaged_result
             = an np.array of the time points for time_averaged_result
@@ -1164,7 +1164,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     else:
         custom_0d_elements_arguments = None
 
-    parameters = oneD_to_zeroD_convertor.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
+    parameters = utils.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
     parameters["check_jacobian"] = check_jacobian
 
     if use_steady_soltns_as_ics:
