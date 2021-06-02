@@ -52,7 +52,7 @@ def check_block_pair_flow_consistency(bA, bB):
 
 
 def connect_blocks_by_inblock_list(
-        block_list):  # this function, not connect_blocks_by_connectivity_list, is the one that is currently used in test_0Dsolver
+        block_list):
 
     connectivity = []
 
