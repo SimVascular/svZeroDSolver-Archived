@@ -73,40 +73,37 @@ import os
 import copy
 import numpy as np
 import scipy.interpolate
-from tqdm import tqdm
+
+from . import blocks as ntwku
+from . import connections
+from . import time_integration as time_int
+from . import utils
+from . import use_steady_bcs 
+
 try:
-    import utils
+    from tqdm import tqdm
 except ImportError:
-    message = "Error. utils.py was not imported. This code is needed to extract relevant information from the 0D solver input file."
-    raise ImportError(message)
-try:
-    import use_steady_bcs # only needed if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation
-except ImportError:
-    print("\nuse_steady_bcs not found. use_steady_bcs is needed only if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation.")
+    pass
+
 try:
     import matplotlib.pyplot as plt # only needed if you want to visualize the 0d model as a directed graph
 except ImportError:
     print("\nmatplotlib.pyplot not found. matplotlib.pyplot is needed only if you want to visualize your 0d model as a directed graph.")
+
 try:
     import networkx as nx # only needed if you want to visualize the 0d model as a directed graph
 except ImportError:
     print("\nnetworkx not found. networkx is needed only if you want to visualize your 0d model as a directed graph.")
-try:
-    import blocks as ntwku
-    import connections
-    import time_integration as time_int
-except ImportError:
-    message = "Error. 0D solver was not imported. This code is needed to create the network_util_NR::LPNBlock objects for the 0D elements and run the 0D simulations."
-    raise ImportError(message)
+
 try:
     from profilehooks import profile # only needed if you want to profile this script
 except ImportError:
     print("\nprofilehooks.profile not found. profilehooks.profile is needed only if you want to profile this script.")
+
 np.set_printoptions(threshold=sys.maxsize)
 import importlib
 import argparse
 from collections import defaultdict
-
 
 def import_custom_0d_elements(custom_0d_elements_arguments_file_path):
     """
@@ -626,7 +623,12 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     # create time integration
     t_int = time_int.GenAlpha(rho, y_next)
 
-    for t_current in tqdm(tlist[:-1]): # added this line on 10/14/20:
+    if 'tqdm' in sys.modules:
+        loop_list = tqdm(tlist[:-1])
+    else:
+        loop_list = tlist[:-1]
+
+    for t_current in loop_list:
         args['Solution'] = y_next
         y_next, ydot_next = t_int.step(y_next, ydot_next, t_current, block_list, args, parameters["delta_t"])
         ylist.append(y_next)
@@ -1215,30 +1217,79 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters)
             save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
 
-def main(args):
-    # references:
-    # https://jdhao.github.io/2018/10/11/python_argparse_set_boolean_params/
-    # https://docs.python.org/3/library/argparse.html#type
-    # https://stackoverflow.com/questions/26626799/pythons-argument-parser-printing-the-argument-name-in-upper-case
+def run_from_c(*args, **kwargs):
+    """Execute the 0D solver using passed parameters from c++.
+    """
 
-    # get command line arguments
+    # This is need by 'argparse.ArgumentParser()', sys.argv[] must be defined..
+    sys.argv = [ "svZeroDSolver" ]
+
+    # Define command-line parameters.
+    parser = create_parser()
+
+    # Set the values for command-line parameters.
+    cmd_line_args = parser.parse_args(args)
+
+    # Run the 0D solver.
+    run_simulation(cmd_line_args)
+
+def create_parser():
+    """Create a command-line parser.
+    """
+
+    # Create the parser.
     parser = argparse.ArgumentParser(description = 'This code runs the 0d solver.')
-    parser.add_argument("zero", help = "Path to 0d solver input file")
-    parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
-    parser.add_argument("-l", "--returnLast", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true', help = "Save all simulation results to a .npy file") # todo: do we need to change action to 'store_false' here?
-    parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
-    parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
-    parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
-    parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file") # todo: need to prevent users from using both: useSteadyIC and useICs
-    parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
-    parser.add_argument("-y", "--saveYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
-    parser.add_argument("-py", "--yydotPath", help = "Path to the .npy file containing y and ydot")
-    parser.add_argument("-j", "--checkJacobian", action = 'store_true', help = "Check the Jacobian")
-    parser.add_argument("-it", "--initialTime", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
-    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the steady-state solution from the equivalent steady 0d model as the initial conditions.") # caveat - does not work with custom, user-defined BCs
-    args = parser.parse_args(args)
 
+    # Define 0D solver commands. 
+
+    parser.add_argument("zero", 
+        help = "Path to 0d solver input file")
+
+    parser.add_argument("-v", "--visualize", action = 'store_true', 
+        help = "Visualize the 0d model as a networkx directed graph and save to .png file")
+
+    parser.add_argument("-l", "--returnLast", action = 'store_true', 
+        help = "Return results for only the last simulated cardiac cycle")
+
+    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true', 
+        help = "Save all simulation results to a .npy file")
+
+    parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true', 
+        help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
+
+    parser.add_argument("-c", "--useCustom", action = 'store_true', 
+        help = "Use custom, user-defined 0d elements")
+
+    parser.add_argument("-pc", "--customPath", 
+        help = "Path to custom 0d elements arguments file")
+
+    parser.add_argument("-i", "--useICs", action = 'store_true', 
+        help = "Use initial conditions from .npy file") # todo: need to prevent users from using both: useSteadyIC and useICs
+
+    parser.add_argument("-pi", "--ICsPath", 
+        help = "Path to the .npy file containing the initial conditions")
+
+    parser.add_argument("-y", "--saveYydot", action = 'store_true', 
+        help = "Save y and ydot to a .npy file")
+
+    parser.add_argument("-py", "--yydotPath", 
+        help = "Path to the .npy file containing y and ydot")
+
+    parser.add_argument("-j", "--checkJacobian", action = 'store_true', 
+        help = "Check the Jacobian")
+
+    parser.add_argument("-it", "--initialTime", default = 0.0, type = float, 
+        help = "Start (initial) time of the 0d simulation")
+
+    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', 
+        help = "Run the pulsatile 0d simulation using the steady-state solution from the equivalent steady 0d model as the initial conditions.") # caveat - does not work with custom, user-defined BCs
+
+    return parser
+
+def run_simulation(args):
+    """Run a 0D simulation with the given arguments.
+    """
+    
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
                                     last_cycle = args.returnLast,
@@ -1254,6 +1305,15 @@ def main(args):
                                     simulation_start_time = args.initialTime,
                                     use_steady_soltns_as_ics = args.useSteadyIC
                                 )
+
+
+def main(args):
+
+    parser = create_parser()
+
+    args = parser.parse_args(args)
+
+    run_simulation(args)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
