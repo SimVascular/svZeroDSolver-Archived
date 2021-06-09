@@ -28,8 +28,14 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import site
-import sys
+# This file is the basic package setup.
+#
+# To put this into the PyPI repository we will need to add appropriate metadata, etc.
 
-from .svZeroDSolver import run_from_c 
+from distutils.core import setup
+
+if __name__ == '__main__':
+    setup(name="svzerodsolver", version="1.0",
+          packages=['svzerodsolver'],
+      )
 
