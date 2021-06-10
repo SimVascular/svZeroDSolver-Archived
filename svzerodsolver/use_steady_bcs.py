@@ -30,7 +30,7 @@
 
 import copy
 import numpy as np
-import solver
+from . import solver
 
 class altered_bc_block:
     def __init__(self, name, type, segment_number, location, parameter_list):
