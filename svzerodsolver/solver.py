@@ -574,6 +574,16 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
             -- created from function utils.extract_info_from_solver_input_file
         boolean draw_directed_graph
             = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
+        boolean use_ICs_from_npy_file
+            = True to use user-prescribed ICs (saved in a .npy file)
+        string ICs_npy_file_path
+            = path to .npy file storing the initial conditions
+        boolean save_y_ydot_to_npy
+            = True to save the entire 0d solution and its time derivative at the final time step to a .npy file
+        string y_ydot_file_path
+            = name of the .npy file to which the 0d solution and its time derivative at the final time step will be saved
+        float simulation_start_time
+            = initial time of 0d simulation
     Returns:
         np.array zero_d_time
             = np.array of simulated time points
@@ -583,6 +593,12 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
             = list of the names of the 0d simulation results; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connect the 0d blocks), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
                 Example:
                     for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6, which corresponds to cap segment #6
+        np.array y_next
+            = 0d solution at the final time step
+        np.array ydot_next
+            = time derivative of the 0d solution at the final time step
+        var_name_list_original
+            = list of the names of the 0d simulation results; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connect the 0d blocks), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
     """
 
     block_list = list(parameters["blocks"].values())
@@ -727,6 +743,8 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
             = list of the 0d simulation results' solution variable names; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connecting the 0d LPNBlock objects), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
                 Example:
                     for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6_outlet. This wire connects a resistance vessel block to an outlet BC block (specifically for vessel segment #6)
+        dict parameters
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         dict zero_d_results
             =   {
@@ -734,9 +752,9 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
 
                     "distance" : {branch_id : 1d np.array of distance of the branch's 0d nodes along the centerline}
 
-                    "flow" : {var_name : 2d np.array of flow rate where each row represents a 0d node on the branch and each column represents a time point,
+                    "flow" : {branch_id : 2d np.array of flow rate where each row represents a 0d node on the branch and each column represents a time point,
 
-                    "pressure" : {var_name : 2d np.array of pressure where each row represents a 0d node on the branch and each column represents a time point}
+                    "pressure" : {branch_id : 2d np.array of pressure where each row represents a 0d node on the branch and each column represents a time point}
                 }
 
             - examples:
@@ -828,8 +846,15 @@ def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_
             = period of a cardiac cycle
         int number_of_time_pts_per_cardiac_cycle
             = number of simulated 0d time points per cycle
+        np.array zero_d_time
+            = np.array of simulated time points
+        np.array results_0d
+            = np.array of the 0d simulation results, where the rows correspond to the each simulated time point and column j corresponds to the 0d solution for the solution variable name in var_name_list[j]
     Returns:
-
+        np.array time_for_last_cardiac_cycle
+            = time, but condensed to contain just the values for the last cardiac cycle
+        np.array res
+            = results, but condensed to contain just the values for the last cardiac cycle
     """
 
     time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_time, results_0d, number_of_time_pts_per_cardiac_cycle)
@@ -896,6 +921,9 @@ def get_zero_input_file_name(zero_d_solver_input_file_path):
     Inputs:
         string zero_d_solver_input_file_path
             = path to the 0d solver input file
+    Returns:
+        string zero_d_input_file_name
+            = name of 0d solver input file (but without the extension)
     """
     zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
     return zero_d_input_file_name
@@ -908,6 +936,8 @@ def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
         To open and load the .npy file to extract the 0d simulation results, use the following command:
             zero_d_results = np.load(/path/to/zero/d/simulation/results/npy/file, allow_pickle = True).item()
     Inputs:
+        string zero_d_simulation_results_file_path
+            = path to the .npy file to which the 0d simulation results will be saved
         dict zero_d_results
             = obtained from reformat_network_util_results_all or reformat_network_util_results_branch
     Returns:
@@ -934,6 +964,16 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
         string custom_0d_elements_arguments_file_path
             = path to user-defined custom 0d element file
+        boolean use_ICs_from_npy_file
+            = True to use user-prescribed ICs (saved in a .npy file)
+        string ICs_npy_file_path
+            = path to .npy file storing the initial conditions
+        boolean save_y_ydot_to_npy
+            = True to save the entire 0d solution and its time derivative at the final time step to a .npy file
+        string y_ydot_file_path
+            = name of the .npy file to which the 0d solution and its time derivative at the final time step will be saved
+        boolean check_jacobian
+            = True to run a finite difference check on the tangent matrix (to check if it is correct)
         float simulation_start_time
             = time at which to begin the 0d simulation
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
