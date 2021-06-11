@@ -1,5 +1,5 @@
 # ================================
-# steady flow -> R -> coronary
+# pulsatile flow -> R -> coronary
 # ================================
 
 # ==========
@@ -7,7 +7,7 @@
 # ==========
 # - Name of the model (string)
 
-MODEL results_steadyFlow_R_coronary_
+MODEL results_pulsatileFlow_R_coronary_
 
 ### DO NOT CHANGE THIS SECTION - generated automatically
 #
