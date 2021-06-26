@@ -30,7 +30,7 @@
 
 import copy
 import numpy as np
-import svZeroDSolver
+from . import solver
 
 class altered_bc_block:
     def __init__(self, name, type, segment_number, location, parameter_list):
@@ -59,7 +59,7 @@ def use_steady_state_values_for_bcs(parameters):
         2. removing capacitors from BCs (convert RCR and CORONARY into equivalent resistance-only BCs)
 
     Caveats:
-        - removing the capacitors from the RCR and Coronary changes the 0d simulation results outputted by svZeroDSolver.run_network_util() because the internal variables originally present in the RCR and Coronary BCs are removed. These internal variables must be restored (and set to their steady state values) to use the steady state solutions as the initial conditions for the pulsatile simulations.
+        - removing the capacitors from the RCR and Coronary changes the 0d simulation results outputted by solver.run_network_util() because the internal variables originally present in the RCR and Coronary BCs are removed. These internal variables must be restored (and set to their steady state values) to use the steady state solutions as the initial conditions for the pulsatile simulations.
     """
     locations = ["inlet", "outlet"]
     num_variables_for_BCs = ({  "FLOW"          : 1, # [Q]
@@ -84,7 +84,7 @@ def use_steady_state_values_for_bcs(parameters):
                     for k in range(num_variables):
                         start_index = k*num_values_per_variable
                         end_index = start_index + num_values_per_variable
-                        time, bc_values = svZeroDSolver.extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
+                        time, bc_values = solver.extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
                         if len(time) < 2:
                                 message = "Error. len(time) < 2"
                                 raise RuntimeError(message)
@@ -102,7 +102,7 @@ def use_steady_state_values_for_bcs(parameters):
                     altered_bc_blocks.append(altered_bc_block("BC" + str(segment_number) + "_" + location, bc_type, segment_number, location, [Rp]))
             elif bc_type == "CORONARY":
                 # use mean intramyocardial pressure for the CORONARY BCs
-                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = svZeroDSolver.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
+                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = solver.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
                 if len(time_of_intramyocardial_pressure) >= 2:
                     cardiac_cycle_period = time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]
                     time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, cardiac_cycle_period)

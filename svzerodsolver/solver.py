@@ -32,7 +32,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-This code simulates the 0D model described in the 0D solver input file by creating network_util_NR::LPNBlock objects for each 0D element and running the network_util_NR solver routines.
+This code simulates the 0D model.
 
 Available vessel modeling types:
     1) R (constant resistor)
@@ -73,40 +73,37 @@ import os
 import copy
 import numpy as np
 import scipy.interpolate
-from tqdm import tqdm
+
+from . import blocks as ntwku
+from . import connections
+from . import time_integration as time_int
+from . import utils
+from . import use_steady_bcs
+
 try:
-    import oneD_to_zeroD_convertor
+    from tqdm import tqdm
 except ImportError:
-    message = "Error. oneD_to_zeroD_convertor.py was not imported. This code is needed to extract relevant information from the 0D solver input file."
-    raise ImportError(message)
-try:
-    import use_steady_bcs # only needed if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation
-except ImportError:
-    print("\nuse_steady_bcs not found. use_steady_bcs is needed only if you want to use the steady-state soltn of a 0d model with steady BCs as the initial condition for a pulsatile simulation.")
+    pass
+
 try:
     import matplotlib.pyplot as plt # only needed if you want to visualize the 0d model as a directed graph
 except ImportError:
     print("\nmatplotlib.pyplot not found. matplotlib.pyplot is needed only if you want to visualize your 0d model as a directed graph.")
+
 try:
     import networkx as nx # only needed if you want to visualize the 0d model as a directed graph
 except ImportError:
     print("\nnetworkx not found. networkx is needed only if you want to visualize your 0d model as a directed graph.")
-try:
-    import blocks as ntwku
-    import connections
-    import time_integration as time_int
-except ImportError:
-    message = "Error. 0D solver was not imported. This code is needed to create the network_util_NR::LPNBlock objects for the 0D elements and run the 0D simulations."
-    raise ImportError(message)
+
 try:
     from profilehooks import profile # only needed if you want to profile this script
 except ImportError:
     print("\nprofilehooks.profile not found. profilehooks.profile is needed only if you want to profile this script.")
+
 np.set_printoptions(threshold=sys.maxsize)
 import importlib
 import argparse
 from collections import defaultdict
-
 
 def import_custom_0d_elements(custom_0d_elements_arguments_file_path):
     """
@@ -179,7 +176,7 @@ def create_bc_equations(parameters):
         Time-dependent boundary conditions must be prescribed over a single cardiac cycle only.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         void but updates parameters to include:
             float cardiac_cycle_period
@@ -250,7 +247,7 @@ def extract_bc_time_and_values(start_index, end_index, parameters, segment_numbe
         int end_index
             = index of parameters["datatable_values"][datatable_name] at which to terminate the extraction
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         int segment_number
             = segment number of the 0d vessel element (in the ELEMENT card of the 0d solver input file) for which we want to extract the time points and BC values
         string location
@@ -281,7 +278,7 @@ def create_junction_blocks(parameters, custom_0d_elements_arguments):
         Create the junction blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -319,7 +316,7 @@ def get_vessel_block_helpers(parameters):
         Create helper dictionaries to support the creation of the vessel blocks.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         dict vessel_blocks_connecting_block_lists
             = {segment_number : connecting_block_list}
@@ -363,7 +360,7 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
         Create the vessel blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -413,7 +410,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
         Create the outlet bc (boundary condition) blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -483,7 +480,7 @@ def create_inlet_bc_blocks(parameters, custom_0d_elements_arguments):
         Create the inlet bc (boundary condition) blocks for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -512,7 +509,7 @@ def create_LPN_blocks(parameters, custom_0d_elements_arguments):
         Create all LPNBlock objects for the 0d model.
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         module custom_0d_elements_arguments
             = module to call custom 0d element arguments from
     Returns:
@@ -536,7 +533,7 @@ def set_solver_parameters(parameters):
         Set the 0d simulation time-stepping parameters
     Inputs:
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         void, but updates parameters to include:
             float delta_t
@@ -569,14 +566,24 @@ def load_in_ics(var_name_list, ICs_dict):
 def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_graph, use_ICs_from_npy_file, ICs_npy_file_path, save_y_ydot_to_npy, y_ydot_file_path, simulation_start_time):
     """
     Purpose:
-        Run functions from network_util_NR to execute the 0d simulation and generate simulation results (pressure, flow rates, and wall shear stress).
+        Run functions from network_util_NR to execute the 0d simulation and generate simulation results (pressure, flow rates).
     Inputs:
         string zero_d_solver_input_file_path
             = path to the 0d solver input file
         dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
+            -- created from function utils.extract_info_from_solver_input_file
         boolean draw_directed_graph
             = True to visualize the 0d model as a directed graph using networkx -- saves the graph to a .png file (hierarchical graph layout) and a networkx .dot file; False, otherwise. .dot file can be opened with neato from graphviz to visualize the directed in a different format.
+        boolean use_ICs_from_npy_file
+            = True to use user-prescribed ICs (saved in a .npy file)
+        string ICs_npy_file_path
+            = path to .npy file storing the initial conditions
+        boolean save_y_ydot_to_npy
+            = True to save the entire 0d solution and its time derivative at the final time step to a .npy file
+        string y_ydot_file_path
+            = name of the .npy file to which the 0d solution and its time derivative at the final time step will be saved
+        float simulation_start_time
+            = initial time of 0d simulation
     Returns:
         np.array zero_d_time
             = np.array of simulated time points
@@ -586,6 +593,12 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
             = list of the names of the 0d simulation results; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connect the 0d blocks), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
                 Example:
                     for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6, which corresponds to cap segment #6
+        np.array y_next
+            = 0d solution at the final time step
+        np.array ydot_next
+            = time derivative of the 0d solution at the final time step
+        var_name_list_original
+            = list of the names of the 0d simulation results; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connect the 0d blocks), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
     """
 
     block_list = list(parameters["blocks"].values())
@@ -626,7 +639,12 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     # create time integration
     t_int = time_int.GenAlpha(rho, y_next)
 
-    for t_current in tqdm(tlist[:-1]): # added this line on 10/14/20:
+    if 'tqdm' in sys.modules:
+        loop_list = tqdm(tlist[:-1])
+    else:
+        loop_list = tlist[:-1]
+
+    for t_current in loop_list:
         args['Solution'] = y_next
         y_next, ydot_next = t_int.step(y_next, ydot_next, t_current, block_list, args, parameters["delta_t"])
         ylist.append(y_next)
@@ -636,127 +654,11 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
 
     var_name_list_original = copy.deepcopy(var_name_list)
     results_0d = np.array(ylist)
-    ylist, var_name_list = compute_wss(parameters, results_0d, ylist, var_name_list)
-    results_0d = np.array(ylist)
     zero_d_time = tlist
     return zero_d_time, results_0d, var_name_list, y_next, ydot_next, var_name_list_original
 
 def save_ics(y_ydot_file_path, y_next, ydot_next, var_name_list):
     np.save(y_ydot_file_path, {"y" : y_next, "ydot" : ydot_next, "var_name_list" : var_name_list})
-
-def compute_wss(parameters, results_0d, ylist, var_name_list): # currently here 8/13/20: need to recheck that this function correctly computes wss...
-    """
-    Purpose:
-        Compute the wall shear stress (wss) using Poiseuille flow. Compute wss only for all blocks' inlet and outlet wires that have both flow and pressure results.
-        wss = tau = 4.0*mu*Q/np.pi/R^3
-    Inputs:
-        dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
-        np.array results_0d
-            = np.array of the 0d simulation results, where the rows correspond to the each simulated time point and column j corresponds to the 0d solution for the solution variable name in var_name_list[j]
-        list ylist
-            = list version of results_0d, where ylist[i] is an np.array of the solutions for all solution variable names in var_name_list at time step #i
-        list var_name_list
-            = list of the 0d simulation results' solution variable names; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connecting the 0d LPNBlock objects), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
-                Example:
-                    for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6_outlet. This wire connects a resistance vessel block to an outlet BC block (specifically for vessel segment #6)
-    Returns:
-        list ylist, but updated to include the wss solutions at all simulated time points
-        list var_name_list, but updated to include the wss solution variable names
-            -- the wss solution variable names will be of the form: 'tau' + wire_name
-    """
-    length_of_original_var_name_list = len(var_name_list)
-    for i in range(length_of_original_var_name_list):
-        wire_name = var_name_list[i][2:]
-        if "Q_" + wire_name in var_name_list and "P_" + wire_name in var_name_list and "tau_" + wire_name not in var_name_list and "var" not in wire_name:
-            blocks_attached_to_wire = wire_name.split("_")
-            if "BC" in wire_name:
-                counter = 2
-                if blocks_attached_to_wire[0].startswith("BC") and blocks_attached_to_wire[0][2:].isnumeric() and blocks_attached_to_wire[1] == "inlet": # at inlet segment
-                    place = 0 # get the segment number of the inlet segment
-                elif blocks_attached_to_wire[-2].startswith("BC") and blocks_attached_to_wire[-2][2:].isnumeric() and blocks_attached_to_wire[-1] == "outlet": # at outlet segment
-                    place = -2 # get the segment number of the outlet segment
-            elif "J" in wire_name:
-                if blocks_attached_to_wire[0].startswith("J") and blocks_attached_to_wire[0][1:].isnumeric(): # at an outlet wire of a junction block
-                    place = -1 # get the segment number of the daughter vessel
-                elif blocks_attached_to_wire[-1].startswith("J") and blocks_attached_to_wire[-1][1:].isnumeric(): # at an inlet wire of a junction block
-                    place = 0 # get the segment number of the parent vessel
-                counter = 1
-            segment_number = int(blocks_attached_to_wire[place][counter:])
-            radius = parameters["radii"][segment_number]
-            mu = parameters["mu"][segment_number]
-            Q_index = var_name_list.index("Q_" + wire_name)
-            tau = 4.0*mu*results_0d[:, Q_index]/(np.pi*radius**3) # todo: adjacent segemnts should have the same wss
-            var_name_list.append("tau_" + wire_name)
-            for j in range(len(ylist)):
-                ylist[j] = list(ylist[j]) # results at time step #j # this line is needed because ylist[j] is an np.array, so we have to turn it into a list before we can append tau[j] to it
-                ylist[j].append(tau[j])
-    return ylist, var_name_list
-
-def extract_0d_cap_results(zero_d_results_for_var_names): # currently here 8/18/20: need to run some simple test cases to make sure that this function works correctly
-    """
-    Purpose:
-        Extract the 0d simulation results (pressure, flow rate, and wall shear stress) at only the model's caps.
-    Inputs:
-        dict zero_d_results_for_var_names
-            =   {
-                    "time" : np.array of simulated time points,
-
-                    "flow" : {var_name : np.array of flow rate,
-
-                    "pressure" : {var_name : np.array of pressure},
-
-                    "wss" : {var_name : np.array of wall shear stress},
-
-                    "internal" : {var_name : np.array of internal block solutions},
-
-                        where var_name is an item in var_name_list (var_name_list generated from run_network_util)
-                }
-    Returns:
-        dict zero_d_cap_results
-            =   {
-                    "inlet" :   {
-                                    "flow" : {segment number : np.array of simulation results},
-
-                                    "pressure" : {segment number : np.array of simulation results},
-
-                                    "wss" : {segment number : np.array of simulation results}
-                                }
-
-                    "outlet" :   {
-                                    "flow" : {segment number : np.array of simulation results},
-
-                                    "pressure" : {segment number : np.array of simulation results},
-
-                                    "wss" : {segment number : np.array of simulation results}
-                                }
-
-                    "time" : np.array of simulation time points
-                }
-    """
-    zero_d_inlet_cap_results = {}
-    zero_d_outlet_cap_results = {}
-    for qoi in ["pressure", "flow", "wss"]:
-        if qoi == "flow":
-            solution_type = "Q_"
-        elif qoi == "pressure":
-            solution_type = "P_"
-        elif qoi == "wss":
-            solution_type = "tau_"
-        zero_d_inlet_cap_results[qoi] = {}
-        zero_d_outlet_cap_results[qoi] = {}
-        var_names = list(zero_d_results_for_var_names[qoi].keys())
-        for i in range(len(var_names)):
-            if ("BC" in var_names[i]) and ("var" not in var_names[i]) and (var_names[i].startswith(solution_type)): # at a cap segment # currently here 12/3/20: should check to see if var_names[i] also includes "V" here
-                var_names_split = var_names[i].split("_")
-                index = [i for i, s in enumerate(var_names_split) if "BC" in s][0]
-                segment_number = int(var_names_split[index][2:])
-                if "inlet" in var_names[i]: # this is an inlet cap
-                    zero_d_inlet_cap_results[qoi][segment_number] = zero_d_results_for_var_names[qoi][var_names[i]]
-                else: # this is an outlet cap # currently here 9/24/20: should add a "elif "outlet" in var_names[i]
-                    zero_d_outlet_cap_results[qoi][segment_number] = zero_d_results_for_var_names[qoi][var_names[i]]
-    zero_d_cap_results = {"inlet" : zero_d_inlet_cap_results, "outlet" : zero_d_outlet_cap_results, "time" : zero_d_results_for_var_names["time"]}
-    return zero_d_cap_results
 
 def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
     """
@@ -780,14 +682,12 @@ def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
 
                     "pressure" : {var_name : np.array of pressure},
 
-                    "wss" : {var_name : np.array of wall shear stress},
-
                     "internal" : {var_name : np.array of internal block solutions},
 
                         where var_name is an item in var_name_list (var_name_list generated from run_network_util)
                 }
     """
-    zero_d_results_for_var_names = {"flow" : {}, "pressure" : {}, "wss" : {}, "time" : zero_d_time, "internal" : {}}
+    zero_d_results_for_var_names = {"flow" : {}, "pressure" : {}, "time" : zero_d_time, "internal" : {}}
     for i in range(len(var_name_list)):
         var_name = var_name_list[i]
         res = results_0d[:, i]
@@ -795,8 +695,6 @@ def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
             zero_d_results_for_var_names["flow"][var_name] = res
         elif var_name.startswith("P_"):
             zero_d_results_for_var_names["pressure"][var_name] = res
-        elif var_name.startswith("tau_"):
-            zero_d_results_for_var_names["wss"][var_name] = res
         elif var_name.startswith("var_"):
             zero_d_results_for_var_names["internal"][var_name] = res
         else:
@@ -805,7 +703,7 @@ def reformat_network_util_results_all(zero_d_time, results_0d, var_name_list):
     return zero_d_results_for_var_names
 
 def initialize_0d_results_dict_branch(parameters, zero_d_time):
-    zero_d_results = {"flow" : {}, "pressure" : {}, "wss" : {}, "distance" : {}}
+    zero_d_results = {"flow" : {}, "pressure" : {}, "distance" : {}}
     num_time_pts = len(zero_d_time)
     branch_segment_ids = defaultdict(list) # {branch_id : [branch_segment_ids]}
     segment_numbers_to_branch_segment_ids_map = defaultdict(dict) # {branch_id : {branch_segment_id : segment_number}}
@@ -845,6 +743,8 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
             = list of the 0d simulation results' solution variable names; most of the items in var_name_list are the QoIs + the names of the wires used in the 0d model (the wires connecting the 0d LPNBlock objects), where the wire names are usually comprised of the wire's inlet block name + "_" + the wire's outlet block name
                 Example:
                     for var_name_list = ['P_V6_BC6_outlet', 'Q_V6_BC6_outlet'], then results_0d[:, i] holds the pressure (i = 0) or flow rate simulation result (i = 1) (both as np.arrays) for wire R6_BC6_outlet. This wire connects a resistance vessel block to an outlet BC block (specifically for vessel segment #6)
+        dict parameters
+            -- created from function utils.extract_info_from_solver_input_file
     Returns:
         dict zero_d_results
             =   {
@@ -852,11 +752,9 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
 
                     "distance" : {branch_id : 1d np.array of distance of the branch's 0d nodes along the centerline}
 
-                    "flow" : {var_name : 2d np.array of flow rate where each row represents a 0d node on the branch and each column represents a time point,
+                    "flow" : {branch_id : 2d np.array of flow rate where each row represents a 0d node on the branch and each column represents a time point,
 
-                    "pressure" : {var_name : 2d np.array of pressure where each row represents a 0d node on the branch and each column represents a time point},
-
-                    "wss" : {var_name : 2d np.array of wall shear stress where each row represents a 0d node on the branch and each column represents a time point}
+                    "pressure" : {branch_id : 2d np.array of pressure where each row represents a 0d node on the branch and each column represents a time point}
                 }
 
             - examples:
@@ -866,7 +764,7 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
                 2. plt.plot(zero_d_results["distance"], zero_d_results["pressure"][branch_id][:, -1])
                         --> plot centerline distance vs the 0d pressure (at the last simulated time step); this yields a plot that shows how the pressure changes along the axial dimension of a vessel
     """
-    qoi_map = {"Q" : "flow", "P" : "pressure", "tau" : "wss"}
+    qoi_map = {"Q" : "flow", "P" : "pressure"}
     zero_d_results = initialize_0d_results_dict_branch(parameters, zero_d_time)
 
     for i in range(len(var_name_list)):
@@ -948,8 +846,15 @@ def run_last_cycle_extraction_routines(cardiac_cycle_period, number_of_time_pts_
             = period of a cardiac cycle
         int number_of_time_pts_per_cardiac_cycle
             = number of simulated 0d time points per cycle
+        np.array zero_d_time
+            = np.array of simulated time points
+        np.array results_0d
+            = np.array of the 0d simulation results, where the rows correspond to the each simulated time point and column j corresponds to the 0d solution for the solution variable name in var_name_list[j]
     Returns:
-
+        np.array time_for_last_cardiac_cycle
+            = time, but condensed to contain just the values for the last cardiac cycle
+        np.array res
+            = results, but condensed to contain just the values for the last cardiac cycle
     """
 
     time_for_last_cardiac_cycle, res = extract_last_cardiac_cycle_simulation_results(zero_d_time, results_0d, number_of_time_pts_per_cardiac_cycle)
@@ -1011,105 +916,14 @@ def save_directed_graph(block_list, connect_list, directed_graph_file_path):
     # To extract coordinates and structure from the graphviz post-processor, use:
     # neato.exe test.dot -Gsplines=ortho -Gnodesep=1 -Goverlap=scale
 
-def collapse_inlet_and_outlet_0d_results(zero_d_cap_results): # currently here 8/18/20: need to run some simple test cases to make sure that this function works correctly
-    """
-    Purpose:
-        Collapse zero_d_cap_results into a simpler dictionary, zero_d_cap_results_collapsed. This collapse is performed only for 0d models with more than one vessel element (listed in the ELEMENT card of 0d solver input file).
-    Caveat:
-        This function effectively combines the inlet and outlet solutions into a single dictionary. As such, it assumes that inlet caps and outlet caps have unique segment numbers, which only occurs for 0d models with more than one vessel element.
-    Inputs:
-        dict zero_d_cap_results
-            =   {
-                    "inlet" :   {
-                                    "flow" : {segment number : np.array of simulation results},
-
-                                    "pressure" : {segment number : np.array of simulation results},
-
-                                    "wss" : {segment number : np.array of simulation results}
-                                }
-
-                    "outlet" :   {
-                                    "flow" : {segment number : np.array of simulation results},
-
-                                    "pressure" : {segment number : np.array of simulation results},
-
-                                    "wss" : {segment number : np.array of simulation results}
-                                }
-
-                    "time" : np.array of simulation time points
-                }
-    Returns:
-        If the inlet and outlet caps have unique segment numbers, meaning the 0d model has more than one element in the 0d solver input file, then return:
-            dict zero_d_cap_results_collapsed
-                =   {
-                        "flow" : {segment number : np.array of simulation results},
-
-                        "pressure" : {segment number : np.array of simulation results},
-
-                        "wss" : {segment number : np.array of simulation results},
-
-                        "time" : np.array of simulation time points
-                    }
-        otherwise, return:
-            dict zero_d_cap_results
-    """
-    all_segment_numbers = {"inlet" : [], "outlet" :[]}
-    cap_types = list(all_segment_numbers.keys())
-    for cap_type in cap_types:
-        for qoi in list(zero_d_cap_results[cap_type].keys()):
-            for segment_number in list(zero_d_cap_results[cap_type][qoi].keys()):
-                if segment_number not in all_segment_numbers[cap_type]:
-                    all_segment_numbers[cap_type].append(segment_number)
-    if len(list(set(all_segment_numbers["inlet"]) & set(all_segment_numbers["outlet"]))) == 0: # collapse zero_d_cap_results only if the inlet and and outlet caps have unique segment numbers; non-unique segment numbers means that model has a single element/segment that has both the inlet and outlet cap
-        zero_d_cap_results_collapsed = {"time" : zero_d_cap_results["time"]}
-        for qoi in list(zero_d_cap_results["outlet"].keys()):
-            zero_d_cap_results_collapsed[qoi] = {}
-            for cap_type in ["inlet", "outlet"]:
-                for segment_number in list(zero_d_cap_results[cap_type][qoi].keys()):
-                    zero_d_cap_results_collapsed[qoi][segment_number] = zero_d_cap_results[cap_type][qoi][segment_number]
-        return zero_d_cap_results_collapsed
-    else:
-        print("Warning. Model has only a single element/segment. Collapse is not possible. Returning the original input dictionary.\n")
-        return zero_d_cap_results
-
-def compute_time_averaged_result(time, result, parameters): # todo: delete this function because it is not in use right now
-    """
-    Purpose:
-        Compute a continuous time-average of result.
-    Inputs:
-        np.array time
-            = np.array of time points
-        np.array result
-            = np.array of result values
-        dict parameters
-            -- created from function oneD_to_zeroD_convertor.extract_info_from_solver_input_file
-    Returns:
-        np.array time_of_time_averaged_result
-            = an np.array of the time points for time_averaged_result
-            -- this is an np.array of length = len(time) - parameters["number_of_time_pts_per_cardiac_cycle"] + 1
-        np.array time_averaged_result
-            = an np.array of the continuous time-average of result
-            -- the time-averaged is computed via (1/T)*(integral of result over domain of length T), where T = period of a cardiac cycle
-            -- this is an np.array of length = len(time) - parameters["number_of_time_pts_per_cardiac_cycle"] + 1
-    """
-    n = len(time) - parameters["number_of_time_pts_per_cardiac_cycle"]
-    time_averaged_result = np.zeros(n + 1)
-    for i in range(n, -1, -1):
-        if (time[i + parameters["number_of_time_pts_per_cardiac_cycle"] - 1] - time[i] - parameters["cardiac_cycle_period"])/parameters["cardiac_cycle_period"]*100.0 > 0.001:
-            print("bounds on numerical integral = ", time[i + parameters["number_of_time_pts_per_cardiac_cycle"] - 1] - time[i])
-            print("true period = ", parameters["cardiac_cycle_period"])
-            message = "Error. The bounds on the numerical integral do not amount to a single cardiac cycle period."
-            raise RuntimeError(message)
-        else:
-            time_averaged_result[i] = (1.0/parameters["cardiac_cycle_period"])*np.trapz(result[i:i + parameters["number_of_time_pts_per_cardiac_cycle"]], time[i:i + parameters["number_of_time_pts_per_cardiac_cycle"]])
-    time_of_time_averaged_result = time[parameters["number_of_time_pts_per_cardiac_cycle"] - 1:]
-    return time_of_time_averaged_result, time_averaged_result
-
 def get_zero_input_file_name(zero_d_solver_input_file_path):
     """
     Inputs:
         string zero_d_solver_input_file_path
             = path to the 0d solver input file
+    Returns:
+        string zero_d_input_file_name
+            = name of 0d solver input file (but without the extension)
     """
     zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
     return zero_d_input_file_name
@@ -1122,6 +936,8 @@ def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
         To open and load the .npy file to extract the 0d simulation results, use the following command:
             zero_d_results = np.load(/path/to/zero/d/simulation/results/npy/file, allow_pickle = True).item()
     Inputs:
+        string zero_d_simulation_results_file_path
+            = path to the .npy file to which the 0d simulation results will be saved
         dict zero_d_results
             = obtained from reformat_network_util_results_all or reformat_network_util_results_branch
     Returns:
@@ -1148,6 +964,16 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
         string custom_0d_elements_arguments_file_path
             = path to user-defined custom 0d element file
+        boolean use_ICs_from_npy_file
+            = True to use user-prescribed ICs (saved in a .npy file)
+        string ICs_npy_file_path
+            = path to .npy file storing the initial conditions
+        boolean save_y_ydot_to_npy
+            = True to save the entire 0d solution and its time derivative at the final time step to a .npy file
+        string y_ydot_file_path
+            = name of the .npy file to which the 0d solution and its time derivative at the final time step will be saved
+        boolean check_jacobian
+            = True to run a finite difference check on the tangent matrix (to check if it is correct)
         float simulation_start_time
             = time at which to begin the 0d simulation
             -- assumes the cardiac cycle begins at t = 0.0 and ends at t = cardiac_cycle_period
@@ -1164,7 +990,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     else:
         custom_0d_elements_arguments = None
 
-    parameters = oneD_to_zeroD_convertor.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
+    parameters = utils.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
     parameters["check_jacobian"] = check_jacobian
 
     if use_steady_soltns_as_ics:
@@ -1215,29 +1041,78 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
             zero_d_results = reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list, parameters)
             save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
 
-def main(args):
-    # references:
-    # https://jdhao.github.io/2018/10/11/python_argparse_set_boolean_params/
-    # https://docs.python.org/3/library/argparse.html#type
-    # https://stackoverflow.com/questions/26626799/pythons-argument-parser-printing-the-argument-name-in-upper-case
+def run_from_c(*args, **kwargs):
+    """Execute the 0D solver using passed parameters from c++.
+    """
 
-    # get command line arguments
+    # This is need by 'argparse.ArgumentParser()', sys.argv[] must be defined..
+    sys.argv = [ "svZeroDSolver" ]
+
+    # Define command-line parameters.
+    parser = create_parser()
+
+    # Set the values for command-line parameters.
+    cmd_line_args = parser.parse_args(args)
+
+    # Run the 0D solver.
+    run_simulation(cmd_line_args)
+
+def create_parser():
+    """Create a command-line parser.
+    """
+
+    # Create the parser.
     parser = argparse.ArgumentParser(description = 'This code runs the 0d solver.')
-    parser.add_argument("zero", help = "Path to 0d solver input file")
-    parser.add_argument("-v", "--visualize", action = 'store_true', help = "Visualize the 0d model as a networkx directed graph and save to .png file")
-    parser.add_argument("-l", "--returnLast", action = 'store_true', help = "Return results for only the last simulated cardiac cycle")
-    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true', help = "Save all simulation results to a .npy file") # todo: do we need to change action to 'store_false' here?
-    parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true', help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
-    parser.add_argument("-c", "--useCustom", action = 'store_true', help = "Use custom, user-defined 0d elements")
-    parser.add_argument("-pc", "--customPath", help = "Path to custom 0d elements arguments file")
-    parser.add_argument("-i", "--useICs", action = 'store_true', help = "Use initial conditions from .npy file") # todo: need to prevent users from using both: useSteadyIC and useICs
-    parser.add_argument("-pi", "--ICsPath", help = "Path to the .npy file containing the initial conditions")
-    parser.add_argument("-y", "--saveYydot", action = 'store_true', help = "Save y and ydot to a .npy file")
-    parser.add_argument("-py", "--yydotPath", help = "Path to the .npy file containing y and ydot")
-    parser.add_argument("-j", "--checkJacobian", action = 'store_true', help = "Check the Jacobian")
-    parser.add_argument("-it", "--initialTime", default = 0.0, type = float, help = "Start (initial) time of the 0d simulation")
-    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true', help = "Run the pulsatile 0d simulation using the steady-state solution from the equivalent steady 0d model as the initial conditions.") # caveat - does not work with custom, user-defined BCs
-    args = parser.parse_args(args)
+
+    # Define 0D solver commands.
+
+    parser.add_argument("zero",
+        help = "Path to 0d solver input file")
+
+    parser.add_argument("-v", "--visualize", action = 'store_true',
+        help = "Visualize the 0d model as a networkx directed graph and save to .png file")
+
+    parser.add_argument("-l", "--returnLast", action = 'store_true',
+        help = "Return results for only the last simulated cardiac cycle")
+
+    parser.add_argument("-sa", "--saveAll", default = True, action = 'store_true',
+        help = "Save all simulation results to a .npy file")
+
+    parser.add_argument("-sb", "--saveBranch", default = True, action = 'store_true',
+        help = "Save the simulation results (preserving the 1d/centerline branch structure) to a .npy file") # todo: do we need to change action to 'store_false' here?
+
+    parser.add_argument("-c", "--useCustom", action = 'store_true',
+        help = "Use custom, user-defined 0d elements")
+
+    parser.add_argument("-pc", "--customPath",
+        help = "Path to custom 0d elements arguments file")
+
+    parser.add_argument("-i", "--useICs", action = 'store_true',
+        help = "Use initial conditions from .npy file") # todo: need to prevent users from using both: useSteadyIC and useICs
+
+    parser.add_argument("-pi", "--ICsPath",
+        help = "Path to the .npy file containing the initial conditions")
+
+    parser.add_argument("-y", "--saveYydot", action = 'store_true',
+        help = "Save y and ydot to a .npy file")
+
+    parser.add_argument("-py", "--yydotPath",
+        help = "Path to the .npy file containing y and ydot")
+
+    parser.add_argument("-j", "--checkJacobian", action = 'store_true',
+        help = "Check the Jacobian")
+
+    parser.add_argument("-it", "--initialTime", default = 0.0, type = float,
+        help = "Start (initial) time of the 0d simulation")
+
+    parser.add_argument("-sic", "--useSteadyIC", action = 'store_true',
+        help = "Run the pulsatile 0d simulation using the steady-state solution from the equivalent steady 0d model as the initial conditions.") # caveat - does not work with custom, user-defined BCs
+
+    return parser
+
+def run_simulation(args):
+    """Run a 0D simulation with the given arguments.
+    """
 
     set_up_and_run_0d_simulation(   zero_d_solver_input_file_path = args.zero,
                                     draw_directed_graph = args.visualize,
@@ -1254,6 +1129,15 @@ def main(args):
                                     simulation_start_time = args.initialTime,
                                     use_steady_soltns_as_ics = args.useSteadyIC
                                 )
+
+
+def main(args):
+
+    parser = create_parser()
+
+    args = parser.parse_args(args)
+
+    run_simulation(args)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
