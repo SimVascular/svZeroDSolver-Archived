@@ -33,23 +33,7 @@ The following software is required:
 
 - Python 3
 
-The following Python packages are required:
-
-- os
-- re
-- sys
-- pdb
-- copy
-- numpy
-- argparse
-- tqdm.tqdm
-- importlib
-- matplotlib.pyplot
-- collections.defaultdict
-- scipy
-- scipy.interpolate
-- scipy.sparse.linalg
-- scipy.sparse.csr_matrix
+The required Python packages are listet in `requirements.txt`
 
 ### Execution
 
