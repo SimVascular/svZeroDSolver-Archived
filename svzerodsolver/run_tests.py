@@ -6,6 +6,7 @@ import pdb
 import numpy as np
 from . import solver
 
+
 def get_tests():
     """
     Add new test cases here
@@ -20,70 +21,70 @@ def get_tests():
     """
     tests = {}
 
-    tests['steadyFlow_R_R'] = [ Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
-                                Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
-                                Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_R_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                               Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                               Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                               Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_R_coronary'] = [  Test('pressure', 0,  0, -1, 2000.0, 1.0e-7, 'point'),
-                                        Test('pressure', 0, -1, -1, 1500.0, 1.0e-7, 'point'),
-                                        Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                        Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_R_coronary'] = [Test('pressure', 0, 0, -1, 2000.0, 1.0e-7, 'point'),
+                                      Test('pressure', 0, -1, -1, 1500.0, 1.0e-7, 'point'),
+                                      Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                      Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_RLC_R'] = [   Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
-                                    Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
-                                    Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                    Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_RLC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                 Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_RC_R'] = [    Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
-                                    Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
-                                    Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                    Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_RC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_RL_R'] = [    Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
-                                    Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
-                                    Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                    Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_RL_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_R_RCR'] = [   Test('pressure', 0,  0, -1, 10500.0, 1.0e-7, 'point'),
-                                    Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'),
-                                    Test('flow',     0,  0, -1,     5.0, 1.0e-8, 'point'),
-                                    Test('flow',     0, -1, -1,     5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_R_RCR'] = [Test('pressure', 0, 0, -1, 10500.0, 1.0e-7, 'point'),
+                                 Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'),
+                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_R_steadyPressure'] = [    Test('pressure', 0,  0, -1, 1500.0, 1.0e-7, 'point'),
-                                                Test('pressure', 0, -1, -1, 1000.0, 1.0e-7, 'point'),
-                                                Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                                Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_R_steadyPressure'] = [Test('pressure', 0, 0, -1, 1500.0, 1.0e-7, 'point'),
+                                            Test('pressure', 0, -1, -1, 1000.0, 1.0e-7, 'point'),
+                                            Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                            Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_stenosis_R'] = [  Test('pressure', 0,  0, -1, 3600.0, 1.0e-7, 'point'),
-                                        Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
-                                        Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                        Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point')   ]
+    tests['steadyFlow_stenosis_R'] = [Test('pressure', 0, 0, -1, 3600.0, 1.0e-7, 'point'),
+                                      Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                      Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                      Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
-    tests['steadyFlow_bifurcationR_R'] = [  Test('pressure', 0,  0, -1, 1100.0, 1.0e-7, 'point'),
-                                            Test('pressure', 0, -1, -1,  600.0, 1.0e-7, 'point'),
-                                            Test('pressure', 1,  0, -1,  600.0, 1.0e-7, 'point'),
-                                            Test('pressure', 1, -1, -1,  350.0, 1.0e-7, 'point'),
-                                            Test('pressure', 2,  0, -1,  600.0, 1.0e-7, 'point'),
-                                            Test('pressure', 2, -1, -1,  350.0, 1.0e-7, 'point'),
-                                            Test('flow',     0,  0, -1,    5.0, 1.0e-8, 'point'),
-                                            Test('flow',     0, -1, -1,    5.0, 1.0e-8, 'point'),
-                                            Test('flow',     1,  0, -1,    2.5, 1.0e-8, 'point'),
-                                            Test('flow',     1, -1, -1,    2.5, 1.0e-8, 'point'),
-                                            Test('flow',     2,  0, -1,    2.5, 1.0e-8, 'point'),
-                                            Test('flow',     2, -1, -1,    2.5, 1.0e-8, 'point')    ]
-
-    # check that initialization from steady state solution with mean flow work correctly
-    tests['pulsatileFlow_R_RCR']      = [   Test('pressure', 0,  0, 0,  4620.0, 1.0e-7, 'point'),
-                                            Test('pressure', 0, -1, 0,  4400.0, 1.0e-7, 'point'),
-                                            Test('flow',     0,  0, 0,     2.2, 1.0e-8, 'point'),
-                                            Test('flow',     0, -1, 0,     2.2, 1.0e-8, 'point')  ]
+    tests['steadyFlow_bifurcationR_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                          Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                          Test('pressure', 1, 0, -1, 600.0, 1.0e-7, 'point'),
+                                          Test('pressure', 1, -1, -1, 350.0, 1.0e-7, 'point'),
+                                          Test('pressure', 2, 0, -1, 600.0, 1.0e-7, 'point'),
+                                          Test('pressure', 2, -1, -1, 350.0, 1.0e-7, 'point'),
+                                          Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                          Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point'),
+                                          Test('flow', 1, 0, -1, 2.5, 1.0e-8, 'point'),
+                                          Test('flow', 1, -1, -1, 2.5, 1.0e-8, 'point'),
+                                          Test('flow', 2, 0, -1, 2.5, 1.0e-8, 'point'),
+                                          Test('flow', 2, -1, -1, 2.5, 1.0e-8, 'point')]
 
     # check that initialization from steady state solution with mean flow work correctly
-    tests['pulsatileFlow_R_coronary'] = [   Test('pressure', 0,  0, 0, 880.0, 1.0e-7, 'point'),
-                                            Test('pressure', 0, -1, 0, 660.0, 1.0e-7, 'point'),
-                                            Test('flow',     0,  0, 0,   2.2, 1.0e-8, 'point'),
-                                            Test('flow',     0, -1, 0,   2.2, 1.0e-8, 'point')   ]
+    tests['pulsatileFlow_R_RCR'] = [Test('pressure', 0, 0, 0, 4620.0, 1.0e-7, 'point'),
+                                    Test('pressure', 0, -1, 0, 4400.0, 1.0e-7, 'point'),
+                                    Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'),
+                                    Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')]
+
+    # check that initialization from steady state solution with mean flow work correctly
+    tests['pulsatileFlow_R_coronary'] = [Test('pressure', 0, 0, 0, 880.0, 1.0e-7, 'point'),
+                                         Test('pressure', 0, -1, 0, 660.0, 1.0e-7, 'point'),
+                                         Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'),
+                                         Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')]
 
     return tests
 
@@ -144,7 +145,7 @@ class Test:
         Read results and select function
         """
         # extract result
-        res  = results[self.field][self.branch][self.branch_node, self.time_step]
+        res = results[self.field][self.branch][self.branch_node, self.time_step]
 
         # select result type
         if self.fun == 'point':
@@ -154,7 +155,7 @@ class Test:
         elif self.fun == 'time_average':
             time = results["time"][self.time_step]
             period = time[-1] - time[0]
-            return np.trapz(res, time)/period
+            return np.trapz(res, time) / period
         elif self.fun == 'max':
             return np.max(res)
         elif self.fun == 'min':
@@ -167,7 +168,8 @@ class Test:
         Create error string for user
         """
         err = 'Test failed. ' + self.field + ' in branch ' + str(self.branch)
-        err += ', branch_node ' + str(self.branch_node) + ', time_step ' + str(self.time_step) + '. expected: ' + str(self.res)
+        err += ', branch_node ' + str(self.branch_node) + ', time_step ' + str(self.time_step) + '. expected: ' + str(
+            self.res)
         err += '. got: ' + str(res) + '. abs rel diff: ' + str(diff) + ' > ' + str(self.tol)
         return err
 
@@ -180,8 +182,8 @@ def read_results_0d(zero_d_simulation_results_file_path, zero_d_simulation_ICs_f
     Returns:
         dictionary res[result field][branch id][branch_node, time step]
     """
-    res = np.load(zero_d_simulation_results_file_path, allow_pickle = True).item()
-    os.remove(zero_d_simulation_results_file_path) # remove branching structure results
+    res = np.load(zero_d_simulation_results_file_path, allow_pickle=True).item()
+    os.remove(zero_d_simulation_results_file_path)  # remove branching structure results
     os.remove(zero_d_simulation_ICs_file_path)
     return res
 
@@ -211,27 +213,14 @@ def run_test(test_dir, name, check):
 
     # run simulation
     try:
-        solver.set_up_and_run_0d_simulation(inp,
-                                            draw_directed_graph = False,
-                                            last_cycle = False,
-                                            save_results_all = False,
-                                            save_results_branch = True,
-                                            use_custom_0d_elements = False,
-                                            custom_0d_elements_arguments_file_path = None,
-                                            use_ICs_from_npy_file = False,
-                                            ICs_npy_file_path = None,
-                                            save_y_ydot_to_npy = False,
-                                            y_ydot_file_path = None,
-                                            check_jacobian = False,
-                                            simulation_start_time = 0.0,
-                                            use_steady_soltns_as_ics = True )
+        solver.set_up_and_run_0d_simulation(inp)
     except Exception as err:
         return 'Test failed. svZeroDSolver returned error:\n' + str(err)
 
     # extract results
     try:
         zero_d_simulation_results_file_path = inp[:-3] + "_branch_results.npy"
-        zero_d_simulation_ICs_file_path     = inp[:-3] + "_initial_conditions.npy"
+        zero_d_simulation_ICs_file_path = inp[:-3] + "_initial_conditions.npy"
         res = read_results_0d(zero_d_simulation_results_file_path, zero_d_simulation_ICs_file_path)
     except Exception as err:
         return 'Test failed. Result extraction failed:\n' + str(err)
@@ -249,11 +238,9 @@ def main():
     """
     Loop over all test cases and check if all results match
     """
-    # set paths
-    if 'TEST_DIR' not in os.environ:
-        # run locally
-        fpath = os.path.dirname(os.path.realpath(__file__))
-        test_dir = os.path.join(fpath, '..', 'test_cases')
+    # run locally
+    fpath = os.path.dirname(os.path.realpath(__file__))
+    test_dir = os.path.join(fpath, '..', 'test_cases')
 
     # get test cases
     try:
