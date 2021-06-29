@@ -24,7 +24,7 @@ before_install:
   - export SCRIPTS=$cwd/travis
   - export TEST_DIR=$cwd/svzerodsolver
   - pip install --user numpy
-  - python setup.py install
+  - sudo python setup.py install
 
 script:
   - $SCRIPTS/travis_result_test.sh
