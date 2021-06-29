@@ -4,7 +4,7 @@
 import os
 import pdb
 import numpy as np
-from . import solver
+import svzerodsolver.solver as solver
 
 
 def get_tests():
@@ -259,7 +259,7 @@ def main():
             print(err)
             return True
         else:
-            print('Test passed')
+            print('Test passed\n')
 
     # no tests failed
     return False
