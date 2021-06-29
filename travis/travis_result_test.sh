@@ -2,4 +2,4 @@
 
 set -e
 
-python ${TEST_DIR}/run_tests.py
+python3 ${TEST_DIR}/run_tests.py

@@ -23,9 +23,9 @@ before_install:
   - echo "CWD=$cwd"
   - export SCRIPTS=$cwd/travis
   - export TEST_DIR=$cwd/svzerodsolver
-  - pip install --user numpy
-  - pip install --user scipy
-  - python setup.py install --user
+  - pip3 install --user numpy
+  - pip3 install --user scipy
+  - python3 setup.py install --user
 
 script:
   - $SCRIPTS/travis_result_test.sh
