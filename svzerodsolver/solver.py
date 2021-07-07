@@ -100,6 +100,11 @@ try:
 except ImportError:
     print("\nprofilehooks.profile not found. profilehooks.profile is needed only if you want to profile this script.")
 
+try:
+    import json
+except ImportError:
+    print("\njson not found.")
+
 np.set_printoptions(threshold=sys.maxsize)
 import importlib
 import argparse
@@ -166,76 +171,6 @@ def create_unsteady_bc_value_function(time, bc_values):
         return lambda x: bc_values[0]
     else:
         return scipy.interpolate.CubicSpline(np.array(time), np.array(bc_values), bc_type = 'periodic')
-
-def create_bc_equations(parameters):
-    """
-    Purpose:
-        Create equations for all prescribed, built-in boundary conditions as functions of time.
-    Caveat:
-        This assumes that if we are using a FLOW, PRESSURE, RESISTANCE, or RCR BC (for a DATATABLE of type LIST), then every parameter value for the BC must be specified over the same number of time points. For example, for a time-varying RCR BC, if Rp is prescribed for 5 different time points in the DATATABLE in the 0d solver input file, then C and Rd must be prescribed for 5 time points as well.
-        Time-dependent boundary conditions must be prescribed over a single cardiac cycle only.
-    Inputs:
-        dict parameters
-            -- created from function utils.extract_info_from_solver_input_file
-    Returns:
-        void but updates parameters to include:
-            float cardiac_cycle_period
-                = period of a cardiac cycle
-            dict bc_equations
-                =   {
-                        "inlet" : {segment number : [list of equations for BC parameeter values as functions of time]}
-                        "outlet" : {segment number : [list of equations for BC parameeter values as functions of time]}
-                    }
-    """
-    bc_equations = {"inlet" : {}, "outlet" : {}}
-    built_in_bc_types = {"inlet" : ["FLOW", "PRESSURE"], "outlet" : ["RESISTANCE", "RCR", "FLOW", "PRESSURE"]}
-    temp = -10000000.0
-    cardiac_cycle_period = temp # initialize as a large negative number for the below code to work correctly
-    for location in list(built_in_bc_types.keys()):
-        location_segments_of_model = location + "_segments_of_model"
-        for i in range(0, len(parameters[location_segments_of_model])):
-            segment_number = parameters[location_segments_of_model][i]
-            segment_number = str(segment_number)
-            if parameters["boundary_condition_types"][location][segment_number] in built_in_bc_types[location]:
-
-                if parameters["boundary_condition_types"][location][segment_number] == "RESISTANCE":
-                    num_variables = 2 # [R, distal_pressure]
-                elif parameters["boundary_condition_types"][location][segment_number] == "RCR":
-                    num_variables = 3 # [Rp, C, Rd]
-                elif parameters["boundary_condition_types"][location][segment_number] in ["FLOW", "PRESSURE"]:
-                    num_variables = 1 # [Q] or [P]
-                total_num_values = len(parameters["datatable_values"][parameters["boundary_condition_datatable_names"][location][segment_number]])
-                if total_num_values == 0:
-                    message = "Error. DATATABLE for segment #" + str(segment_number) + " is missing values."
-                    raise RuntimeError(message)
-                num_values_per_variable = int(total_num_values/num_variables)
-                list_of_unsteady_functions = []
-                for k in range(num_variables):
-                    start_index = k*num_values_per_variable
-                    end_index = start_index + num_values_per_variable
-                    time, bc_values = extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
-                    if len(time) > 1: # for time-dependent boundary conditions
-                        if cardiac_cycle_period == temp: # this if statement should get called only once
-                            if (time[-1] - time[0]) <= 0.0:
-                                message = "Error. Boundary condition for segment #" + str(segment_number) + " has a prescribed negative or zero cardiac cycle period."
-                                raise RuntimeError(message)
-                            else:
-                                cardiac_cycle_period = time[-1] - time[0]
-                        else:
-                            if cardiac_cycle_period != time[-1] - time[0]:
-                                message = "Error. The cardiac cycle period is " + str(cardiac_cycle_period) + ", but the boundary condition for segment #" + str(segment_number)+ " is " + str(time[-1] - time[0]) + ". All boundary conditions, including the inlet and outlet boundary conditions, should have the same prescribed cardiac cycle period. Note that each boundary conditions must be prescribed over exactly one cardiac cycle."
-                                raise RuntimeError(message)
-                    elif len(time) == 1: # this allows for BCs with constant values (steady, time-independent BCs)
-                        time.append(time[0] + 1.0)
-                        bc_values.append(bc_values[0])
-                    list_of_unsteady_functions.append(create_unsteady_bc_value_function(time, bc_values))
-
-                bc_equations[location][segment_number] = list_of_unsteady_functions
-
-    if cardiac_cycle_period == temp:
-        cardiac_cycle_period = 1.0 # default cardiac cycle period
-    parameters.update({"cardiac_cycle_period" : cardiac_cycle_period})
-    parameters.update({"bc_equations" : bc_equations})
 
 def extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location):
     """
@@ -329,12 +264,14 @@ def get_vessel_block_helpers(parameters):
     vessel_blocks_connecting_block_lists = {}
     vessel_blocks_flow_directions = {}
     vessel_blocks_names = {}
-    for segment_number in parameters["segment_numbers_list"]:
+    segment_numbers_list = list(parameters["segment_names"].keys())
+    for segment_number in segment_numbers_list:
         vessel_blocks_connecting_block_lists[segment_number] = []
         vessel_blocks_flow_directions[segment_number] = []
         vessel_blocks_names[segment_number] = "V" + str(segment_number)
     for location in ["inlet", "outlet"]:
-        for segment_number in parameters[location + "_segments_of_model"]:
+        segments_of_model = list(parameters["boundary_condition_types"][location].keys())
+        for segment_number in segments_of_model:
             if location == "inlet":
                 bc_block_name = "BC" + str(segment_number) + "_inlet"
                 vessel_blocks_flow_directions[segment_number].append(-1)
@@ -348,6 +285,7 @@ def get_vessel_block_helpers(parameters):
             raise RuntimeError(message)
         for location in ["inlet", "outlet"]:
             for segment_number in parameters["joint_name_to_segments_map"][joint_name][location]:
+                segment_number = str(segment_number)
                 vessel_blocks_connecting_block_lists[segment_number].append(joint_name)
                 if location == "inlet":
                     vessel_blocks_flow_directions[segment_number].append(+1)
@@ -370,36 +308,37 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
     """
     vessel_blocks = {} # {block_name : block_object}
     vessel_blocks_connecting_block_lists, vessel_blocks_flow_directions, vessel_blocks_names = get_vessel_block_helpers(parameters)
-    for segment_number in parameters["segment_numbers_list"]:
+    segment_numbers_list = list(parameters["segment_names"].keys())
+    for segment_number in segment_numbers_list:
         block_name = vessel_blocks_names[segment_number]
         connecting_block_list = vessel_blocks_connecting_block_lists[segment_number]
         flow_directions = vessel_blocks_flow_directions[segment_number]
         segment_number = str(segment_number)
         if parameters["segment_0d_types"][segment_number] == "R":
-            R = parameters["segment_0d_values"][segment_number][0]
+            R = parameters["segment_0d_values"][segment_number]["R"]
             vessel_blocks[block_name] = ntwku.Resistance(connecting_block_list = connecting_block_list, R = R, name = block_name, flow_directions = flow_directions)
         elif parameters["segment_0d_types"][segment_number] == "C":
-            C = parameters["segment_0d_values"][segment_number][0]
+            C = parameters["segment_0d_values"][segment_number]["C"]
             vessel_blocks[block_name] = ntwku.Capacitance(connecting_block_list = connecting_block_list, C = C, name = block_name, flow_directions = flow_directions)
         elif parameters["segment_0d_types"][segment_number] == "L":
-            L = parameters["segment_0d_values"][segment_number][0]
+            L = parameters["segment_0d_values"][segment_number]["L"]
             vessel_blocks[block_name] = ntwku.Inductance(connecting_block_list = connecting_block_list, L = L, name = block_name, flow_directions = flow_directions)
         elif parameters["segment_0d_types"][segment_number] == "RC":
-            R = parameters["segment_0d_values"][segment_number][0]
-            C = parameters["segment_0d_values"][segment_number][1]
+            R = parameters["segment_0d_values"][segment_number]["R"]
+            C = parameters["segment_0d_values"][segment_number]["C"]
             vessel_blocks[block_name] = ntwku.RCBlock(R = R, C = C, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         elif parameters["segment_0d_types"][segment_number] == "RL":
-            R = parameters["segment_0d_values"][segment_number][0]
-            L = parameters["segment_0d_values"][segment_number][1]
+            R = parameters["segment_0d_values"][segment_number]["R"]
+            L = parameters["segment_0d_values"][segment_number]["L"]
             vessel_blocks[block_name] = ntwku.RLBlock(R = R, L = L, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         elif parameters["segment_0d_types"][segment_number] == "RCL":
-            R = parameters["segment_0d_values"][segment_number][0]
-            C = parameters["segment_0d_values"][segment_number][1]
-            L = parameters["segment_0d_values"][segment_number][2]
+            R = parameters["segment_0d_values"][segment_number]["R"]
+            C = parameters["segment_0d_values"][segment_number]["C"]
+            L = parameters["segment_0d_values"][segment_number]["L"]
             vessel_blocks[block_name] = ntwku.RCLBlock(R = R, C = C, L = L, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         elif parameters["segment_0d_types"][segment_number] == "STENOSIS":
-            R = parameters["segment_0d_values"][segment_number][0]
-            stenosis_coefficient = parameters["segment_0d_values"][segment_number][1]
+            R = parameters["segment_0d_values"][segment_number]["R_poiseuille"]
+            stenosis_coefficient = parameters["segment_0d_values"][segment_number]["stenosis_coefficient"]
             vessel_blocks[block_name] = ntwku.StenosisBlock(R = R, stenosis_coefficient = stenosis_coefficient, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         else: # this is a custom, user-defined element block
             custom_0d_elements_arguments.vessel_args[segment_number].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
@@ -420,61 +359,78 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
             parameters["blocks"] = {block_name : block_object}
     """
     outlet_bc_blocks = {} # {block_name : block_object}
-    for segment_number in parameters["outlet_segments_of_model"]:
+    outlet_segments_of_model = list(parameters["boundary_condition_types"]["outlet"].keys())
+    for segment_number in outlet_segments_of_model:
         segment_number = str(segment_number)
-        if parameters["boundary_condition_types"]["outlet"][segment_number] != "NOBOUND":
-            block_name = "BC" + str(segment_number) + "_outlet"
-            connecting_block_list = ["V" + str(segment_number)]
-            flow_directions = [-1]
-            if parameters["boundary_condition_types"]["outlet"][segment_number] == "RESISTANCE":
-                Rfunc = parameters["bc_equations"]["outlet"][segment_number][0]
-                Pref_func = parameters["bc_equations"]["outlet"][segment_number][1]
-                outlet_bc_blocks[block_name] = ntwku.UnsteadyResistanceWithDistalPressure(connecting_block_list = connecting_block_list, Rfunc = Rfunc, Pref_func = Pref_func, name = block_name, flow_directions = flow_directions)
-            elif parameters["boundary_condition_types"]["outlet"][segment_number] == "RCR":
-                Rp_func = parameters["bc_equations"]["outlet"][segment_number][0]
-                C_func = parameters["bc_equations"]["outlet"][segment_number][1]
-                Rd_func = parameters["bc_equations"]["outlet"][segment_number][2]
-                Pref = 0
-                Pref_func = create_unsteady_bc_value_function([0.0, 1.0], [Pref, Pref])
-                outlet_bc_blocks[block_name] = ntwku.UnsteadyRCRBlockWithDistalPressure(Rp_func = Rp_func, C_func = C_func, Rd_func = Rd_func, Pref_func = Pref_func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-            elif parameters["boundary_condition_types"]["outlet"][segment_number] == "FLOW":
-                Qfunc = parameters["bc_equations"]["outlet"][segment_number][0]
-                outlet_bc_blocks[block_name] = ntwku.UnsteadyFlowRef(connecting_block_list = connecting_block_list, Qfunc = Qfunc, name = block_name, flow_directions = flow_directions)
-            elif parameters["boundary_condition_types"]["outlet"][segment_number] == "PRESSURE":
-                Pfunc = parameters["bc_equations"]["outlet"][segment_number][0]
-                outlet_bc_blocks[block_name] = ntwku.UnsteadyPressureRef(connecting_block_list = connecting_block_list, Pfunc = Pfunc, name = block_name, flow_directions = flow_directions)
-            elif parameters["boundary_condition_types"]["outlet"][segment_number] == "CORONARY":
-                "Publication reference: Kim, H. J. et al. Patient-specific modeling of blood flow and pressure in human coronary arteries. Annals of Biomedical Engineering 38, 3195–3209 (2010)."
-                Ra1 = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]][1]
-                Ra2 = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]][3]
-                Ca = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]][5]
-                Cc = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]][7]
-                Rv1 = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]][9]
-                Pv_distal_pressure = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]][11]
+        block_name = "BC" + str(segment_number) + "_outlet"
+        connecting_block_list = ["V" + str(segment_number)]
+        flow_directions = [-1]
+        if parameters["boundary_condition_types"]["outlet"][segment_number] == "RESISTANCE":
+            R = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["R"]
+            R_func = lambda x: R
 
-                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = extract_bc_time_and_values(start_index = 12, end_index = len(parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]), parameters = parameters, segment_number = segment_number, location = "outlet")
+            Pref = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Pd"]
 
-                if "cardiac_cycle_period" in parameters:
-                    if time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0] != parameters["cardiac_cycle_period"]:
-                        message = "Error. The time history of the intramyocadial pressure for the coronary boundary condition for segment #" + str(segment_number) + " does not have the same cardiac cycle period as the other boundary conditions.  All boundary conditions, including the inlet and outlet boundary conditions, should have the same prescribed cardiac cycle period. Note that each boundary conditions must be prescribed over exactly one cardiac cycle." # todo: fix bug where this code does not work if the user prescribes only a single time point for the intramyocadial pressure time history (the code should work though b/c prescription of a single time point for the intramyocardial pressure suggests a steady intramyocadial pressure)
-                        raise RuntimeError(message)
-                else:
-                    parameters.update({"cardiac_cycle_period": time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]})
+            Pref_func = lambda x: Pref
+            outlet_bc_blocks[block_name] = ntwku.UnsteadyResistanceWithDistalPressure(connecting_block_list = connecting_block_list, Rfunc = R_func, Pref_func = Pref_func, name = block_name, flow_directions = flow_directions)
+        elif parameters["boundary_condition_types"]["outlet"][segment_number] == "RCR":
+            Rp = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Rp"]
+            Rp_func = lambda x: Rp
 
-                Pim_func = np.zeros((len(time_of_intramyocardial_pressure), 2))
-                Pv_distal_pressure_func = np.zeros((len(time_of_intramyocardial_pressure), 2))
+            C = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["C"]
+            C_func = lambda x: C
 
-                Pim_func[:, 0] = time_of_intramyocardial_pressure
-                Pv_distal_pressure_func[:, 0] = time_of_intramyocardial_pressure
+            Rd = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Rd"]
+            Rd_func = lambda x: Rd
 
-                Pim_func[:, 1] = bc_values_of_intramyocardial_pressure
-                Pv_distal_pressure_func[:, 1] = np.ones(len(time_of_intramyocardial_pressure))*Pv_distal_pressure
+            Pref = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Pd"]
+            Pref_func = lambda x: Pref
 
-                outlet_bc_blocks[block_name] = ntwku.OpenLoopCoronaryWithDistalPressureBlock(Ra = Ra1, Ca = Ca, Ram = Ra2, Cim = Cc, Rv = Rv1, Pim = Pim_func, Pv = Pv_distal_pressure_func, cardiac_cycle_period = parameters["cardiac_cycle_period"], connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+            outlet_bc_blocks[block_name] = ntwku.UnsteadyRCRBlockWithDistalPressure(Rp_func = Rp_func, C_func = C_func, Rd_func = Rd_func, Pref_func = Pref_func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+        elif parameters["boundary_condition_types"]["outlet"][segment_number] == "FLOW":
+            time = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["t"]
+            bc_values = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Q"]
+            Qfunc = create_unsteady_bc_value_function(time, bc_values)
+            outlet_bc_blocks[block_name] = ntwku.UnsteadyFlowRef(connecting_block_list = connecting_block_list, Qfunc = Qfunc, name = block_name, flow_directions = flow_directions)
+        elif parameters["boundary_condition_types"]["outlet"][segment_number] == "PRESSURE":
+            time = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["t"]
+            bc_values = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["P"]
+            Pfunc = create_unsteady_bc_value_function(time, bc_values)
+            outlet_bc_blocks[block_name] = ntwku.UnsteadyPressureRef(connecting_block_list = connecting_block_list, Pfunc = Pfunc, name = block_name, flow_directions = flow_directions)
+        elif parameters["boundary_condition_types"]["outlet"][segment_number] == "CORONARY":
+            "Publication reference: Kim, H. J. et al. Patient-specific modeling of blood flow and pressure in human coronary arteries. Annals of Biomedical Engineering 38, 3195–3209 (2010)."
+            Ra1 = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Ra1"]
+            Ra2 = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Ra2"]
+            Ca = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Ca"]
+            Cc = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Cc"]
+            Rv1 = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Rv1"]
+            Pv_distal_pressure = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Pv"]
 
-            else: # this is a custom, user-defined outlet bc block
-                custom_0d_elements_arguments.outlet_bc_args[segment_number].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
-                outlet_bc_blocks[block_name] = create_custom_element(parameters["boundary_condition_types"]["outlet"][segment_number], custom_0d_elements_arguments.outlet_bc_args[segment_number])
+            time_of_intramyocardial_pressure = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["t"]
+
+            bc_values_of_intramyocardial_pressure = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["outlet"][segment_number]]["Pim"]
+
+            if "cardiac_cycle_period" in parameters:
+                if time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0] != parameters["cardiac_cycle_period"]:
+                    message = "Error. The time history of the intramyocadial pressure for the coronary boundary condition for segment #" + str(segment_number) + " does not have the same cardiac cycle period as the other boundary conditions.  All boundary conditions, including the inlet and outlet boundary conditions, should have the same prescribed cardiac cycle period. Note that each boundary conditions must be prescribed over exactly one cardiac cycle." # todo: fix bug where this code does not work if the user prescribes only a single time point for the intramyocadial pressure time history (the code should work though b/c prescription of a single time point for the intramyocardial pressure suggests a steady intramyocadial pressure)
+                    raise RuntimeError(message)
+            else:
+                parameters.update({"cardiac_cycle_period": time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]})
+
+            Pim_func = np.zeros((len(time_of_intramyocardial_pressure), 2))
+            Pv_distal_pressure_func = np.zeros((len(time_of_intramyocardial_pressure), 2))
+
+            Pim_func[:, 0] = time_of_intramyocardial_pressure
+            Pv_distal_pressure_func[:, 0] = time_of_intramyocardial_pressure
+
+            Pim_func[:, 1] = bc_values_of_intramyocardial_pressure
+            Pv_distal_pressure_func[:, 1] = np.ones(len(time_of_intramyocardial_pressure))*Pv_distal_pressure
+
+            outlet_bc_blocks[block_name] = ntwku.OpenLoopCoronaryWithDistalPressureBlock(Ra = Ra1, Ca = Ca, Ram = Ra2, Cim = Cc, Rv = Rv1, Pim = Pim_func, Pv = Pv_distal_pressure_func, cardiac_cycle_period = parameters["cardiac_cycle_period"], connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+
+        else: # this is a custom, user-defined outlet bc block
+            custom_0d_elements_arguments.outlet_bc_args[segment_number].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
+            outlet_bc_blocks[block_name] = create_custom_element(parameters["boundary_condition_types"]["outlet"][segment_number], custom_0d_elements_arguments.outlet_bc_args[segment_number])
     parameters["blocks"].update(outlet_bc_blocks)
 
 def create_inlet_bc_blocks(parameters, custom_0d_elements_arguments):
@@ -491,17 +447,30 @@ def create_inlet_bc_blocks(parameters, custom_0d_elements_arguments):
             parameters["blocks"] = {block_name : block_object}
     """
     inlet_bc_blocks = {} # {block_name : block_object}
-    for segment_number in parameters["inlet_segments_of_model"]:
+    inlet_segments_of_model = list(parameters["boundary_condition_types"]["inlet"].keys())
+    for segment_number in inlet_segments_of_model:
         block_name = "BC" + str(segment_number) + "_inlet"
         connecting_block_list = ["V" + str(segment_number)]
         flow_directions = [+1]
         segment_number = str(segment_number)
         if parameters["boundary_condition_types"]["inlet"][segment_number] == "FLOW":
-            func = parameters["bc_equations"]["inlet"][segment_number][0]
-            inlet_bc_blocks[block_name] = ntwku.UnsteadyFlowRef(Qfunc = func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+            time = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["inlet"][segment_number]]["t"]
+            bc_values = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["inlet"][segment_number]]["Q"]
+            Qfunc = create_unsteady_bc_value_function(time, bc_values)
+            inlet_bc_blocks[block_name] = ntwku.UnsteadyFlowRef(Qfunc = Qfunc, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+            if len(time) >= 2:
+                cardiac_cycle_period = time[-1] - time[0]
+            parameters.update({"cardiac_cycle_period" : cardiac_cycle_period})
+            # todo: check if cardiac_cycle_period already in parameters and if so, check that time[-1] - time[0] matches that cardiac_cycle_period here. If it does not match, throw an exception
         elif parameters["boundary_condition_types"]["inlet"][segment_number] == "PRESSURE":
-            func = parameters["bc_equations"]["inlet"][segment_number][0]
-            inlet_bc_blocks[block_name] = ntwku.UnsteadyPressureRef(Pfunc = func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+            time = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["inlet"][segment_number]]["t"]
+            bc_values = parameters["datatable_values"][parameters["boundary_condition_datatable_names"]["inlet"][segment_number]]["P"]
+            Pfunc = create_unsteady_bc_value_function(time, bc_values)
+            inlet_bc_blocks[block_name] = ntwku.UnsteadyPressureRef(Pfunc = Pfunc, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+            if len(time) >= 2:
+                cardiac_cycle_period = time[-1] - time[0]
+            parameters.update({"cardiac_cycle_period" : cardiac_cycle_period})
+            # todo: check if cardiac_cycle_period already in parameters and if so, check that time[-1] - time[0] matches that cardiac_cycle_period here. If it does not match, throw an exception
         else: # this is a custom, user-defined inlet bc block
             custom_0d_elements_arguments.inlet_bc_args[segment_number].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
             inlet_bc_blocks[block_name] = create_custom_element(parameters["boundary_condition_types"]["inlet"][segment_number], custom_0d_elements_arguments.inlet_bc_args[segment_number])
@@ -526,7 +495,6 @@ def create_LPN_blocks(parameters, custom_0d_elements_arguments):
     parameters.update({"blocks" : blocks})
     create_junction_blocks(parameters, custom_0d_elements_arguments)
     create_vessel_blocks(parameters, custom_0d_elements_arguments)
-    create_bc_equations(parameters)
     create_outlet_bc_blocks(parameters, custom_0d_elements_arguments)
     create_inlet_bc_blocks(parameters, custom_0d_elements_arguments)
     parameters.update({"block_names" : list(parameters["blocks"].keys())})
@@ -545,6 +513,8 @@ def set_solver_parameters(parameters):
             int total_number_of_simulated_time_steps
                 = total number of time steps to simulate for the entire 0d simulation
     """
+    if "cardiac_cycle_period" not in parameters:
+        parameters.update({"cardiac_cycle_period" : 1.0}) # default period of cardiac cycle [sec]
     delta_t = parameters["cardiac_cycle_period"]/(parameters["number_of_time_pts_per_cardiac_cycle"] - 1)
     parameters.update({"delta_t" : delta_t})
     total_number_of_simulated_time_steps = int((parameters["number_of_time_pts_per_cardiac_cycle"] - 1)*parameters["number_of_cardiac_cycles"] + 1)

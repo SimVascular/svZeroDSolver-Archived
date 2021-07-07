@@ -28,6 +28,8 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# todo: update this code to work with new json format (meaning I dont use the function extract_bc_time_and_values() anymore)
+
 import copy
 import numpy as np
 from . import solver
