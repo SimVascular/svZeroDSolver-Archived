@@ -195,6 +195,7 @@ def create_bc_equations(parameters):
         location_segments_of_model = location + "_segments_of_model"
         for i in range(0, len(parameters[location_segments_of_model])):
             segment_number = parameters[location_segments_of_model][i]
+            segment_number = str(segment_number)
             if parameters["boundary_condition_types"][location][segment_number] in built_in_bc_types[location]:
 
                 if parameters["boundary_condition_types"][location][segment_number] == "RESISTANCE":
@@ -373,6 +374,7 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
         block_name = vessel_blocks_names[segment_number]
         connecting_block_list = vessel_blocks_connecting_block_lists[segment_number]
         flow_directions = vessel_blocks_flow_directions[segment_number]
+        segment_number = str(segment_number)
         if parameters["segment_0d_types"][segment_number] == "R":
             R = parameters["segment_0d_values"][segment_number][0]
             vessel_blocks[block_name] = ntwku.Resistance(connecting_block_list = connecting_block_list, R = R, name = block_name, flow_directions = flow_directions)
@@ -419,6 +421,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
     """
     outlet_bc_blocks = {} # {block_name : block_object}
     for segment_number in parameters["outlet_segments_of_model"]:
+        segment_number = str(segment_number)
         if parameters["boundary_condition_types"]["outlet"][segment_number] != "NOBOUND":
             block_name = "BC" + str(segment_number) + "_outlet"
             connecting_block_list = ["V" + str(segment_number)]
@@ -492,6 +495,7 @@ def create_inlet_bc_blocks(parameters, custom_0d_elements_arguments):
         block_name = "BC" + str(segment_number) + "_inlet"
         connecting_block_list = ["V" + str(segment_number)]
         flow_directions = [+1]
+        segment_number = str(segment_number)
         if parameters["boundary_condition_types"]["inlet"][segment_number] == "FLOW":
             func = parameters["bc_equations"]["inlet"][segment_number][0]
             inlet_bc_blocks[block_name] = ntwku.UnsteadyFlowRef(Qfunc = func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
@@ -780,6 +784,7 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
 
                 if var_name_split[1].startswith("V"): # the wire connected downstream of this vessel block
                     segment_number = int(var_name_split[1][1:])
+                    segment_number = str(segment_number)
                     segment_name = parameters["segment_names"][segment_number]
                     segment_name_split = segment_name.split("_")
                     branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
@@ -789,6 +794,7 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
                 else: # need to find the inlet wire/node of the branch
                     if var_name_split[1].startswith("BC"): # inlet wire/node of the branch
                         segment_number = int(var_name_split[3][1:])
+                        segment_number = str(segment_number)
                         segment_name = parameters["segment_names"][segment_number]
                         segment_name_split = segment_name.split("_")
                         branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
@@ -801,6 +807,7 @@ def reformat_network_util_results_branch(zero_d_time, results_0d, var_name_list,
                             zero_d_results[qoi_map[qoi_header]][branch_id][branch_node_id, :] = results_0d[:, i]
                     elif var_name_split[1].startswith("J"): # this wire could either be 1) the inlet wire/node of a branch or 2) some internal wire in the branch (where that internal wire is 1) connecting 2 vessel blocks or 2) connecting a vessel block and a junction block) (and we dont care about internal wires)
                         segment_number = int(var_name_split[2][1:])
+                        segment_number = str(segment_number)
                         segment_name = parameters["segment_names"][segment_number]
                         segment_name_split = segment_name.split("_")
                         branch_id = int((re.match(r"([a-z]+)([0-9]+)", segment_name_split[0], re.I)).groups()[1])
@@ -945,7 +952,7 @@ def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
     """
     np.save(zero_d_simulation_results_file_path, zero_d_results)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = False, save_results_all = False, save_results_branch = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0, use_steady_soltns_as_ics = True):
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = False, save_results_all = False, save_results_branch = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0, use_steady_soltns_as_ics = True, use_json = False, json_input_file_path = None):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -990,7 +997,13 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     else:
         custom_0d_elements_arguments = None
 
-    parameters = utils.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
+    if use_json:
+        with open(json_input_file_path, 'r') as ff:
+            print("Using json file as input file")
+            parameters = json.load(ff)
+    else:
+        parameters = utils.extract_info_from_solver_input_file(zero_d_solver_input_file_path)
+
     parameters["check_jacobian"] = check_jacobian
 
     if use_steady_soltns_as_ics:
