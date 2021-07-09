@@ -4,9 +4,9 @@ matrix:
   include:
     - os: linux
       python: 3.6
-    - os: osx
-      osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
-      language: shell       # 'language: python' is an error on Travis CI macOS
+#    - os: osx
+#      osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+#      language: shell       # 'language: python' is an error on Travis CI macOS
 
 before_install:
   - export cwd=$(pwd)
