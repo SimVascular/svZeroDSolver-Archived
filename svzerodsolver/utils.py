@@ -93,6 +93,7 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
     boundary_condition_types = {"inlet" : {}, "outlet" : {}} # {"inlet" : {segment number : type of boundary condition, i.e. "FLOW", "PRESSURE"}, "outlet" : {segment number : type of boundary condition, i.e. "RESISTANCE", "RCR", "CORONARY", "FLOW", "PRESSURE"}}
     boundary_condition_datatable_names = {"inlet" : {}, "outlet" : {}} # {"inlet" : {segment number : datatable name for boundary condition}, "outlet" : {segment number : corresponding datatable name for boundary condition}}
     datatable_names_to_boundary_condition_type_map = {} # {datatable name for boundary condition : type of boundary condition, e.g. "RESISTANCE", "RCR"}
+    # datatable_names_to_location_map = {} # {datatable name for boundary condition : "inlet" or "outlet" }
     datatable_values = {} # {datatable name for boundary condition : [time1 value1 time2 value2 ...]}
         # value corresponds to the value of the BC, ie resistance value
     inlet_segments_of_model = [] # [model's inlet segments (these are attached to the inlet boundary conditions)]
@@ -151,6 +152,7 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                         outlet_segments_of_model.append(segment_number)
 
                         datatable_names_to_boundary_condition_type_map[ line_list[14] ] = line_list[13]
+                        # datatable_names_to_location_map[ line_list[14] ] = "outlet"
                     segment_0d_types[segment_number] = line_list[15]
                     if line_list[15] in segment_0d_parameter_types:
                         segment_0d_values[segment_number] = {}
@@ -202,6 +204,7 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                     boundary_condition_datatable_names["inlet"][segment_number] = line_list[3]
 
                     datatable_names_to_boundary_condition_type_map[ line_list[3] ] = line_list[2]
+                    # datatable_names_to_location_map[ line_list[3] ] = "inlet"
 
                 elif line.startswith("SOLVEROPTIONS"):
                     line_list = line.split()
@@ -225,23 +228,51 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
     for joint_name in list(joint_node_numbers.keys()):
         joint_name_to_segments_map[joint_name] = {"inlet" : joint_inlet_segments[joint_inlet_names[joint_name]].copy(), "outlet" : joint_outlet_segments[joint_outlet_names[joint_name]].copy()}
 
-    parameters = ({
-        "segment_names" : segment_names,
-        "lengths" : lengths,
-        "segment_0d_types" : segment_0d_types,
-        "segment_0d_values" : segment_0d_values,
-        "joint_name_to_segments_map" : joint_name_to_segments_map,
-        "junction_types" : junction_types,
-        "boundary_condition_types" : boundary_condition_types,
-        "boundary_condition_datatable_names" : boundary_condition_datatable_names,
-        "datatable_values" : datatable_values,
-        "number_of_time_pts_per_cardiac_cycle" : number_of_time_pts_per_cardiac_cycle,
-        "number_of_cardiac_cycles" : number_of_cardiac_cycles
-        })
+    parameters = {"boundary_conditions" : [], "vessels" : [], "junctions" : []}
+
+    parameters["simulation_parameters"] = ({
+                                        "number_of_time_pts_per_cardiac_cycle" : number_of_time_pts_per_cardiac_cycle,
+                                        "number_of_cardiac_cycles" : number_of_cardiac_cycles
+                                          })
+
+    for bc_name, bc_type in datatable_names_to_boundary_condition_type_map.items():
+        bc_values = datatable_values[bc_name]
+        boundary_condition = ({  "bc_name" : bc_name,
+                                "bc_type" : bc_type,
+                                "bc_values" : bc_values })
+        parameters["boundary_conditions"].append(boundary_condition)
+
+    for vessel_id, vessel_name in segment_names.items():
+        zero_d_element_type = segment_0d_types[vessel_id]
+        zero_d_element_values = segment_0d_values[vessel_id]
+        vessel_length = lengths[vessel_id]
+        vessel = ({ "vessel_id" : vessel_id,
+                    "vessel_name" : vessel_name,
+                    "zero_d_element_type" : zero_d_element_type,
+                    "zero_d_element_values" : zero_d_element_values,
+                    "vessel_length" : vessel_length })
+
+        boundary_conditions = None
+        if vessel_id in boundary_condition_datatable_names["inlet"] or vessel_id in boundary_condition_datatable_names["outlet"]:
+            boundary_conditions = {}
+            for location in ["inlet", "outlet"]:
+                if vessel_id in boundary_condition_datatable_names[location]:
+                    boundary_conditions[location] = boundary_condition_datatable_names[location][vessel_id]
+
+        if boundary_conditions:
+            vessel["boundary_conditions"] = boundary_conditions
+        parameters["vessels"].append(vessel)
+
+    for junction_name, junction_type in junction_types.items():
+        inlet_vessels = joint_name_to_segments_map[junction_name]["inlet"]
+        outlet_vessels = joint_name_to_segments_map[junction_name]["outlet"]
+        junction = ({   "junction_name" : junction_name,
+                        "junction_type" : junction_type,
+                        "inlet_vessels" : inlet_vessels,
+                        "outlet_vessels" : outlet_vessels })
+        parameters["junctions"].append( junction )
 
     if write_json:
         json_file_name = os.path.splitext(solver_input_file_path)[0] + ".json"
         with open(json_file_name, 'w') as outfile:
             json.dump(parameters, outfile, indent = 4, sort_keys = True)
-
-    return parameters
