@@ -588,8 +588,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     block_list = list(parameters["blocks"].values())
     connect_list, wire_dict = connections.connect_blocks_by_inblock_list(block_list)
     if draw_directed_graph == True: # todo: should I move this draw_directed_graph to a separate function outside of run_network_util, since this stuff is completely separate
-        zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
-        directed_graph_file_path = zero_d_input_file_name + "_directed_graph"
+        directed_graph_file_path = os.path.splitext(zero_d_solver_input_file_path)[0] + "_directed_graph"
         save_directed_graph(block_list, connect_list, directed_graph_file_path)
     neq = connections.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
     for block in block_list: # run a consistency check
@@ -919,18 +918,6 @@ def save_directed_graph(block_list, connect_list, directed_graph_file_path):
     # To extract coordinates and structure from the graphviz post-processor, use:
     # neato.exe test.dot -Gsplines=ortho -Gnodesep=1 -Goverlap=scale
 
-def get_zero_input_file_name(zero_d_solver_input_file_path):
-    """
-    Inputs:
-        string zero_d_solver_input_file_path
-            = path to the 0d solver input file
-    Returns:
-        string zero_d_input_file_name
-            = name of 0d solver input file (but without the extension)
-    """
-    zero_d_input_file_name, zero_d_input_file_extension = os.path.splitext(zero_d_solver_input_file_path)
-    return zero_d_input_file_name
-
 def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results):
     """
     Purpose:
@@ -948,8 +935,7 @@ def save_simulation_results(zero_d_simulation_results_file_path, zero_d_results)
     """
     np.save(zero_d_simulation_results_file_path, zero_d_results)
 
-def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = False, save_results_all = False, save_results_branch = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0, use_steady_soltns_as_ics = True, use_json = False, json_input_file_path = None):
-    # todo: need to delete the zero_d_solver_input_file_path
+def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_graph = False, last_cycle = False, save_results_all = False, save_results_branch = True, use_custom_0d_elements = False, custom_0d_elements_arguments_file_path = None, use_ICs_from_npy_file = False, ICs_npy_file_path = None, save_y_ydot_to_npy = False, y_ydot_file_path = None, check_jacobian = False, simulation_start_time = 0.0, use_steady_soltns_as_ics = True):
     """
     Purpose:
         Create all network_util_NR::LPNBlock objects for the 0d model and run the 0d simulation.
@@ -994,10 +980,8 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     else:
         custom_0d_elements_arguments = None
 
-    if use_json:
-        with open(json_input_file_path, 'r') as ff:
-            print("Using json file as input file")
-            parameters = json.load(ff)
+    with open(zero_d_solver_input_file_path, 'r') as infile:
+        parameters = json.load(infile)
 
     parameters["simulation_parameters"]["check_jacobian"] = check_jacobian
 
@@ -1009,11 +993,12 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         parameters_mean["simulation_parameters"]["number_of_time_pts_per_cardiac_cycle"] = 11
         parameters_mean["simulation_parameters"]["number_of_cardiac_cycles"] = 3
 
-        y_ydot_file_path_temp = get_zero_input_file_name(zero_d_solver_input_file_path) + "_initial_conditions.npy"
+        y_ydot_file_path_temp = os.path.splitext(zero_d_solver_input_file_path)[0] + "_initial_conditions.npy"
 
         create_LPN_blocks(parameters_mean, custom_0d_elements_arguments)
         set_solver_parameters(parameters_mean)
-        zero_d_time, results_0d, var_name_list, y_f, ydot_f, var_name_list_original = run_network_util(   zero_d_solver_input_file_path,
+        zero_d_time, results_0d, var_name_list, y_f, ydot_f, var_name_list_original = run_network_util(
+                            zero_d_solver_input_file_path,
                             parameters_mean,
                             draw_directed_graph = False,
                             use_ICs_from_npy_file = False,
@@ -1039,7 +1024,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
     if last_cycle == True:
         zero_d_time, results_0d = run_last_cycle_extraction_routines(parameters["simulation_parameters"]["cardiac_cycle_period"], parameters["simulation_parameters"]["number_of_time_pts_per_cardiac_cycle"], zero_d_time, results_0d)
     if save_results_all or save_results_branch:
-        zero_d_input_file_name = get_zero_input_file_name(zero_d_solver_input_file_path)
+        zero_d_input_file_name = os.path.splitext(zero_d_solver_input_file_path)[0]
         if save_results_all:
             zero_d_simulation_results_file_path = zero_d_input_file_name + "_all_results"
             zero_d_results = reformat_network_util_results_all(zero_d_time, results_0d, var_name_list)
