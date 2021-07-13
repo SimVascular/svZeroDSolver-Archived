@@ -32,7 +32,6 @@
 
 import copy
 import numpy as np
-from . import solver
 
 class altered_bc_block:
     def __init__(self, name, type, segment_number, location, parameter_list):
@@ -41,6 +40,42 @@ class altered_bc_block:
         self.segment_number = segment_number
         self.parameter_list = parameter_list
         self.location = location
+
+def extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location):
+    """
+    Purpose:
+        Extract the time points and boundary condition values prescribed for the boundary condition of the given segment number at the given location (inlet or outlet of model). Time points and BC values for each location and segment number extracted from the list, parameters["datatable_values"][datatable_name] (obtained from the 0d solver input file), where the time points and BC values alternate in the list.
+        datatable_name is given by parameters["boundary_condition_datatable_names"][location][segment_number]
+    Inputs:
+        int start_index
+            = index of parameters["datatable_values"][datatable_name] at which to start the extraction
+        int end_index
+            = index of parameters["datatable_values"][datatable_name] at which to terminate the extraction
+        dict parameters
+            -- created from function utils.extract_info_from_solver_input_file
+        int segment_number
+            = segment number of the 0d vessel element (in the ELEMENT card of the 0d solver input file) for which we want to extract the time points and BC values
+        string location
+            = "inlet" or "outlet"
+            -- specifies whether the BC is an inlet BC or an outlet BC
+    Returns:
+        list time
+            = list of time points prescribed for the BC parameter
+        list bc_values
+            = list of the BC parameter values
+    """
+    if location not in ["inlet", "outlet"]:
+        message = "Error. 'location' can only be 'inlet' or 'outlet'."
+        raise RuntimeError(message)
+    time = []
+    bc_values = []
+    for i in range(start_index, end_index, 2):
+        time.append(parameters["datatable_values"][parameters["boundary_condition_datatable_names"][location][segment_number]][i])
+        bc_values.append(parameters["datatable_values"][parameters["boundary_condition_datatable_names"][location][segment_number]][i + 1])
+    if time[0] != 0.0:
+        message = "Error. The initial time for all boundary condition parameters be must 0."
+        raise RuntimeError(message)
+    return time, bc_values
 
 def compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period):
     """
@@ -86,7 +121,7 @@ def use_steady_state_values_for_bcs(parameters):
                     for k in range(num_variables):
                         start_index = k*num_values_per_variable
                         end_index = start_index + num_values_per_variable
-                        time, bc_values = solver.extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
+                        time, bc_values = extract_bc_time_and_values(start_index, end_index, parameters, segment_number, location)
                         if len(time) < 2:
                                 message = "Error. len(time) < 2"
                                 raise RuntimeError(message)
@@ -104,7 +139,7 @@ def use_steady_state_values_for_bcs(parameters):
                     altered_bc_blocks.append(altered_bc_block("BC" + str(segment_number) + "_" + location, bc_type, segment_number, location, [Rp]))
             elif bc_type == "CORONARY":
                 # use mean intramyocardial pressure for the CORONARY BCs
-                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = solver.extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
+                time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure = extract_bc_time_and_values(12, len(parameters["datatable_values"][datatable_name]), parameters, segment_number, location)
                 if len(time_of_intramyocardial_pressure) >= 2:
                     cardiac_cycle_period = time_of_intramyocardial_pressure[-1] - time_of_intramyocardial_pressure[0]
                     time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time_of_intramyocardial_pressure, bc_values_of_intramyocardial_pressure, cardiac_cycle_period)

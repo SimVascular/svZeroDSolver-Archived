@@ -93,7 +93,6 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
     boundary_condition_types = {"inlet" : {}, "outlet" : {}} # {"inlet" : {segment number : type of boundary condition, i.e. "FLOW", "PRESSURE"}, "outlet" : {segment number : type of boundary condition, i.e. "RESISTANCE", "RCR", "CORONARY", "FLOW", "PRESSURE"}}
     boundary_condition_datatable_names = {"inlet" : {}, "outlet" : {}} # {"inlet" : {segment number : datatable name for boundary condition}, "outlet" : {segment number : corresponding datatable name for boundary condition}}
     datatable_names_to_boundary_condition_type_map = {} # {datatable name for boundary condition : type of boundary condition, e.g. "RESISTANCE", "RCR"}
-    # datatable_names_to_location_map = {} # {datatable name for boundary condition : "inlet" or "outlet" }
     datatable_values = {} # {datatable name for boundary condition : [time1 value1 time2 value2 ...]}
         # value corresponds to the value of the BC, ie resistance value
     inlet_segments_of_model = [] # [model's inlet segments (these are attached to the inlet boundary conditions)]
@@ -152,7 +151,6 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                         outlet_segments_of_model.append(segment_number)
 
                         datatable_names_to_boundary_condition_type_map[ line_list[14] ] = line_list[13]
-                        # datatable_names_to_location_map[ line_list[14] ] = "outlet"
                     segment_0d_types[segment_number] = line_list[15]
                     if line_list[15] in segment_0d_parameter_types:
                         segment_0d_values[segment_number] = {}
@@ -204,7 +202,6 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                     boundary_condition_datatable_names["inlet"][segment_number] = line_list[3]
 
                     datatable_names_to_boundary_condition_type_map[ line_list[3] ] = line_list[2]
-                    # datatable_names_to_location_map[ line_list[3] ] = "inlet"
 
                 elif line.startswith("SOLVEROPTIONS"):
                     line_list = line.split()
