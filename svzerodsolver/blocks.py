@@ -283,7 +283,7 @@ class ComboBlock(LPNBlock):
 
         source: Mirramezani, M., Shadden, S.C. A distributed lumped parameter model of blood flow. Annals of Biomedical Engineering. 2020.
     """
-    def __init__(self, R, C = 0, L = 0, stenosis_coefficient = 0, connecting_block_list = None, name = "NoNameCombo", flow_directions = None):
+    def __init__(self, R, C, L, stenosis_coefficient, connecting_block_list = None, name = "NoNameCombo", flow_directions = None):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "Combo"
         self.R = R  # poiseuille resistance value = 8 * mu * L / (pi * r**4)
@@ -291,15 +291,8 @@ class ComboBlock(LPNBlock):
         self.L = L
         self.stenosis_coefficient = stenosis_coefficient
 
-    # todo: how to deal with the internal variables here? they might be troublesome to deal with, if we dont know what they are a priori (since we dont know beforehand which subcomponents the user will want to use, like C or no C, etc)
-
-    # todo: if the user uses only RCL, then we only need the RCL equations (in update_constant() function). This means we only need to compute these local matrices once. But if the user uses a stenosis subcomponent, then we need to update the solution at every newton iteration, so we need the update_solution() function. To reconcile these two cases, the easiest thing would be to just use update_solution() function only, even if only RCL and no stenosis is used. But this is inefficient. Thus, how do I deal with these two different cases? How do I ensure that we only use update_solution() only if there is a stenosis subcomponent in place?
-    # ------ maybe it is okay to just use update_solution() function only? I think in the end, the method would not be that much more expensive than before? well actually, recall that Aekaansh and Martin said that the assembly step is the most expensive, so maybe it is better if I figured how to use update_solution() only when a stenosis is present
-
-    # todo: Also note that in the RCL case, there is an internal variable (that we do not have in RC, RL, stenosis cases). The easiest thing to do would be to include this internal variable, but then the matrix system would be bigger and more expensive to solve (especially if we do not have an RCL subomponent but only a RC, RL or stenosis or some combo of the before instead). So how do I reconcile these two cases of 1) having an internal variable (present only in RCL cases) and 2) not having an internal variable
-    # ------ maybe there is a way to remove the internal variable from the RCL block. If I can do this, then I wont have to worry about having to deal or not deal with an internal variable in this combo block
-
-    # todo: copy the equations from RCLBlock to here, to incorporate the R-C-L cases
+    def update_constant(self):
+        self.mat['E'] = [(0, 0, 0, -self.L), (-self.C, self.C * self.R, 0, 0)]
 
     def update_solution(self, args):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
