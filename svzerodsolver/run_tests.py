@@ -11,7 +11,7 @@ def get_tests():
     """
     Add new test cases here
     How to define a new test case <NAME>:
-      - create new file with name <NAME>.in with the following naming conventions:
+      - create new file with name <NAME>.json with the following naming conventions:
         MODEL results_<NAME>_
         ELEMENT branch0_seg0 ...
         ELEMENT branch1_seg0 ...
@@ -209,7 +209,7 @@ def run_test(test_dir, name, check):
     """
 
     # name of input file
-    inp = os.path.join(test_dir, name + '.in')
+    inp = os.path.join(test_dir, name + '.json')
 
     # run simulation
     try:
@@ -219,8 +219,8 @@ def run_test(test_dir, name, check):
 
     # extract results
     try:
-        zero_d_simulation_results_file_path = inp[:-3] + "_branch_results.npy"
-        zero_d_simulation_ICs_file_path = inp[:-3] + "_initial_conditions.npy"
+        zero_d_simulation_results_file_path = os.path.splitext(inp)[0] + "_branch_results.npy"
+        zero_d_simulation_ICs_file_path = os.path.splitext(inp)[0] + "_initial_conditions.npy"
         res = read_results_0d(zero_d_simulation_results_file_path, zero_d_simulation_ICs_file_path)
     except Exception as err:
         return 'Test failed. Result extraction failed:\n' + str(err)

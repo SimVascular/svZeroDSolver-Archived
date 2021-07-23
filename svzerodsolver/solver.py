@@ -216,14 +216,6 @@ def get_vessel_ids_list(parameters):
         vessel_ids_list.append(vessel["vessel_id"])
     return vessel_ids_list
 
-def get_cap_vessels_of_model(parameters, location): # location == "inlet" or "outlet"
-    cap_vessels_of_model = []
-    for vessel in parameters["vessels"]:
-        if "boundary_conditions" in vessel:
-            if location in vessel["boundary_conditions"]:
-                cap_vessels_of_model.append(vessel["vessel_id"])
-    return cap_vessels_of_model
-
 def get_vessel_block_helpers(parameters):
     """
     Purpose:
@@ -248,8 +240,8 @@ def get_vessel_block_helpers(parameters):
         vessel_blocks_flow_directions[vessel_id] = []
         vessel_blocks_names[vessel_id] = "V" + str(vessel_id)
     for location in ["inlet", "outlet"]:
-        cap_vessels_of_model = get_cap_vessels_of_model(parameters, location)
-        for vessel_id in cap_vessels_of_model:
+        ids_of_cap_vessels = use_steady_bcs.get_ids_of_cap_vessels(parameters, location)
+        for vessel_id in ids_of_cap_vessels:
             if location == "inlet":
                 bc_block_name = "BC" + str(vessel_id) + "_inlet"
                 vessel_blocks_flow_directions[vessel_id].append(-1)
@@ -339,18 +331,6 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
             vessel_blocks[block_name] = create_custom_element(zero_d_element_type, custom_0d_elements_arguments.vessel_args[vessel_id])
     parameters["blocks"].update(vessel_blocks)
 
-def create_vessel_id_to_boundary_condition_map(parameters):
-    vessel_id_to_boundary_condition_map = {}
-    for vessel in parameters["vessels"]:
-        if "boundary_conditions" in vessel:
-            vessel_id = vessel["vessel_id"]
-            vessel_id_to_boundary_condition_map[vessel_id] = {}
-            for location, bc_name in vessel["boundary_conditions"].items():
-                for boundary_condition in parameters["boundary_conditions"]:
-                    if boundary_condition["bc_name"] == bc_name:
-                        vessel_id_to_boundary_condition_map[vessel_id][location] = boundary_condition
-    parameters["vessel_id_to_boundary_condition_map"] = vessel_id_to_boundary_condition_map
-
 def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
     """
     Purpose:
@@ -365,7 +345,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
             parameters["blocks"] = {block_name : block_object}
     """
     outlet_bc_blocks = {} # {block_name : block_object}
-    outlet_vessels_of_model = get_cap_vessels_of_model(parameters, "outlet")
+    outlet_vessels_of_model = use_steady_bcs.get_ids_of_cap_vessels(parameters, "outlet")
     vessel_id_to_boundary_condition_map = parameters["vessel_id_to_boundary_condition_map"]
     for vessel_id in outlet_vessels_of_model:
         block_name = "BC" + str(vessel_id) + "_outlet"
@@ -454,7 +434,7 @@ def create_inlet_bc_blocks(parameters, custom_0d_elements_arguments):
             parameters["blocks"] = {block_name : block_object}
     """
     inlet_bc_blocks = {} # {block_name : block_object}
-    inlet_vessels_of_model = get_cap_vessels_of_model(parameters, "inlet")
+    inlet_vessels_of_model = use_steady_bcs.get_ids_of_cap_vessels(parameters, "inlet")
     vessel_id_to_boundary_condition_map = parameters["vessel_id_to_boundary_condition_map"]
     for vessel_id in inlet_vessels_of_model:
         block_name = "BC" + str(vessel_id) + "_inlet"
@@ -510,7 +490,7 @@ def create_LPN_blocks(parameters, custom_0d_elements_arguments):
     parameters.update({"blocks" : blocks})
     create_junction_blocks(parameters, custom_0d_elements_arguments)
     create_vessel_blocks(parameters, custom_0d_elements_arguments)
-    create_vessel_id_to_boundary_condition_map(parameters)
+    use_steady_bcs.create_vessel_id_to_boundary_condition_map(parameters)
     create_outlet_bc_blocks(parameters, custom_0d_elements_arguments)
     create_inlet_bc_blocks(parameters, custom_0d_elements_arguments)
     parameters.update({"block_names" : list(parameters["blocks"].keys())})
@@ -993,11 +973,11 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
 
     if use_steady_soltns_as_ics:
         parameters_mean = copy.deepcopy(parameters)
-        parameters_mean, altered_bc_blocks = use_steady_bcs.use_steady_state_values_for_bcs(parameters_mean)
+        parameters_mean, altered_bc_blocks = use_steady_bcs.convert_unsteady_bcs_to_steady(parameters_mean)
 
-        # to run the 0d model with steady BCs to steady-state, simulate this model with large time step size for an arbitrarily large number of cardiac cycles
+        # to run the 0d model with steady BCs to steady-state, simulate this model with large time step size for an arbitrarily small number of cardiac cycles
         parameters_mean["simulation_parameters"]["number_of_time_pts_per_cardiac_cycle"] = 11
-        parameters_mean["simulation_parameters"]["number_of_cardiac_cycles"] = 3
+        parameters_mean["simulation_parameters"]["number_of_cardiac_cycles"]             = 3
 
         y_ydot_file_path_temp = os.path.splitext(zero_d_solver_input_file_path)[0] + "_initial_conditions.npy"
 
@@ -1012,7 +992,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
                             save_y_ydot_to_npy = False,
                             y_ydot_file_path = None,
                             simulation_start_time = simulation_start_time
-                        )
+                        ) 
 
         y0, ydot0, var_name_list = use_steady_bcs.restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_original, altered_bc_blocks)
 
