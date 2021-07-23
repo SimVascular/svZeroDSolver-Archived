@@ -1,0 +1,47 @@
+{
+    "boundary_conditions": [
+        {
+            "bc_name": "INFLOW",
+            "bc_type": "FLOW",
+            "bc_values": {
+                "Q": [
+                    5.0,
+                    5.0
+                ],
+                "t": [
+                    0.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "bc_name": "OUT",
+            "bc_type": "RESISTANCE",
+            "bc_values": {
+                "Pd": 100.0,
+                "R": 100.0
+            }
+        }
+    ],
+    "junctions": [],
+    "simulation_parameters": {
+        "number_of_cardiac_cycles": 30,
+        "number_of_time_pts_per_cardiac_cycle": 101
+    },
+    "vessels": [
+        {
+            "boundary_conditions": {
+                "inlet": "INFLOW",
+                "outlet": "OUT"
+            },
+            "vessel_id": 0,
+            "vessel_length": 10.0,
+            "vessel_name": "branch0_seg0",
+            "zero_d_element_type": "RL",
+            "zero_d_element_values": {
+                "L": 1.0,
+                "R": 100.0
+            }
+        }
+    ]
+}
