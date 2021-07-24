@@ -1,4 +1,7 @@
 {
+    "_comments": {
+            "description of test case" : "pulsatile flow -> R -> coronary"
+    },
     "boundary_conditions": [
         {
             "bc_name": "INFLOW",

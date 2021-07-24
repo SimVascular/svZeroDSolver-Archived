@@ -1,4 +1,8 @@
 {
+    "_comments": {
+            "description of test case" : "pulsatile flow -> R -> RCR",
+            "inflow waveform function": "Q(t) = 2.5*SIN(2*PI()*t) + 2.2"
+    },
     "boundary_conditions": [
         {
             "bc_name": "INFLOW",

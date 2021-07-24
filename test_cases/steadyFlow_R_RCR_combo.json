@@ -1,6 +1,6 @@
 {
     "_comments": {
-            "description of test case" : "steady flow -> RC -> R"
+            "description of test case" : "steady flow -> R -> RCR"
     },
     "boundary_conditions": [
         {
@@ -19,10 +19,12 @@
         },
         {
             "bc_name": "OUT",
-            "bc_type": "RESISTANCE",
+            "bc_type": "RCR",
             "bc_values": {
-                "Pd": 100.0,
-                "R": 100.0
+                "C": 0.0001,
+                "Pd": 0.0,
+                "Rd": 1000.0,
+                "Rp": 1000.0
             }
         }
     ],
@@ -40,10 +42,9 @@
             "vessel_id": 0,
             "vessel_length": 10.0,
             "vessel_name": "branch0_seg0",
-            "zero_d_element_type": "RC",
+            "zero_d_element_type": "COMBO",
             "zero_d_element_values": {
-                "C": 0.0001,
-                "R": 100.0
+                "R_poiseuille": 100.0
             }
         }
     ]

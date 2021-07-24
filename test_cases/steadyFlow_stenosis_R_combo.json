@@ -1,6 +1,6 @@
 {
     "_comments": {
-            "description of test case" : "steady flow -> RC -> R"
+            "description of test case" : "steady flow -> stenosis -> R"
     },
     "boundary_conditions": [
         {
@@ -28,8 +28,8 @@
     ],
     "junctions": [],
     "simulation_parameters": {
-        "number_of_cardiac_cycles": 30,
-        "number_of_time_pts_per_cardiac_cycle": 101
+        "number_of_cardiac_cycles": 2,
+        "number_of_time_pts_per_cardiac_cycle": 5
     },
     "vessels": [
         {
@@ -40,10 +40,10 @@
             "vessel_id": 0,
             "vessel_length": 10.0,
             "vessel_name": "branch0_seg0",
-            "zero_d_element_type": "RC",
+            "zero_d_element_type": "COMBO",
             "zero_d_element_values": {
-                "C": 0.0001,
-                "R": 100.0
+                "R_poiseuille": 100.0,
+                "stenosis_coefficient": 100.0
             }
         }
     ]

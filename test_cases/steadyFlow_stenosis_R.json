@@ -1,4 +1,7 @@
 {
+    "_comments": {
+            "description of test case" : "steady flow -> stenosis -> R"
+    },
     "boundary_conditions": [
         {
             "bc_name": "INFLOW",

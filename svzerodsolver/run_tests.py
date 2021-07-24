@@ -36,20 +36,40 @@ def get_tests():
                                  Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
                                  Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
+    tests['steadyFlow_RLC_R_combo'] = [  Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                         Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                         Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                         Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+
     tests['steadyFlow_RC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
                                 Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+
+    tests['steadyFlow_RC_R_combo'] = [  Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                        Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                        Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                        Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
     tests['steadyFlow_RL_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
                                 Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
+    tests['steadyFlow_RL_R_combo'] = [  Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                        Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                        Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                        Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+
     tests['steadyFlow_R_RCR'] = [Test('pressure', 0, 0, -1, 10500.0, 1.0e-7, 'point'),
                                  Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'),
                                  Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
                                  Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+
+    tests['steadyFlow_R_RCR_combo'] = [  Test('pressure', 0, 0, -1, 10500.0, 1.0e-7, 'point'),
+                                         Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'),
+                                         Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                         Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
     tests['steadyFlow_R_steadyPressure'] = [Test('pressure', 0, 0, -1, 1500.0, 1.0e-7, 'point'),
                                             Test('pressure', 0, -1, -1, 1000.0, 1.0e-7, 'point'),
@@ -60,6 +80,11 @@ def get_tests():
                                       Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
                                       Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
                                       Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+
+    tests['steadyFlow_stenosis_R_combo'] =   [Test('pressure', 0, 0, -1, 3600.0, 1.0e-7, 'point'),
+                                              Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                              Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                              Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
 
     tests['steadyFlow_bifurcationR_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
                                           Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
@@ -73,6 +98,19 @@ def get_tests():
                                           Test('flow', 1, -1, -1, 2.5, 1.0e-8, 'point'),
                                           Test('flow', 2, 0, -1, 2.5, 1.0e-8, 'point'),
                                           Test('flow', 2, -1, -1, 2.5, 1.0e-8, 'point')]
+
+    tests['steadyFlow_bifurcationR_R_combo'] = [  Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
+                                                  Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
+                                                  Test('pressure', 1, 0, -1, 600.0, 1.0e-7, 'point'),
+                                                  Test('pressure', 1, -1, -1, 350.0, 1.0e-7, 'point'),
+                                                  Test('pressure', 2, 0, -1, 600.0, 1.0e-7, 'point'),
+                                                  Test('pressure', 2, -1, -1, 350.0, 1.0e-7, 'point'),
+                                                  Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
+                                                  Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point'),
+                                                  Test('flow', 1, 0, -1, 2.5, 1.0e-8, 'point'),
+                                                  Test('flow', 1, -1, -1, 2.5, 1.0e-8, 'point'),
+                                                  Test('flow', 2, 0, -1, 2.5, 1.0e-8, 'point'),
+                                                  Test('flow', 2, -1, -1, 2.5, 1.0e-8, 'point')]
 
     # check that initialization from steady state solution with mean flow work correctly
     tests['pulsatileFlow_R_RCR'] = [Test('pressure', 0, 0, 0, 4620.0, 1.0e-7, 'point'),
