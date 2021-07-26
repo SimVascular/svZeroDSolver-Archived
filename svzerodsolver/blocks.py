@@ -237,7 +237,7 @@ class Junction(LPNBlock):
         self.mat['F'].append(tmp)
 
 
-class ComboBlock(LPNBlock):
+class BloodVessel(LPNBlock):
     """
     Stenosis:
         equation: delta_P = ( K_t * rho / ( 2 * (A_0)**2 ) ) * ( ( A_0 / A_s ) - 1 )**2 * Q * abs(Q) + R_poiseuille * Q
@@ -245,9 +245,9 @@ class ComboBlock(LPNBlock):
 
         source: Mirramezani, M., Shadden, S.C. A distributed lumped parameter model of blood flow. Annals of Biomedical Engineering. 2020.
     """
-    def __init__(self, R, C, L, stenosis_coefficient, connecting_block_list = None, name = "NoNameCombo", flow_directions = None):
+    def __init__(self, R, C, L, stenosis_coefficient, connecting_block_list = None, name = "NoNameBloodVessel", flow_directions = None):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Combo"
+        self.type = "BloodVessel"
         self.R = R  # poiseuille resistance value = 8 * mu * L / (pi * r**4)
         self.C = C
         self.L = L

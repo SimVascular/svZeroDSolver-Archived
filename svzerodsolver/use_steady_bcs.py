@@ -142,7 +142,7 @@ def convert_unsteady_bcs_to_steady(parameters):
 
 def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_f, altered_bc_blocks):
     """
-    Restore the internal variables (and set them to their steady state values).
+    Restore the internal variables (and set them to their steady state values) for the boundary condition blocks with capacitors (RCR and coronary).
     """
     y0 = copy.deepcopy(y_f)
     ydot0 = copy.deepcopy(ydot_f)
