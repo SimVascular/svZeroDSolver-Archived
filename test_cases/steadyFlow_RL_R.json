@@ -1,6 +1,17 @@
 {
-    "_comments": {
-            "description of test case" : "steady flow -> RL -> R"
+    "description": {
+            "description of test case" : "steady flow -> RL -> R",
+            "analytical results" : [    "Notes:",
+                                            "At steady state for constant flow, dQ/dt = 0",
+                                        "Boundary conditions:",
+                                            "inlet:",
+                                                "flow rate: Q = 5",
+                                            "outlet:",
+                                                "resistance + distal pressure: R = 100, Pd = 100",
+                                        "Solutions:",
+                                            "outlet pressure = Q * R + Pd =  5 * 100 + 100 = 600",
+                                            "inlet pressure = outlet pressure + Q * R_poiseuille = 600 + 5 * 100 = 1100"
+                                   ]
     },
     "boundary_conditions": [
         {
