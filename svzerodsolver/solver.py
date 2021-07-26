@@ -295,7 +295,10 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
         flow_directions = vessel_blocks_flow_directions[vessel_id]
         zero_d_element_type = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_type"]
         if zero_d_element_type == "COMBO":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"] if "R_poiseuille" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
+            if "R_poiseuille" not in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]:
+                message = "Error. ComboBlock requires viscous Poiseuille-based resistance."
+                raise RuntimeError(message)
+            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"]
             C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"] if "C" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"] if "L" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             stenosis_coefficient = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["stenosis_coefficient"] if "stenosis_coefficient" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
