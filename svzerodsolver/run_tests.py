@@ -21,70 +21,70 @@ def get_tests():
     """
     tests = {}
 
-    tests['steadyFlow_R_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
-                               Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
-                               Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                               Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_R_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # inlet pressure
+                               Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # outlet pressure
+                               Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                               Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_R_coronary'] = [Test('pressure', 0, 0, -1, 2000.0, 1.0e-7, 'point'),
-                                      Test('pressure', 0, -1, -1, 1500.0, 1.0e-7, 'point'),
-                                      Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                      Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_R_coronary'] = [Test('pressure', 0, 0, -1, 2000.0, 1.0e-7, 'point'), # inlet pressure
+                                      Test('pressure', 0, -1, -1, 1500.0, 1.0e-7, 'point'), # outlet pressure
+                                      Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                      Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_RLC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
-                                 Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
-                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_RLC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # inlet pressure
+                                 Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # outlet pressure
+                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_RC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
-                                Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
-                                Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_RC_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # inlet pressure
+                                Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # outlet pressure
+                                Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_RL_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
-                                Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
-                                Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_RL_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # inlet pressure
+                                Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # outlet pressure
+                                Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_R_RCR'] = [Test('pressure', 0, 0, -1, 10500.0, 1.0e-7, 'point'),
-                                 Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'),
-                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_R_RCR'] = [Test('pressure', 0, 0, -1, 10500.0, 1.0e-7, 'point'), # inlet pressure
+                                 Test('pressure', 0, -1, -1, 10000.0, 1.0e-7, 'point'), # outlet pressure
+                                 Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                 Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_R_steadyPressure'] = [Test('pressure', 0, 0, -1, 1500.0, 1.0e-7, 'point'),
-                                            Test('pressure', 0, -1, -1, 1000.0, 1.0e-7, 'point'),
-                                            Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                            Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_R_steadyPressure'] = [Test('pressure', 0, 0, -1, 1500.0, 1.0e-7, 'point'), # inlet pressure
+                                            Test('pressure', 0, -1, -1, 1000.0, 1.0e-7, 'point'), # outlet pressure
+                                            Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                            Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_stenosis_R'] = [Test('pressure', 0, 0, -1, 3600.0, 1.0e-7, 'point'),
-                                      Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
-                                      Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                      Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')]
+    tests['steadyFlow_stenosis_R'] = [Test('pressure', 0, 0, -1, 3600.0, 1.0e-7, 'point'), # inlet pressure
+                                      Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # outlet pressure
+                                      Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
+                                      Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_bifurcationR_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'),
-                                          Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'),
-                                          Test('pressure', 1, 0, -1, 600.0, 1.0e-7, 'point'),
-                                          Test('pressure', 1, -1, -1, 350.0, 1.0e-7, 'point'),
-                                          Test('pressure', 2, 0, -1, 600.0, 1.0e-7, 'point'),
-                                          Test('pressure', 2, -1, -1, 350.0, 1.0e-7, 'point'),
-                                          Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'),
-                                          Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point'),
-                                          Test('flow', 1, 0, -1, 2.5, 1.0e-8, 'point'),
-                                          Test('flow', 1, -1, -1, 2.5, 1.0e-8, 'point'),
-                                          Test('flow', 2, 0, -1, 2.5, 1.0e-8, 'point'),
-                                          Test('flow', 2, -1, -1, 2.5, 1.0e-8, 'point')]
-
-    # check that initialization from steady state solution with mean flow work correctly
-    tests['pulsatileFlow_R_RCR'] = [Test('pressure', 0, 0, 0, 4620.0, 1.0e-7, 'point'),
-                                    Test('pressure', 0, -1, 0, 4400.0, 1.0e-7, 'point'),
-                                    Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'),
-                                    Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')]
+    tests['steadyFlow_bifurcationR_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # parent inlet pressure
+                                          Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # parent outlet pressure
+                                          Test('pressure', 1, 0, -1, 600.0, 1.0e-7, 'point'), # daughter1 inlet pressure
+                                          Test('pressure', 1, -1, -1, 350.0, 1.0e-7, 'point'), # daughter1 outlet pressure
+                                          Test('pressure', 2, 0, -1, 600.0, 1.0e-7, 'point'), # daughter2 inlet pressure
+                                          Test('pressure', 2, -1, -1, 350.0, 1.0e-7, 'point'), # daughter2 outlet pressure
+                                          Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # parent inlet flow
+                                          Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point'), # parent outlet flow
+                                          Test('flow', 1, 0, -1, 2.5, 1.0e-8, 'point'), # daughter1 inlet flow
+                                          Test('flow', 1, -1, -1, 2.5, 1.0e-8, 'point'), # daughter1 outlet flow
+                                          Test('flow', 2, 0, -1, 2.5, 1.0e-8, 'point'), # daughter2 inlet flow
+                                          Test('flow', 2, -1, -1, 2.5, 1.0e-8, 'point')] # daughter2 outlet flow
 
     # check that initialization from steady state solution with mean flow work correctly
-    tests['pulsatileFlow_R_coronary'] = [Test('pressure', 0, 0, 0, 880.0, 1.0e-7, 'point'),
-                                         Test('pressure', 0, -1, 0, 660.0, 1.0e-7, 'point'),
-                                         Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'),
-                                         Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')]
+    tests['pulsatileFlow_R_RCR'] = [Test('pressure', 0, 0, 0, 4620.0, 1.0e-7, 'point'), # inlet pressure
+                                    Test('pressure', 0, -1, 0, 4400.0, 1.0e-7, 'point'), # outlet pressure
+                                    Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'), # inlet flow
+                                    Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')] # outlet flow
+
+    # check that initialization from steady state solution with mean flow work correctly
+    tests['pulsatileFlow_R_coronary'] = [Test('pressure', 0, 0, 0, 880.0, 1.0e-7, 'point'), # inlet pressure
+                                         Test('pressure', 0, -1, 0, 660.0, 1.0e-7, 'point'), # outlet pressure
+                                         Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'), # inlet flow
+                                         Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')] # outlet flow
 
     return tests
 

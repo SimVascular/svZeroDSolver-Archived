@@ -1,4 +1,18 @@
 {
+    "description": {
+            "description of test case" : "steady flow -> R -> RCR",
+            "analytical results" : [    "Notes:",
+                                            "At steady state for constant flow, capacitor is fully charged",
+                                        "Boundary conditions:",
+                                            "inlet:",
+                                                "flow rate: Q = 5",
+                                            "outlet:",
+                                                "RCR + distal pressure: Rp = 1000, Rd = 1000, Pd = 0",
+                                        "Solutions:",
+                                            "outlet pressure = Q * (Rp + Rd) + Pd =  5 * (1000 + 1000) + 0 = 10000",
+                                            "inlet pressure = outlet pressure + Q * R_poiseuille = 10000 + 5 * 100 = 10500"
+                                   ]
+    },
     "boundary_conditions": [
         {
             "bc_name": "INFLOW",
@@ -39,9 +53,9 @@
             "vessel_id": 0,
             "vessel_length": 10.0,
             "vessel_name": "branch0_seg0",
-            "zero_d_element_type": "R",
+            "zero_d_element_type": "BloodVessel",
             "zero_d_element_values": {
-                "R": 100.0
+                "R_poiseuille": 100.0
             }
         }
     ]

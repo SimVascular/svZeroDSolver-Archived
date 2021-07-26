@@ -110,9 +110,6 @@ def convert_unsteady_bcs_to_steady(parameters):
                 if len(time) < 2:
                         message = "Error. Boundary condition, " + bc_name + ", must be prescribed for at least 2 time points."
                         raise RuntimeError(message)
-                if bc_values[0] != bc_values[-1]:
-                    message = "Error. Boundary condition, " + bc_name + ", is not periodic. The two endpoints for the time series must be the same."
-                    raise RuntimeError(message)
                 cardiac_cycle_period = time[-1] - time[0]
                 time_averaged_value = compute_time_averaged_bc_value_for_single_cardiac_cycle(time, bc_values, cardiac_cycle_period)
                 parameters["boundary_conditions"][index_of_bc]["bc_values"]["t"]           = [time[0], time[-1]]
@@ -142,7 +139,7 @@ def convert_unsteady_bcs_to_steady(parameters):
 
 def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_f, altered_bc_blocks):
     """
-    Restore the internal variables (and set them to their steady state values).
+    Restore the internal variables (and set them to their steady state values) for the boundary condition blocks with capacitors (RCR and coronary).
     """
     y0 = copy.deepcopy(y_f)
     ydot0 = copy.deepcopy(ydot_f)

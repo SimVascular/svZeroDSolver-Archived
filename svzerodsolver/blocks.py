@@ -237,23 +237,7 @@ class Junction(LPNBlock):
         self.mat['F'].append(tmp)
 
 
-class Resistance(LPNBlock):
-    """
-    Resistance element
-    """
-    def __init__(self, R, connecting_block_list=None, name="NoNameResistance", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Resistance"
-        self.R = R
-
-    def update_constant(self):
-        """
-        For resistors, the ordering is : (P_in,Q_in,P_out,Q_out)
-        """
-        self.mat['F'] = [(1., -1. * self.R, -1., 0), (0, 1., 0, -1.)]
-
-
-class StenosisBlock(LPNBlock):
+class BloodVessel(LPNBlock):
     """
     Stenosis:
         equation: delta_P = ( K_t * rho / ( 2 * (A_0)**2 ) ) * ( ( A_0 / A_s ) - 1 )**2 * Q * abs(Q) + R_poiseuille * Q
@@ -261,11 +245,18 @@ class StenosisBlock(LPNBlock):
 
         source: Mirramezani, M., Shadden, S.C. A distributed lumped parameter model of blood flow. Annals of Biomedical Engineering. 2020.
     """
-    def __init__(self, R, stenosis_coefficient, connecting_block_list=None, name="NoNameRCL", flow_directions=None):
+    def __init__(self, R, C, L, stenosis_coefficient, connecting_block_list = None, name = "NoNameBloodVessel", flow_directions = None):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Stenosis"
+        self.type = "BloodVessel"
         self.R = R  # poiseuille resistance value = 8 * mu * L / (pi * r**4)
+        self.C = C
+        self.L = L
         self.stenosis_coefficient = stenosis_coefficient
+
+    # the ordering of the solution variables is : (P_in, Q_in, P_out, Q_out)
+
+    def update_constant(self):
+        self.mat['E'] = [(0, 0, 0, -self.L), (-self.C, self.C * self.R, 0, 0)]
 
     def update_solution(self, args):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
@@ -329,72 +320,6 @@ class UnsteadyFlowRef(LPNBlock):
 
     def update_constant(self):
         self.mat['F'] = [(0, 1.)]
-
-
-class Capacitance(LPNBlock):
-    """
-    Capacitance
-    """
-    def __init__(self, C, connecting_block_list=None, name="NoNameCapacitance", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Capacitance"
-        self.C = C
-
-    def update_constant(self):
-        self.mat['E'] = [(1.0 * self.C, 0, -1.0 * self.C, 0), (0, 0, 0, 0)]
-        self.mat['F'] = [(0, -1.0, 0, 0), (0, 1., 0, -1.)]
-
-
-class RCLBlock(LPNBlock):
-    """
-    RCL - constant resistor, capacitor, inductor - vessel representation
-    Formulation includes additional variable : internal pressure proximal to capacitance.
-    """
-    def __init__(self, R, C, L, connecting_block_list=None, name="NoNameRCL", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "RCL"
-        self.neq = 3
-        self.num_block_vars = 1
-        self.R = R
-        self.C = C
-        self.L = L
-
-    def update_constant(self):
-        self.mat['E'] = [(0, 0, 0, -self.L, 0), (0, 0, 0, 0, -self.C), (0, 0, 0, 0, 0)]
-        self.mat['F'] = [(1., -self.R, -1., 0, 0), (0, 1., 0, -1., 0), (1., -self.R, 0, 0, -1.)]
-
-
-class RCBlock(LPNBlock):
-    """
-    RC - constant resistor, capacitor - low inertia vessel
-    """
-    def __init__(self, R, C, connecting_block_list=None, name="NoNameRC", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "RC"
-        self.R = R
-        self.C = C
-
-    def update_constant(self):
-        self.mat['E'] = [(0, 0, 0, 0), (0, 0, -self.C, 0)]
-        self.mat['F'] = [(1.0, -self.R, -1.0, 0), (0, 1., 0, -1.)]
-
-
-class RLBlock(LPNBlock):
-    """
-    RL - constant resistor, inductor
-    """
-    def __init__(self, R, L, connecting_block_list=None, name="NoNameRL", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "RL"
-        self.R = R
-        self.L = L
-
-    def update_constant(self):
-        """
-        the ordering of solution unknowns is : (P_in, Q_in, P_out, Q_out)
-        """
-        self.mat['E'] = [(0, 0, 0, -self.L), (0, 0, 0, 0)]
-        self.mat['F'] = [(1.0, -self.R, -1.0, 0), (0, 1., 0, -1.)]
 
 
 class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
@@ -470,17 +395,3 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
             (0.0, 0.0, -1.0 * self.Cim * self.Rv * self.Ram)]
         self.mat['F'] = [(0.0, self.Cim * self.Rv, -1.0),
                          (self.Cim * self.Rv, -1.0 * self.Cim * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram))]
-
-
-class Inductance(LPNBlock):
-    """
-    Inductance
-    """
-    def __init__(self, L, connecting_block_list=None, name="NoNameInductance", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Inductance"
-        self.L = L
-
-    def update_constant(self):
-        self.mat['E'] = [(0.0, -1., 0.0, 0), (0, 0, 0, 0)]
-        self.mat['F'] = [(1. / self.L, 0.0, -1. / self.L, 0), (0, 1., 0, -1.)]
