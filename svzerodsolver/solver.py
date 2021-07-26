@@ -294,32 +294,12 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
         connecting_block_list = vessel_blocks_connecting_block_lists[vessel_id]
         flow_directions = vessel_blocks_flow_directions[vessel_id]
         zero_d_element_type = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_type"]
-        if zero_d_element_type == "R":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R"]
-            vessel_blocks[block_name] = ntwku.Resistance(connecting_block_list = connecting_block_list, R = R, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "C":
+        if zero_d_element_type == "C":
             C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"]
             vessel_blocks[block_name] = ntwku.Capacitance(connecting_block_list = connecting_block_list, C = C, name = block_name, flow_directions = flow_directions)
         elif zero_d_element_type == "L":
             L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"]
             vessel_blocks[block_name] = ntwku.Inductance(connecting_block_list = connecting_block_list, L = L, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "RC":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R"]
-            C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"]
-            vessel_blocks[block_name] = ntwku.RCBlock(R = R, C = C, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "RL":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R"]
-            L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"]
-            vessel_blocks[block_name] = ntwku.RLBlock(R = R, L = L, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "RCL":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R"]
-            C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"]
-            L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"]
-            vessel_blocks[block_name] = ntwku.RCLBlock(R = R, C = C, L = L, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "STENOSIS":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"]
-            stenosis_coefficient = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["stenosis_coefficient"]
-            vessel_blocks[block_name] = ntwku.StenosisBlock(R = R, stenosis_coefficient = stenosis_coefficient, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         elif zero_d_element_type == "COMBO":
             R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"] if "R_poiseuille" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"] if "C" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
@@ -992,7 +972,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
                             save_y_ydot_to_npy = False,
                             y_ydot_file_path = None,
                             simulation_start_time = simulation_start_time
-                        ) 
+                        )
 
         y0, ydot0, var_name_list = use_steady_bcs.restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_list_original, altered_bc_blocks)
 
