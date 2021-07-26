@@ -294,13 +294,7 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
         connecting_block_list = vessel_blocks_connecting_block_lists[vessel_id]
         flow_directions = vessel_blocks_flow_directions[vessel_id]
         zero_d_element_type = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_type"]
-        if zero_d_element_type == "C":
-            C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"]
-            vessel_blocks[block_name] = ntwku.Capacitance(connecting_block_list = connecting_block_list, C = C, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "L":
-            L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"]
-            vessel_blocks[block_name] = ntwku.Inductance(connecting_block_list = connecting_block_list, L = L, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "COMBO":
+        if zero_d_element_type == "COMBO":
             R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"] if "R_poiseuille" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             C = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["C"] if "C" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"] if "L" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0

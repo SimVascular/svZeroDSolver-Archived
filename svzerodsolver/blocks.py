@@ -322,20 +322,6 @@ class UnsteadyFlowRef(LPNBlock):
         self.mat['F'] = [(0, 1.)]
 
 
-class Capacitance(LPNBlock):
-    """
-    Capacitance
-    """
-    def __init__(self, C, connecting_block_list=None, name="NoNameCapacitance", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Capacitance"
-        self.C = C
-
-    def update_constant(self):
-        self.mat['E'] = [(1.0 * self.C, 0, -1.0 * self.C, 0), (0, 0, 0, 0)]
-        self.mat['F'] = [(0, -1.0, 0, 0), (0, 1., 0, -1.)]
-
-
 class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
     """
     Unsteady RCR - time-varying RCR values
@@ -409,17 +395,3 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
             (0.0, 0.0, -1.0 * self.Cim * self.Rv * self.Ram)]
         self.mat['F'] = [(0.0, self.Cim * self.Rv, -1.0),
                          (self.Cim * self.Rv, -1.0 * self.Cim * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram))]
-
-
-class Inductance(LPNBlock):
-    """
-    Inductance
-    """
-    def __init__(self, L, connecting_block_list=None, name="NoNameInductance", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.type = "Inductance"
-        self.L = L
-
-    def update_constant(self):
-        self.mat['E'] = [(0.0, -1., 0.0, 0), (0, 0, 0, 0)]
-        self.mat['F'] = [(1. / self.L, 0.0, -1. / self.L, 0), (0, 1., 0, -1.)]
