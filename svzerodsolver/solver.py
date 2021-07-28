@@ -303,10 +303,6 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
             L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"] if "L" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             stenosis_coefficient = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["stenosis_coefficient"] if "stenosis_coefficient" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             vessel_blocks[block_name] = ntwku.BloodVessel(R = R, C = C, L = L, stenosis_coefficient = stenosis_coefficient, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
-        elif zero_d_element_type == "STENOSIS":
-            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"]
-            stenosis_coefficient = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["stenosis_coefficient"]
-            vessel_blocks[block_name] = ntwku.StenosisBlock(R = R, stenosis_coefficient = stenosis_coefficient, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         else: # this is a custom, user-defined element block
             custom_0d_elements_arguments.vessel_args[vessel_id].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
             vessel_blocks[block_name] = create_custom_element(zero_d_element_type, custom_0d_elements_arguments.vessel_args[vessel_id])
@@ -605,7 +601,6 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     var_name_list_original = copy.deepcopy(var_name_list)
     results_0d = np.array(ylist)
     zero_d_time = tlist
-
     return zero_d_time, results_0d, var_name_list, y_next, ydot_next, var_name_list_original
 
 def save_ics(y_ydot_file_path, y_next, ydot_next, var_name_list):
