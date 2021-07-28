@@ -168,7 +168,12 @@ def create_unsteady_bc_value_function(time, bc_values):
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicSpline.html
     """
     if len(bc_values) == 2 and bc_values[0] == bc_values[1]:
-        return lambda x: bc_values[0]
+        def function(t):
+            """
+            Constant boundary condition. Need to provide a "t" (time) input to work with the general (unsteady) blocks defined in blocks.py
+            """
+            return bc_values[0]
+        return function
     else:
         return scipy.interpolate.CubicSpline(np.array(time), np.array(bc_values), bc_type = 'periodic')
 
@@ -331,24 +336,24 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
 
         if vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_type"] == "RESISTANCE":
             R = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["R"]
-            R_func = lambda x: R
+            R_func = create_unsteady_bc_value_function([0.0, 1.0], [R, R])
 
             Pref = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Pd"]
 
-            Pref_func = lambda x: Pref
+            Pref_func = create_unsteady_bc_value_function([0.0, 1.0], [Pref, Pref])
             outlet_bc_blocks[block_name] = ntwku.UnsteadyResistanceWithDistalPressure(connecting_block_list = connecting_block_list, Rfunc = R_func, Pref_func = Pref_func, name = block_name, flow_directions = flow_directions)
         elif vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_type"] == "RCR":
             Rp = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Rp"]
-            Rp_func = lambda x: Rp
+            Rp_func = create_unsteady_bc_value_function([0.0, 1.0], [Rp, Rp])
 
             C = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["C"]
-            C_func = lambda x: C
+            C_func = create_unsteady_bc_value_function([0.0, 1.0], [C, C])
 
             Rd = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Rd"]
-            Rd_func = lambda x: Rd
+            Rd_func = create_unsteady_bc_value_function([0.0, 1.0], [Rd, Rd])
 
             Pref = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Pd"]
-            Pref_func = lambda x: Pref
+            Pref_func = create_unsteady_bc_value_function([0.0, 1.0], [Pref, Pref])
 
             outlet_bc_blocks[block_name] = ntwku.UnsteadyRCRBlockWithDistalPressure(Rp_func = Rp_func, C_func = C_func, Rd_func = Rd_func, Pref_func = Pref_func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         elif vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_type"] == "FLOW":

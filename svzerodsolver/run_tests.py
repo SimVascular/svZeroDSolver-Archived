@@ -61,7 +61,7 @@ def get_tests():
                                       Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # inlet flow
                                       Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point')] # outlet flow
 
-    tests['steadyFlow_bifurcationR_R'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # parent inlet pressure
+    tests['steadyFlow_bifurcationR_R1'] = [Test('pressure', 0, 0, -1, 1100.0, 1.0e-7, 'point'), # parent inlet pressure
                                           Test('pressure', 0, -1, -1, 600.0, 1.0e-7, 'point'), # parent outlet pressure
                                           Test('pressure', 1, 0, -1, 600.0, 1.0e-7, 'point'), # daughter1 inlet pressure
                                           Test('pressure', 1, -1, -1, 350.0, 1.0e-7, 'point'), # daughter1 outlet pressure
@@ -73,6 +73,19 @@ def get_tests():
                                           Test('flow', 1, -1, -1, 2.5, 1.0e-8, 'point'), # daughter1 outlet flow
                                           Test('flow', 2, 0, -1, 2.5, 1.0e-8, 'point'), # daughter2 inlet flow
                                           Test('flow', 2, -1, -1, 2.5, 1.0e-8, 'point')] # daughter2 outlet flow
+
+    tests['steadyFlow_bifurcationR_R2'] = [Test('pressure', 0, 0, -1, 3462.5, 1.0e-7, 'point'), # parent inlet pressure
+                                          Test('pressure', 0, -1, -1, 1962.5, 1.0e-7, 'point'), # parent outlet pressure
+                                          Test('pressure', 1, 0, -1, 1962.5, 1.0e-7, 'point'), # daughter1 inlet pressure
+                                          Test('pressure', 1, -1, -1, 432.5, 1.0e-7, 'point'), # daughter1 outlet pressure
+                                          Test('pressure', 2, 0, -1, 1962.5, 1.0e-7, 'point'), # daughter2 inlet pressure
+                                          Test('pressure', 2, -1, -1, 1375, 1.0e-7, 'point'), # daughter2 outlet pressure
+                                          Test('flow', 0, 0, -1, 5.0, 1.0e-8, 'point'), # parent inlet flow
+                                          Test('flow', 0, -1, -1, 5.0, 1.0e-8, 'point'), # parent outlet flow
+                                          Test('flow', 1, 0, -1, 3.825, 1.0e-8, 'point'), # daughter1 inlet flow
+                                          Test('flow', 1, -1, -1, 3.825, 1.0e-8, 'point'), # daughter1 outlet flow
+                                          Test('flow', 2, 0, -1, 1.175, 1.0e-8, 'point'), # daughter2 inlet flow
+                                          Test('flow', 2, -1, -1, 1.175, 1.0e-8, 'point')] # daughter2 outlet flow
 
     # check that initialization from steady state solution with mean flow work correctly
     tests['pulsatileFlow_R_RCR'] = [Test('pressure', 0, 0, 0, 4620.0, 1.0e-7, 'point'), # inlet pressure
