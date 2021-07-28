@@ -168,7 +168,12 @@ def create_unsteady_bc_value_function(time, bc_values):
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicSpline.html
     """
     if len(bc_values) == 2 and bc_values[0] == bc_values[1]:
-        return lambda x: bc_values[0]
+        def function(t):
+            """
+            Constant boundary condition. Need to provide a "t" (time) input to work with the general (unsteady) blocks defined in blocks.py
+            """
+            return bc_values[0]
+        return function
     else:
         return scipy.interpolate.CubicSpline(np.array(time), np.array(bc_values), bc_type = 'periodic')
 
