@@ -303,6 +303,10 @@ def create_vessel_blocks(parameters, custom_0d_elements_arguments):
             L = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["L"] if "L" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             stenosis_coefficient = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["stenosis_coefficient"] if "stenosis_coefficient" in vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"] else 0
             vessel_blocks[block_name] = ntwku.BloodVessel(R = R, C = C, L = L, stenosis_coefficient = stenosis_coefficient, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
+        elif zero_d_element_type == "STENOSIS":
+            R = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["R_poiseuille"]
+            stenosis_coefficient = vessel_id_to_zero_d_element_dict[vessel_id]["zero_d_element_values"]["stenosis_coefficient"]
+            vessel_blocks[block_name] = ntwku.StenosisBlock(R = R, stenosis_coefficient = stenosis_coefficient, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         else: # this is a custom, user-defined element block
             custom_0d_elements_arguments.vessel_args[vessel_id].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : block_name})
             vessel_blocks[block_name] = create_custom_element(zero_d_element_type, custom_0d_elements_arguments.vessel_args[vessel_id])
@@ -331,24 +335,24 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
 
         if vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_type"] == "RESISTANCE":
             R = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["R"]
-            R_func = lambda x: R
+            R_func = create_unsteady_bc_value_function([0.0, 1.0], [R, R])
 
             Pref = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Pd"]
 
-            Pref_func = lambda x: Pref
+            Pref_func = create_unsteady_bc_value_function([0.0, 1.0], [Pref, Pref])
             outlet_bc_blocks[block_name] = ntwku.UnsteadyResistanceWithDistalPressure(connecting_block_list = connecting_block_list, Rfunc = R_func, Pref_func = Pref_func, name = block_name, flow_directions = flow_directions)
         elif vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_type"] == "RCR":
             Rp = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Rp"]
-            Rp_func = lambda x: Rp
+            Rp_func = create_unsteady_bc_value_function([0.0, 1.0], [Rp, Rp])
 
             C = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["C"]
-            C_func = lambda x: C
+            C_func = create_unsteady_bc_value_function([0.0, 1.0], [C, C])
 
             Rd = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Rd"]
-            Rd_func = lambda x: Rd
+            Rd_func = create_unsteady_bc_value_function([0.0, 1.0], [Rd, Rd])
 
             Pref = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Pd"]
-            Pref_func = lambda x: Pref
+            Pref_func = create_unsteady_bc_value_function([0.0, 1.0], [Pref, Pref])
 
             outlet_bc_blocks[block_name] = ntwku.UnsteadyRCRBlockWithDistalPressure(Rp_func = Rp_func, C_func = C_func, Rd_func = Rd_func, Pref_func = Pref_func, connecting_block_list = connecting_block_list, name = block_name, flow_directions = flow_directions)
         elif vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_type"] == "FLOW":
@@ -601,6 +605,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     var_name_list_original = copy.deepcopy(var_name_list)
     results_0d = np.array(ylist)
     zero_d_time = tlist
+
     return zero_d_time, results_0d, var_name_list, y_next, ydot_next, var_name_list_original
 
 def save_ics(y_ydot_file_path, y_next, ydot_next, var_name_list):
