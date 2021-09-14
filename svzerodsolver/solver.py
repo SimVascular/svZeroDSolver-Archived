@@ -1009,14 +1009,24 @@ def run_from_c(*args, **kwargs):
     # This is need by 'argparse.ArgumentParser()', sys.argv[] must be defined..
     sys.argv = [ "svZeroDSolver" ]
 
-    # Define command-line parameters.
-    parser = create_parser()
+    # Set solver return status.
+    msg = "Status: OK\n"
 
-    # Set the values for command-line parameters.
-    cmd_line_args = parser.parse_args(args)
+    try:
+      # Define command-line parameters.
+      parser = create_parser()
 
-    # Run the 0D solver.
-    run_simulation(cmd_line_args)
+      # Set the values for command-line parameters.
+      cmd_line_args = parser.parse_args(args)
+
+      # Run the 0D solver.
+      run_simulation(cmd_line_args)
+
+    except Exception as e:
+        msg = "Status: ERROR\n"
+        msg += "ERROR: " + str(e) + "\n"
+
+    return msg
 
 def create_parser():
     """Create a command-line parser.
