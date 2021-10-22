@@ -37,11 +37,11 @@ The required Python packages are listet in `requirements.txt`
 
 ### Execution
 
-The solver can be executed three ways.
+The solver can be executed four ways.
 
 1) Execute from the top level Git repository using
 
-~~~
+~~~bash
 python -m svzerodsolver.solver SOLVER_INPUT_FILE 
 ~~~
 
@@ -50,7 +50,7 @@ python -m svzerodsolver.solver SOLVER_INPUT_FILE
 The solver can be executed from any directory by setting the `PYTHONPATH` environent variable 
 to the top level Git repository 
 
-~~~
+~~~bash
 export PYTHONPATH=$PYTHONPATH:/$HOME/svZeroDSolver/
 ~~~
 
@@ -58,9 +58,18 @@ export PYTHONPATH=$PYTHONPATH:/$HOME/svZeroDSolver/
 
 The `svzerodsolver` Python package is installed using the `setup.py` script
 
-~~~
+~~~bash
 python setup.py install
 ~~~
+
+4) Importing the `svzerodsolver` Python package
+
+~~~python
+import svzerodsolver
+svzerodsolver.solver.set_up_and_run_0d_simulation('input.json')
+~~~
+
+This variant enables running svZeroDSolver within a user-defined Python code (e.g. parameter optimization, uncertainty quantification)
 
 ### Solver options 
 
