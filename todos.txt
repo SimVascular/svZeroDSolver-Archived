@@ -1,0 +1,4 @@
+Todos:
+	- google how to structure a C++ project: need to make src directories (for .cpp files) and include directories (for header .h files)?
+	- use the latest c++ version, like c++19 or c++17
+    - use C++ style guide: https://google.github.io/styleguide/cppguide.html

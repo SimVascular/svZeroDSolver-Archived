@@ -35,72 +35,22 @@ from collections import defaultdict
 
 
 class LPNVariable:
-    def __init__(self, value, units, name="NoName", vtype='ArbitraryVariable'):
+    def __init__(self, value, name="NoName", vtype='ArbitraryVariable'):
         self.type = vtype
         self.value = value
-        # Two generic units accepted : SI, cgs. Conversion for special values applied
-        self.units = units
         self.name = name
 
 
 class PressureVariable(LPNVariable):
 
-    def __init__(self, value, units='cgs', name='NoNamePressure'):
-        LPNVariable.__init__(self, value=value, units=units, name=name, vtype='Pressure')
-
-    def convert_to_cgs(self):
-        if self.units == 'cgs':
-            print("Variable: " + self.name + " already at cgs")
-        elif self.units == 'SI':
-            self.value *= 1.0E5
-            self.units = 'cgs'
-        elif self.units == 'mmHg':
-            self.value *= 0.001333224
-            self.units = 'cgs'
-        else:
-            raise Exception("Units " + self.units + " not recognized")
-
-    def convert_to_mmHg(self):
-        if self.units == 'cgs':
-            self.value *= 750.06
-            self.units = 'mmHg'
-        elif self.units == 'SI':
-            self.value = self.value * 7.50 * 1E-3
-            self.units = 'mmHg'
-        elif self.units == 'mmHg':
-            print("Variable: " + self.name + " already at mmHg")
-        else:
-            raise Exception("Units " + self.units + " not recognized")
+    def __init__(self, value, name='NoNamePressure'):
+        LPNVariable.__init__(self, value=value, name=name, vtype='Pressure')
 
 
 class FlowVariable(LPNVariable):
 
-    def __init__(self, value, units='cgs', name='NoNameFlow'):
-        LPNVariable.__init__(self, value=value, units=units, name=name, vtype='Flow')
-
-    def convert_to_cgs(self):
-        if self.units == 'cgs':
-            print("Variable: " + self.name + " already at cgs")
-        elif self.units == 'SI':
-            self.value = self.value * 1.0E-6
-            self.units = 'cgs'
-        elif self.units == 'Lpm':  # litres per minute
-            self.value = self.value * 16.6667
-            self.units = 'cgs'
-        else:
-            raise Exception("Units " + self.units + " not recognized")
-
-    def convert_to_Lpm(self):
-        if self.units == 'cgs':
-            self.value = self.value / 16.6667
-            self.units = 'Lpm'
-        elif self.units == 'SI':
-            self.value = self.value / (16.6667 * 1.0E-6)
-            self.units = 'Lpm'
-        elif self.units == 'Lpm':
-            print("Variable: " + self.name + " already at Lpm")
-        else:
-            raise Exception("Units " + self.units + " not recognized")
+    def __init__(self, value, name='NoNameFlow'):
+        LPNVariable.__init__(self, value=value, name=name, vtype='Flow')
 
 
 class wire:
@@ -109,11 +59,11 @@ class wire:
     They can only posses a single pressure and flow value (system variables)
     They can also only possess one element(or junction) at each end
     """
-    def __init__(self, connecting_elements, Pval=0, Qval=0, name="NoNameWire", P_units='cgs', Q_units='cgs'):
+    def __init__(self, connecting_elements, Pval=0, Qval=0, name="NoNameWire"):
         self.name = name
         self.type = 'Wire'
-        self.P = PressureVariable(value=Pval, units=P_units, name=name + "_P")
-        self.Q = FlowVariable(value=Qval, units=Q_units, name=name + "_Q")
+        self.P = PressureVariable(value=Pval, name=name + "_P")
+        self.Q = FlowVariable(value=Qval, name=name + "_Q")
         if len(connecting_elements) > 2:
             raise Exception('Wire cannot connect to more than two elements at a time. Use a junction LPN block')
         if type(connecting_elements) != tuple:
