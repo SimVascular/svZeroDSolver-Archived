@@ -32,6 +32,7 @@
 #define BLOCKS_H
 
 #include <string>
+#include <array>
 
 class LPNVariable {
 	// private
@@ -41,17 +42,46 @@ class LPNVariable {
 	double value;
 
 public:
-    // constructor
-    LPNVariable(std::string name, std::string type, double value);
+    	// constructor
+    	LPNVariable(std::string name, std::string type, double value);
 
-    // todo: add destructor
-    
-    // todo: use static and const variables
+    	// todo: add destructor: https://www.learncpp.com/cpp-tutorial/destructors/
+    	// todo: use static and const variables: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
 
-    // getter methods
-    std::string GetName();
-    std::string GetType();
-    double GetValue();
+    	// getter methods
+    	std::string GetName() const; // todo: is this function needed
+    	std::string GetType() const; // todo: is this function needed
+    	double GetValue() const; // todo: is this function needed
+};
+
+class PressureVariable : public LPNVariable {
+public:
+	PressureVariable(std::string name, std::string type, double value);
+};
+
+class FlowVariable : public LPNVariable {
+public:
+	FlowVariable(std::string name, std::string type, double value);
+};
+
+class Wire {
+	// private
+	// these fields are inherently private, since they are declared above the "public" space
+	std::string name;
+	PressureVariable P;
+	FlowVariable Q;
+	std::array<int, 2> lpn_solution_ids;
+	std::array<LPNBlock, 2> connecting_block_list;
+
+public:
+	Wire(std::string name, std::array<LPNBlock, 2> connecting_block_list);
+	void AddLPNSolutionIds(std::array<int, 2> lpn_solution_ids);
+	void AddP(PressureVariable P);
+	void AddQ(FlowVariable Q);
+	std::string GetName() const;
+	PressureVariable GetP() const;
+	FlowVariable GetQ() const;
+	std::array<int, 2> GetLPNSolutionIds() const;
 };
 
 #endif

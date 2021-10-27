@@ -919,7 +919,7 @@ def set_up_and_run_0d_simulation(zero_d_solver_input_file_path, draw_directed_gr
         boolean save_results_branch
             = True to save the 0d simulation results for just the branches (reformatted to a readable dictionary format, while preserving the 1d/centerline branch structure) to a .npy file
         boolean use_custom_0d_elements
-            = True to use user-defined, custom 0d elements in the 0d model; False, otherwire
+            = True to use user-defined, custom 0d elements in the 0d model; False, otherwise
         string custom_0d_elements_arguments_file_path
             = path to user-defined custom 0d element file
         boolean use_ICs_from_npy_file

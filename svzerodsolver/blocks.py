@@ -36,9 +36,9 @@ from collections import defaultdict
 
 class LPNVariable:
     def __init__(self, value, name="NoName", vtype='ArbitraryVariable'):
+        self.name = name
         self.type = vtype
         self.value = value
-        self.name = name
 
 
 class PressureVariable(LPNVariable):
@@ -53,7 +53,7 @@ class FlowVariable(LPNVariable):
         LPNVariable.__init__(self, value=value, name=name, vtype='Flow')
 
 
-class wire:
+class Wire:
     """
     Wires connect circuit elements and junctions
     They can only posses a single pressure and flow value (system variables)
@@ -61,15 +61,16 @@ class wire:
     """
     def __init__(self, connecting_elements, Pval=0, Qval=0, name="NoNameWire"):
         self.name = name
-        self.type = 'Wire'
         self.P = PressureVariable(value=Pval, name=name + "_P")
         self.Q = FlowVariable(value=Qval, name=name + "_Q")
         if len(connecting_elements) > 2:
             raise Exception('Wire cannot connect to more than two elements at a time. Use a junction LPN block')
+        if len(connecting_elements) != 2:
+            raise ExceptIOn("Wire must be connected to exactly two elements.")
         if type(connecting_elements) != tuple:
-            raise Exception('Connecting elements to wire should be passed as a 2-tuple')
+            raise Exception('Connecting elements to Wire should be passed as a 2-tuple')
         self.connecting_elements = connecting_elements
-        self.LPN_solution_ids = [None] * 2
+        self.lpn_solution_ids = [None] * 2
 
 
 class LPNBlock:
@@ -90,7 +91,7 @@ class LPNBlock:
         self.flow_directions = flow_directions
 
         # solution IDs for the LPN block's internal solution variables
-        self.LPN_solution_ids = []
+        self.lpn_solution_ids = []
 
         # block matrices
         self.mat = defaultdict(list)
@@ -150,10 +151,10 @@ class LPNBlock:
             #    note that vtype represents whether the solution variable in local_eq (local ID) is a P or Q solution
             #        and wnum represents whether the solution variable in local_eq comes from the inlet wire or the outlet wire, for this LPNBlock with 2 connections (one inlet, one outlet)
 
-            return wire_dict[self.connecting_wires_list[wnum]].LPN_solution_ids[vtype]
+            return wire_dict[self.connecting_wires_list[wnum]].lpn_solution_ids[vtype]
         else:  # this section will return the index at which the LPNBlock's  INTERNAL SOLUTION VARIABLES are stored in the global vector of solution unknowns/variables (i.e. I think RCR and OpenLoopCoronaryBlock have internal solution variables; these internal solution variables arent the P_in, Q_in, P_out, Q_out that correspond to the solutions on the attached wires, they are the solutions that are internal to the LPNBlock itself)
             vnum = local_eq - nwirevars
-            return self.LPN_solution_ids[vnum]
+            return self.lpn_solution_ids[vnum]
 
 
 class Junction(LPNBlock):
@@ -211,7 +212,7 @@ class BloodVessel(LPNBlock):
     def update_solution(self, args):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
         wire_dict = args['Wire dictionary']
-        Q_in = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[1]]
+        Q_in = curr_y[wire_dict[self.connecting_wires_list[0]].lpn_solution_ids[1]]
         self.mat['F'] = [(1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0), (0, 1.0, 0, -1.0)]
         self.mat['dF'] = [(0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0), (0,) * 4]
 

@@ -31,7 +31,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from .  blocks import wire
+from .  blocks import Wire
 
 def check_block_pair_flow_consistency(bA, bB):
     if bB.name not in bA.connecting_block_list:
@@ -76,7 +76,7 @@ def connect_blocks_by_inblock_list(
             if bA.flow_directions[i] == +1 and (id_bA, id_bB) not in connectivity:
                 name_wire = bA.name + '_' + bB.name
                 connecting_elements = (block_list[id_bA], block_list[id_bB])
-                # wire_dict[name_wire] = wire(connecting_elements,name=name_wire)
+                # wire_dict[name_wire] = Wire(connecting_elements,name=name_wire)
                 connectivity.append((id_bA,
                                      id_bB))  # connectivity stores pair-wise tuples of indices of the blocks that are connected; basically, if block 1 is connected to block 2 and the flow goes from block 1 to block 2, then connectivity will store a 2-element tuple, where the first element is the index at which block 1 is stored in block_list and the 2nd element is the index at which block 2 is stored in block_list. if the flow goes from block 2 to block 1, then connectivity will store a 2-element tuple, where the first element is the index at which block 2 is stored in block_list and the 2nd element is the index at which block 1 is stored in block_list.
             elif bA.flow_directions[i] == -1:
@@ -86,7 +86,7 @@ def connect_blocks_by_inblock_list(
             #     block_list[id_bB].add_connecting_wire(name_wire)
             else:
                 continue  # if this line is executed, then the next two lines (wire_dict[name_wire] = ... and block_list[id_bA] = ...) will not be executed
-            wire_dict[name_wire] = wire(connecting_elements, name=name_wire)
+            wire_dict[name_wire] = Wire(connecting_elements, name=name_wire)
             block_list[id_bA].add_connecting_wire(name_wire)
 
     return connectivity, wire_dict
@@ -103,7 +103,7 @@ def connect_blocks_by_connectivity_list(block_list, connectivity):
         connecting_elements = (block_list[e1], block_list[e2])
         name_wire = e1name + '_' + e2name
 
-        wire_dict[name_wire] = wire(connecting_elements, name=name_wire)
+        wire_dict[name_wire] = Wire(connecting_elements, name=name_wire)
 
         if e2name not in block_list[e1].connecting_block_list:
             block_list[e1].add_connecting_wire(name_wire)
@@ -187,15 +187,15 @@ def assign_global_ids(block_list,
 
     for w in wire_dict.values():  # assign the wire solutions here (i.e. each wire has a P and Q solution. recall that each block, ie resistance block, has 2 associated wires and thus each block has 4 associated solutions (Pin, Qin, Pout, Qin). so here, we are assigning those solution ids in the global solution vector for those P and Q solutions
         # note that because wire_dict is a dictionary, it is unordered and basically, everytime we call wire_dict and loop through its values or keys or whatever, there is no set order of wires that we will follow and loop through.
-        w.LPN_solution_ids = [i, i + 1]
+        w.lpn_solution_ids = [i, i + 1]
         var_name_list.append('P_' + w.name)
         var_name_list.append('Q_' + w.name)
         i += 2
 
     for b in block_list:  # here, we assign the solution ids for the internal solutions of the LPNBlocks
-        b.LPN_solution_ids = []
+        b.lpn_solution_ids = []
         for j in range(b.num_block_vars):
-            b.LPN_solution_ids.append(i)
+            b.lpn_solution_ids.append(i)
             var_name_list.append('var_' + str(j) + '_' + b.name)
             i += 1
 

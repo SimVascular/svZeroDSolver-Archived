@@ -28,19 +28,54 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <string>
+//#include <string>
 #include "blocks.hpp"
 
 LPNVariable::LPNVariable(std::string name, std::string type, double value) : name(name), type(type), value(value) {} // this is a member initialization/initializer list (between the colon and the squigly bracket)
 
-std::string LPNVariable::GetName() {
+std::string LPNVariable::GetName() const {
 	return name;
 }
 
-std::string LPNVariable::GetType() {
+std::string LPNVariable::GetType() const {
 	return type;
 }
 
-double LPNVariable::GetValue() {
+double LPNVariable::GetValue() const {
 	return value;
 }
+
+PressureVariable::PressureVariable(std::string name, std::string type, double value) : LPNVariable(name, type, value) {}
+
+FlowVariable::FlowVariable(std::string name, std::string type, double value) : LPNVariable(name, type, value) {}
+
+Wire::Wire(std::string name, std::array<LPNBlock, 2> connecting_block_list) : name(name), connecting_block_list(connecting_block_list) {}
+
+void Wire::AddLPNSolutionIds(std::array<int, 2> solution_ids) {
+	lpn_solution_ids = solution_ids;
+}
+
+void Wire::AddP(PressureVariable p) {
+	P = p;
+}
+
+void Wire::AddQ(FlowVariable q) {
+	Q = q;
+}
+
+std::string Wire::GetName() const {
+	return name;
+}
+
+PressureVariable Wire::GetP() const {
+	return P;
+}
+
+FlowVariable Wire::GetQ() const {
+	return Q;
+}
+
+std::array<int, 2> Wire::GetLPNSolutionIds() const {
+	return lpn_solution_ids;
+}
+
