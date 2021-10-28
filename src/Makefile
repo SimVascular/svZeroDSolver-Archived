@@ -9,7 +9,7 @@ CC = g++
 #  -std=gnu99  use the GNU99 standard language definition
 CFLAGS =
 
-unit_tests: unit_tests.cpp blocks.cpp
+unit_tests: unit_tests.cpp blocks.cpp blocks.hpp
 	$(CC) $(CFLAGS) -o unit_tests unit_tests.cpp blocks.cpp
 
 .PHONY: clean

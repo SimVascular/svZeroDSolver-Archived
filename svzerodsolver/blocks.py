@@ -77,13 +77,12 @@ class LPNBlock:
     def __init__(self, connecting_block_list=None, name="NoName", flow_directions=[]):
         if connecting_block_list == None:
             connecting_block_list = []
+        self.name = name
+        self.type = "ArbitraryBlock"
         self.connecting_block_list = connecting_block_list
         self.num_connections = len(connecting_block_list)
-        self.name = name
         self.neq = 2
-        self.n_connect = 2
-        self.n_connect = None
-        self.type = "ArbitraryBlock"
+        
         self.num_block_vars = 0
         self.connecting_wires_list = []
 
@@ -99,11 +98,6 @@ class LPNBlock:
         # row and column indices of block in global matrix
         self.global_col_id = []
         self.global_row_id = []
-
-    def check_block_consistency(self):
-        if len(connecting_block_list) != self.n_connect:
-            msg = self.name + " block can be connected only to " + str(self.n_connect) + " elements"
-            raise Exception(msg)
 
     def add_connecting_block(self, block, direction):
         # Direction = +1 if flow sent to block
@@ -243,7 +237,6 @@ class UnsteadyPressureRef(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyPressureRef"
         self.neq = 1
-        self.n_connect = 1
         self.Pfunc = Pfunc
 
     def update_time(self, args):
@@ -262,7 +255,6 @@ class UnsteadyFlowRef(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyFlowRef"
         self.neq = 1
-        self.n_connect = 1
         self.Qfunc = Qfunc
 
     def update_time(self, args):
@@ -283,7 +275,6 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "UnsteadyRCRBlockWithDistalPressure"
         self.neq = 2
-        self.n_connect = 1
         self.num_block_vars = 1
         self.Rp_func = Rp_func
         self.C_func = C_func
@@ -310,7 +301,6 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "OpenLoopCoronaryWithDistalPressureBlock_v2"
         self.neq = 2
-        self.n_connect = 1
         self.num_block_vars = 1
         self.Ra = Ra
         self.Ca = Ca

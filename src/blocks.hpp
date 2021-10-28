@@ -33,6 +33,7 @@
 
 #include <string>
 #include <array>
+#include <vector>
 
 class LPNVariable {
 	// private
@@ -43,6 +44,7 @@ class LPNVariable {
 
 public:
     	// constructor
+	LPNVariable();
     	LPNVariable(std::string name, std::string type, double value);
 
     	// todo: add destructor: https://www.learncpp.com/cpp-tutorial/destructors/
@@ -56,32 +58,62 @@ public:
 
 class PressureVariable : public LPNVariable {
 public:
+	PressureVariable(); // default constructor; https://stackoverflow.com/questions/31211319/no-matching-function-for-call-to-class-constructor
 	PressureVariable(std::string name, std::string type, double value);
 };
 
 class FlowVariable : public LPNVariable {
 public:
+	FlowVariable();
 	FlowVariable(std::string name, std::string type, double value);
+};
+
+class LPNBlock {
+	// private
+	// these fields are inherently private, since they are declared above the "public" space
+	std::string name;
+	std::string type;
+	std::vector<std::string> connecting_block_list;
+	std::vector<int> flow_directions;
+	int num_connections;
+	int neq;
+
+public:
+	LPNBlock();
+	LPNBlock(std::string name, std::string type, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions);
+    	std::string GetName() const;
+    	std::string GetType() const;
+	std::vector<std::string> GetConnectingBlockList() const;
+	std::vector<int> GetFlowDirections() const;
+	int GetNumConnections() const;
+	int GetNeq() const;
 };
 
 class Wire {
 	// private
 	// these fields are inherently private, since they are declared above the "public" space
 	std::string name;
-	PressureVariable P;
+	PressureVariable P; // todo: do I need to set P via pointer/reference?
 	FlowVariable Q;
 	std::array<int, 2> lpn_solution_ids;
-	std::array<LPNBlock, 2> connecting_block_list;
+	std::array<LPNBlock *, 2> connecting_block_list;
 
 public:
-	Wire(std::string name, std::array<LPNBlock, 2> connecting_block_list);
-	void AddLPNSolutionIds(std::array<int, 2> lpn_solution_ids);
-	void AddP(PressureVariable P);
-	void AddQ(FlowVariable Q);
+	//constuctor
+	
+	//todo: in the constructor of Wire, I think I should make sure to pass in the LPNBlocks by reference or by pointer or whatever. But do I pass in connecting_block_list as a pointer or do i pass in the LPNBlocks stored in that list by reference/pointer?
+	Wire(std::string name, std::array<LPNBlock *, 2> connecting_block_list);
+
+	// setters
+	void SetLPNSolutionIds(std::array<int, 2> lpn_solution_ids);
+	void SetP(PressureVariable P);
+	void SetQ(FlowVariable Q);
+
+	// getters
 	std::string GetName() const;
 	PressureVariable GetP() const;
 	FlowVariable GetQ() const;
 	std::array<int, 2> GetLPNSolutionIds() const;
+	std::array<LPNBlock *, 2> GetConnectingBlockList() const;
 };
-
 #endif
