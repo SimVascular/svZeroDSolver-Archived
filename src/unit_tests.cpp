@@ -86,7 +86,6 @@ int main() {
 		}
 	}
 
-	//std::cout << "flow_directions03.size() = " << flow_directions03.size() << "\n";
 	if (lpn_block03.GetFlowDirections().size() != flow_directions03.size()) {
 		std::cout << "Error. lpn_block03.flow_directions.size, " << lpn_block03.GetFlowDirections().size() << ", does not match flow_directions03.size, " << flow_directions03.size() << ".\n";
 	} else {
@@ -115,7 +114,6 @@ int main() {
 		}
 	}
 
-	//std::cout << "flow_directions04.size() = " << flow_directions04.size() << "\n";
 	if (lpn_block04.GetFlowDirections().size() != flow_directions04.size()) {
 		std::cout << "Error. lpn_block04.flow_directions.size, " << lpn_block04.GetFlowDirections().size() << ", does not match flow_directions04.size, " << flow_directions04.size() << ".\n";
 	} else {
@@ -125,12 +123,6 @@ int main() {
 			}
 		}
 	}
-
-
-
-
-
-
 
 	if (lpn_block05.GetName().compare(name05) != 0) {
 		std::cout << "Error. lpn_block05.name, " << lpn_block05.GetName() << ", does not match name05, " << name05 << ".\n";
@@ -150,7 +142,6 @@ int main() {
 		}
 	}
 
-	//std::cout << "flow_directions05.size() = " << flow_directions05.size() << "\n";
 	if (lpn_block05.GetFlowDirections().size() != flow_directions05.size()) {
 		std::cout << "Error. lpn_block05.flow_directions.size, " << lpn_block05.GetFlowDirections().size() << ", does not match flow_directions05.size, " << flow_directions05.size() << ".\n";
 	} else {
@@ -161,7 +152,45 @@ int main() {
 		}
 	}
 
-	last here: make test cases for the Wire class and its function
+	std::array<LPNBlock *, 2> connecting_block_list06 {&lpn_block03, &lpn_block04};
+	std::string name06 = "wire06";
+	std::array<int, 2> lpn_solution_ids06 {1, 2};
+	Wire wire06 = Wire(name06, connecting_block_list06);
+	wire06.SetP(pressure_variable01);
+	wire06.SetQ(flow_variable01);
+	wire06.SetLPNSolutionIds(lpn_solution_ids06);
+
+	if (wire06.GetName().compare(name06) != 0) {
+		std::cout << "Error. wire06.name, " << wire06.GetName() << ", does not match name06, " << name06 << ".\n";
+	}
+
+	if (wire06.GetConnectingBlockList().size() != connecting_block_list06.size()) {
+		std::cout << "Error. wire06.connecting_block_list.size, " << wire06.GetConnectingBlockList().size() << ", does not match connecting_block_list06.size, " << connecting_block_list06.size() << ".\n";
+	} else {
+		for (int i = 0; i < connecting_block_list06.size(); i++) {
+			if ((*(wire06.GetConnectingBlockList()[i])).GetName().compare((*(connecting_block_list06[i])).GetName()) != 0) {
+				std::cout << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire06.GetConnectingBlockList()[i])).GetName() << ", does not match connecting_block_list06[i].name, " << (*(connecting_block_list06[i])).GetName() << ".\n";
+			}
+		}
+	}
+
+	if ((wire06.GetP()).GetName() != pressure_variable01.GetName()) {
+		std::cout << "Error. wire06.P.name, " << (wire06.GetP()).GetName() << ", does not match pressure_variable01.name, " << pressure_variable01.GetName() << ".\n";
+	}
+
+	if ((wire06.GetQ()).GetName() != flow_variable01.GetName()) {
+		std::cout << "Error. wire06.Q.name, " << (wire06.GetQ()).GetName() << ", does not match flow_variable01.name, " << flow_variable01.GetName() << ".\n";
+	}
+
+	if (wire06.GetLPNSolutionIds().size() != lpn_solution_ids06.size()) {
+		std::cout << "Error. wire06.lpn_solution_ids.size, " << wire06.GetLPNSolutionIds().size() << ", does not match lpn_solution_ids.size, " << lpn_solution_ids06.size() << ".\n";
+	} else {
+		for (int i = 0; i < lpn_solution_ids06.size(); i++) {
+			if (wire06.GetLPNSolutionIds()[i] != lpn_solution_ids06[i]) {
+				std::cout << "Error. wire06.lpn_solution_ids[i], " << wire06.GetLPNSolutionIds()[i] << ", does not match lpn_solution_ids06[i], " << lpn_solution_ids06[i] << ".\n";
+			}
+		}
+	}
 
 	return 0;
 }

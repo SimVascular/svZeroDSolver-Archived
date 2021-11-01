@@ -75,8 +75,8 @@ class LPNBlock {
 	std::string type;
 	std::vector<std::string> connecting_block_list;
 	std::vector<int> flow_directions;
-	int num_connections;
-	int neq;
+	int num_connections; // todo: need to create a function to set num_connections
+	int neq; // todo: need to create a function to set neq
 
 public:
 	LPNBlock();
@@ -86,7 +86,7 @@ public:
 	std::vector<std::string> GetConnectingBlockList() const;
 	std::vector<int> GetFlowDirections() const;
 	int GetNumConnections() const;
-	int GetNeq() const;
+	int GetNeq() const; 
 };
 
 class Wire {
@@ -94,7 +94,7 @@ class Wire {
 	// these fields are inherently private, since they are declared above the "public" space
 	std::string name;
 	PressureVariable P; // todo: do I need to set P via pointer/reference?
-	FlowVariable Q;
+	FlowVariable Q; // todo: do I need to set Q via pointer/reference?
 	std::array<int, 2> lpn_solution_ids;
 	std::array<LPNBlock *, 2> connecting_block_list;
 
@@ -102,7 +102,7 @@ public:
 	//constuctor
 	
 	//todo: in the constructor of Wire, I think I should make sure to pass in the LPNBlocks by reference or by pointer or whatever. But do I pass in connecting_block_list as a pointer or do i pass in the LPNBlocks stored in that list by reference/pointer?
-	Wire(std::string name, std::array<LPNBlock *, 2> connecting_block_list);
+	Wire(std::string name, std::array<LPNBlock *, 2> connecting_block_list); // todo: LPNBlock also has a "connecting_block_list" field, but that one is a vector of strings instead. Therefore, consider changing Wire's connecting_block)list from an array of LPNBlock pointers to a vector of strings as well. This will create consistency between both classes' similarly-named fields.
 
 	// setters
 	void SetLPNSolutionIds(std::array<int, 2> lpn_solution_ids);
@@ -116,4 +116,7 @@ public:
 	std::array<int, 2> GetLPNSolutionIds() const;
 	std::array<LPNBlock *, 2> GetConnectingBlockList() const;
 };
+
+
+last here - continue adding the rest of blocks.py here
 #endif
