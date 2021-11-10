@@ -36,15 +36,15 @@ LPNVariable::LPNVariable() {}
 LPNVariable::LPNVariable(std::string name, std::string type, double value) : name(name), type(type), value(value) {} // this is a member initialization/initializer list (between the colon and the squigly bracket)
 
 std::string LPNVariable::GetName() const {
-	return name;
+    return name;
 }
 
 std::string LPNVariable::GetType() const {
-	return type;
+    return type;
 }
 
 double LPNVariable::GetValue() const {
-	return value;
+    return value;
 }
 
 PressureVariable::PressureVariable() {}
@@ -60,60 +60,71 @@ LPNBlock::LPNBlock() {}
 LPNBlock::LPNBlock(std::string name, std::string type, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions) : name(name), type(type), connecting_block_list(connecting_block_list), flow_directions(flow_directions) {}
 
 std::string LPNBlock::GetName() const {
-	return name;
+    return name;
 }
 
 std::string LPNBlock::GetType() const {
-	return type;
+    return type;
 }
 
 std::vector<std::string> LPNBlock::GetConnectingBlockList() const {
-	return connecting_block_list;
+    return connecting_block_list;
 }
 
 std::vector<int> LPNBlock::GetFlowDirections() const {
-	return flow_directions;
+    return flow_directions;
 }
 
 int LPNBlock::GetNumConnections() const {
-	return num_connections;
+    return num_connections;
 }
 
 int LPNBlock::GetNeq() const {
-	return neq;
+    return neq;
+}
+
+void LPNBlock::AddConnectingBlock(std::string block_name, int direction) {
+    // direction = +1 if flow sent to new block
+    //           = -1 if flow received from new block
+    connecting_block_list.push_back(block_name);
+    num_connections = connecting_block_list.size();
+    flow_directions.push_back(direction);
+}
+
+void LPNBlock::AddConnectingWire(std::string wire_name) {
+    connecting_wires_list.push_back(wire_name);
+}
+// 
+// int LPNBlock::GetEquationId(std::unordered_map<std::string, Wire *>, int) {
+// 
+// }
+
+void LPNBlock::UpdateConstant(Args * args) {
+    
+}
+
+void LPNBlock::UpdateTime(Args * args) {
+    
+}
+
+void LPNBlock::UpdateSolution(Args * args) {
+    
 }
 
 Wire::Wire(std::string name, std::array<LPNBlock *, 2> connecting_block_list) : name(name), connecting_block_list(connecting_block_list) {}
 
 void Wire::SetLPNSolutionIds(std::array<int, 2> solution_ids) {
-	lpn_solution_ids = solution_ids;
-}
-
-void Wire::SetP(PressureVariable p) {
-	P = p;
-}
-
-void Wire::SetQ(FlowVariable q) {
-	Q = q;
+    lpn_solution_ids = solution_ids;
 }
 
 std::string Wire::GetName() const {
-	return name;
-}
-
-PressureVariable Wire::GetP() const {
-	return P;
-}
-
-FlowVariable Wire::GetQ() const {
-	return Q;
+    return name;
 }
 
 std::array<int, 2> Wire::GetLPNSolutionIds() const {
-	return lpn_solution_ids;
+    return lpn_solution_ids;
 }
 
-
 std::array<LPNBlock *, 2> Wire::GetConnectingBlockList() const {
-	return connecting_block_list;
+    return connecting_block_list;
 }
