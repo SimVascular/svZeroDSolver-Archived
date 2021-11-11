@@ -214,7 +214,15 @@ int main() {
         }
     }
     
-    last here - need to check that the connecting wire is good too
+    if (wire08.GetConnectingBlockList().size() != connecting_block_list08.size()) {
+        std::cout << "Error. wire08.connecting_block_list.size, " << wire08.GetConnectingBlockList().size() << ", does not match connecting_block_list08.size, " << connecting_block_list08.size() << ".\n";
+    } else {
+        for (int i = 0; i < connecting_block_list08.size(); i++) {
+            if ((*(wire08.GetConnectingBlockList()[i])).GetName().compare((*(connecting_block_list08[i])).GetName()) != 0) {
+                std::cout << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire08.GetConnectingBlockList()[i])).GetName() << ", does not match connecting_block_list08[i].name, " << (*(connecting_block_list08[i])).GetName() << ".\n";
+            }
+        }
+    }
 
     return 0;
     

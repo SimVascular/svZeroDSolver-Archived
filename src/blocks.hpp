@@ -180,10 +180,108 @@ public:
     virtual void UpdateConstant(Args * args);
     virtual void UpdateTime(Args * args);
     virtual void UpdateSolution(Args * args);
-    
-    // todos: add unit tests for AddConnectingWire, AddConnectingBlock
 };
 
+class Junction : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    
+    // destructor
 
-//last here - continue adding the rest of blocks.py here
+    // setters
+
+    // getters
+};
+
+class BloodVessel : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    
+    // destructor
+
+    // setters
+
+    // getters
+};
+
+class UnsteadyResistanceWithDistalPressure : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
+        11/10/21: last here - how to pass a function as an argument to another function, e.g., how to pass Rfunc (a function) as an argument to this UnsteadyResistanceWithDistalPressure constructor?
+    
+    // destructor
+    
+    // misc
+    void UpdateTime(Args * args);
+};
+
+class UnsteadyPressureRef : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
+    
+    // destructor
+    
+    // misc
+    void UpdateConstant(Args * args);
+    void UpdateTime(Args * args);
+};
+
+class UnsteadyFlowRef : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
+    
+    // destructor
+    
+    // misc
+    void UpdateConstant(Args * args);
+    void UpdateTime(Args * args);
+};
+
+class UnsteadyRCRBlockWithDistalPressure : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
+    
+    // destructor
+    
+    // misc
+    void UpdateTime(Args * args);
+};
+
+class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock {
+    // private
+    // these fields are inherently private, since they are declared above the "public" space
+    
+public:
+    // constructors
+    OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
+    
+    // destructor
+    
+    // misc
+    double get_P_at_t(P, t);
+    void UpdateConstant(Args * args);
+    void UpdateTime(Args * args);
+};
 #endif
