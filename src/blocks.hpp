@@ -36,254 +36,224 @@
 #include <vector>
 #include <unordered_map>
 
-class LPNVariable {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    std::string name;
-    std::string type;
-    double value;
-
-public:
-        // constructor
-    LPNVariable();
-    LPNVariable(std::string name, std::string type, double value);
-
-    // todo: add destructor: https://www.learncpp.com/cpp-tutorial/destructors/
-    // todo: use static and const variables: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
-
-    // getter methods
-    std::string GetName() const; // todo: is this function needed
-    std::string GetType() const; // todo: is this function needed
-    double GetValue() const; // todo: is this function needed
-};
-
-class PressureVariable : public LPNVariable {
-public:
-    PressureVariable(); // default constructor; https://stackoverflow.com/questions/31211319/no-matching-function-for-call-to-class-constructor
-    PressureVariable(std::string name, std::string type, double value);
-    // todo: need to add destructor
-};
-
-class FlowVariable : public LPNVariable {
-public:
-    FlowVariable();
-    FlowVariable(std::string name, std::string type, double value);
-    // todo: need to add destructor
-};
-
 class LPNBlock; // forward declaration of LPNBlock; source: https://stackoverflow.com/questions/396084/headers-including-each-other-in-c
 
 class Wire {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    std::string name;
-    //PressureVariable P; // todo: do I need to set P via pointer/reference?
-    //FlowVariable Q; // todo: do I need to set Q via pointer/reference?
-    std::array<int, 2> lpn_solution_ids;
-    std::array<LPNBlock *, 2> connecting_block_list;
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+  std::string name;
+  std::array<int, 2> lpn_solution_ids;
+  std::array<LPNBlock *, 2> connecting_block_list;
 
 public:
-    //constuctor
+  //constuctor
+  Wire(const std::string& name, const std::array<LPNBlock *, 2>& connecting_block_list); // todo: LPNBlock also has a "connecting_block_list" field, but that one is a vector of strings instead. Therefore, consider changing Wire's connecting_block)list from an array of LPNBlock pointers to a vector of strings as well. This will create consistency between both classes' similarly-named fields. Do this after the entire implementation of svZeroDSolver is done
+  
+  // destructor
+  ~Wire(); // https://www.learncpp.com/cpp-tutorial/destructors/
     
-    //todo: in the constructor of Wire, I think I should make sure to pass in the LPNBlocks by reference or by pointer or whatever. But do I pass in connecting_block_list as a pointer or do i pass in the LPNBlocks stored in that list by reference/pointer?
-    Wire(std::string name, std::array<LPNBlock *, 2> connecting_block_list); // todo: LPNBlock also has a "connecting_block_list" field, but that one is a vector of strings instead. Therefore, consider changing Wire's connecting_block)list from an array of LPNBlock pointers to a vector of strings as well. This will create consistency between both classes' similarly-named fields.
-    
-    
-    // todo: need to add destructor
+  // setters
+  void set_lpn_solution_ids(const std::array<int, 2>& lpn_solution_ids);
 
-    // setters
-    void SetLPNSolutionIds(std::array<int, 2> lpn_solution_ids);
-    //void SetP(PressureVariable P);
-    //void SetQ(FlowVariable Q);
-
-    // getters
-    std::string GetName() const;
-    //PressureVariable GetP() const;
-    //FlowVariable GetQ() const;
-    std::array<int, 2> GetLPNSolutionIds() const;
-    std::array<LPNBlock *, 2> GetConnectingBlockList() const;
+  // getters
+  std::string get_name() const;
+  std::array<int, 2> get_lpn_solution_ids() const;
+  std::array<LPNBlock *, 2> get_connecting_block_list() const;
 };
 
 class Args {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    double dt; // time step size
-    double rho; // generalized-alpha rho parameter
-    bool check_jacobian;
-    std::unordered_map<std::string, Wire *> wire_dict;
-    double time; // current time?? or time_af??
-    
-    // some_kind_of_eigen_vector yaf; // (the "Solution" key)
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+  double dt; // time step size
+  double rho; // generalized-alpha rho parameter
+  bool check_jacobian;
+  std::unordered_map<std::string, Wire *> wire_dict;
+  double time; // current time?? or time_af??
+  
+  // some_kind_of_eigen_vector yaf; // (the "Solution" key)
+  
 public:
-    // constructors
-    Args(double dt, double rho, bool check_jacobian, std::unordered_map<std::string, Wire *> wire_dict);
-    
-    // todo: need to add destructor
-    
-    // getters
-    double GetDt() const;
-    double GetRho() const;
-    bool GetCheckJacobian() const;
-    std::unordered_map<std::string, Wire *> GetWireDict();
-    double GetTime() const;
-    
-    // misc
-    void UpdateTime();
-    void UpdateYaf();
-    
-    // last here - need to make unit tests and test cases for EVERYTHING INSIDE ARGS
+  // constructors
+  Args(double dt, double rho, bool check_jacobian, const std::unordered_map<std::string, Wire *>& wire_dict);
+  
+  // destructor
+  ~Args();
+  
+  // getters
+  double get_dt() const;
+  double get_rho() const;
+  bool get_check_jacobian() const;
+  std::unordered_map<std::string, Wire *> get_wire_dict();
+  double get_time() const;
+  
+  // misc
+  void update_time();
+  void update_yaf();
+  
+  // last here - need to make unit tests and test cases for EVERYTHING INSIDE ARGS
 };
 
 class LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    std::string name;
-    std::string type;
-    std::vector<std::string> connecting_block_list;
-    std::vector<int> flow_directions;
-    int num_connections; // todo: need to create a function to set num_connections
-    int neq; // todo: need to create a function to set neq
-    int num_block_vars; // todo: need to create a function to set num_block_vars
-    std::vector<std::string> connecting_wires_list; // todo: need to create a function to set connecting_wires_list
-    std::vector<int> lpn_solution_ids; // solution IDs for the LPN block's internal solution variables // todo: need to create a function to set lpn_solution_ids
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+  std::string name;
+  std::string type;
+  std::vector<std::string> connecting_block_list;
+  std::vector<int> flow_directions;
+  int num_connections;
+  int neq;
+  int num_block_vars;
+  std::vector<std::string> connecting_wires_list;
+  std::vector<int> lpn_solution_ids; // solution IDs for the LPN block's internal solution variables
 
-    std::unordered_map<char, std::vector<std::vector<double>>> mat; // todo: need to create a function to initialize map to have 'E', 'F', 'C', 'dE', 'dF', 'dC' keys with default values of empty vectors for the std::vector<std::vector<double>> values
+  std::unordered_map<char, std::vector<std::vector<double>>> mat; // todo: need to create a function to initialize map to have 'E', 'F', 'C', 'dE', 'dF', 'dC' keys with default values of empty vectors for the std::vector<std::vector<double>> values
 
-    // row and column indices of block in global matrix
-    std::vector<int> global_col_id; // todo: need to create a function to set global_col_id
-    std::vector<int> global_row_id; // todo: need to create a function to set global_row_id
+  // row and column indices of block in global matrices
+  std::vector<int> global_col_id;
+  std::vector<int> global_row_id;
 
 public:
-    // constructors
-    LPNBlock();
-    LPNBlock(std::string name, std::string type, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions);
-    
-    // destructor
-    // virtual ~LPNBlock(); // https://stackoverflow.com/questions/3065154/undefined-reference-to-vtable ; https://www.geeksforgeeks.org/virtual-destructor/ // do I need to make this destructor virtual?
+  // constructors
+  LPNBlock(); // default constructor; https://stackoverflow.com/questions/31211319/no-matching-function-for-call-to-class-constructor
+  LPNBlock(const std::string& name, const std::string& type, const std::vector<std::string>& connecting_block_list, const std::vector<int>& flow_directions);
+  
+  // destructor
+  virtual ~LPNBlock(); // https://stackoverflow.com/questions/3065154/undefined-reference-to-vtable ; https://www.geeksforgeeks.org/virtual-destructor/
 
-    // setters
-    
+  // setters
+  
 
-    // getters
-    std::string GetName() const;
-    std::string GetType() const;
-    std::vector<std::string> GetConnectingBlockList() const;
-    std::vector<int> GetFlowDirections() const;
-    int GetNumConnections() const;
-    int GetNeq() const; 
+  // getters
+  std::string get_name() const;
+  std::string get_type() const;
+  std::vector<std::string> get_connecting_block_list() const;
+  std::vector<int> get_flow_directions() const;
+  int get_num_connections() const;
+  int get_neq() const; 
 
-    // misc
-    void AddConnectingBlock(std::string block_name, int direction);
-    void AddConnectingWire(std::string wire_name);
-    int GetEquationId(std::unordered_map<std::string, Wire *>, int); // todo: write function for GetEquationId
-    virtual void UpdateConstant(Args * args);
-    virtual void UpdateTime(Args * args);
-    virtual void UpdateSolution(Args * args);
+  // misc
+  void add_connecting_block(const std::string& block_name, int direction);
+  void add_connecting_wire(const std::string& wire_name);
+  // int get_equation_id(std::unordered_map<std::string, Wire *>, int); // todo: write function for get_equation_id
+  virtual void update_constant(Args * args);
+  virtual void update_time(Args * args);
+  virtual void update_solution(Args * args);
 };
 
 class Junction : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+
 public:
-    // constructors
-    
-    // destructor
+  // constructors
 
-    // setters
+  // destructor
 
-    // getters
+  // setters
+
+  // getters
 };
 
 class BloodVessel : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+
 public:
-    // constructors
-    
-    // destructor
+  // constructors
 
-    // setters
+  // destructor
 
-    // getters
+  // setters
+
+  // getters
 };
 
 class UnsteadyResistanceWithDistalPressure : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+
 public:
-    // constructors
-    UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
-        11/10/21: last here - how to pass a function as an argument to another function, e.g., how to pass Rfunc (a function) as an argument to this UnsteadyResistanceWithDistalPressure constructor?
-    
-    // destructor
-    
-    // misc
-    void UpdateTime(Args * args);
+  // constructors
+  UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
+    11/10/21: last here - how to pass a function as an argument to another function, e.g., how to pass Rfunc (a function) as an argument to this UnsteadyResistanceWithDistalPressure constructor?
+
+  // destructor
+
+  // misc
+  void update_time(Args * args);
 };
 
 class UnsteadyPressureRef : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+
 public:
-    // constructors
-    UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
-    
-    // destructor
-    
-    // misc
-    void UpdateConstant(Args * args);
-    void UpdateTime(Args * args);
+  // constructors
+  UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
+
+  // destructor
+
+  // misc
+  void update_constant(Args * args);
+  void update_time(Args * args);
 };
 
 class UnsteadyFlowRef : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+
 public:
-    // constructors
-    UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
-    
-    // destructor
-    
-    // misc
-    void UpdateConstant(Args * args);
-    void UpdateTime(Args * args);
+  // constructors
+  UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
+
+  // destructor
+
+  // misc
+  void update_constant(Args * args);
+  void update_time(Args * args);
 };
 
 class UnsteadyRCRBlockWithDistalPressure : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
+
 public:
-    // constructors
-    UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
-    
-    // destructor
-    
-    // misc
-    void UpdateTime(Args * args);
+  // constructors
+  UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
+
+  // destructor
+
+  // misc
+  void update_time(Args * args);
 };
 
 class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock {
-    // private
-    // these fields are inherently private, since they are declared above the "public" space
-    
-public:
-    // constructors
-    OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
-    
-    // destructor
-    
-    // misc
-    double get_P_at_t(P, t);
-    void UpdateConstant(Args * args);
-    void UpdateTime(Args * args);
-};
-#endif
+  // private
+  // these fields are inherently private, since they are declared above the "public" space
 
-todo: update my code to follow Dave's requirements: https://github.com/SimVascular/svZeroDSolver/issues/47#issuecomment-967481174
+public:
+  // constructors
+  OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
+
+  // destructor
+
+  // misc
+  double get_P_at_t(P, t);
+  void update_constant(Args * args);
+  void update_time(Args * args);
+};
+
+
+todo: delete use of unused getters and setters?
+
+review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
+
+todo: use static and const variables: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
+
+todo: do all todos first, so that I dont forget to do something
+
+todo: do all last here's
+
+todo: for unit testing in c++: how to do it best: use throw or assertion or what??
+
+#endif

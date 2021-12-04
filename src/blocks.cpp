@@ -31,100 +31,80 @@
 //#include <string>
 #include "blocks.hpp"
 
-LPNVariable::LPNVariable() {}
+Wire::Wire(const std::string& name, const std::array<LPNBlock *, 2>& connecting_block_list) : name(name), connecting_block_list(connecting_block_list) {}
 
-LPNVariable::LPNVariable(std::string name, std::string type, double value) : name(name), type(type), value(value) {} // this is a member initialization/initializer list (between the colon and the squigly bracket)
+Wire::~Wire() {} // https://www.mycplus.com/tutorials/cplusplus-programming-tutorials/destructors/
 
-std::string LPNVariable::GetName() const {
-    return name;
+void Wire::set_lpn_solution_ids(const std::array<int, 2>& solution_ids) {
+  lpn_solution_ids = solution_ids;
 }
 
-std::string LPNVariable::GetType() const {
-    return type;
+std::string Wire::get_name() const {
+  return name;
 }
 
-double LPNVariable::GetValue() const {
-    return value;
+std::array<int, 2> Wire::get_lpn_solution_ids() const {
+  return lpn_solution_ids;
 }
 
-PressureVariable::PressureVariable() {}
-
-FlowVariable::FlowVariable() {}
-
-PressureVariable::PressureVariable(std::string name, std::string type, double value) : LPNVariable(name, type, value) {}
-
-FlowVariable::FlowVariable(std::string name, std::string type, double value) : LPNVariable(name, type, value) {}
+std::array<LPNBlock *, 2> Wire::get_connecting_block_list() const {
+  return connecting_block_list;
+}
 
 LPNBlock::LPNBlock() {}
 
-LPNBlock::LPNBlock(std::string name, std::string type, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions) : name(name), type(type), connecting_block_list(connecting_block_list), flow_directions(flow_directions) {}
+LPNBlock::LPNBlock(const std::string& name, const std::string& type, const std::vector<std::string>& connecting_block_list, const std::vector<int>& flow_directions) : name(name), type(type), connecting_block_list(connecting_block_list), flow_directions(flow_directions) {}  // this is a member initialization/initializer list (between the colon and the squigly bracket)
 
-std::string LPNBlock::GetName() const {
-    return name;
+LPNBlock::~LPNBlock() {} // https://stackoverflow.com/questions/3065154/undefined-reference-to-vtable
+
+std::string LPNBlock::get_name() const {
+  return name;
 }
 
-std::string LPNBlock::GetType() const {
-    return type;
+std::string LPNBlock::get_type() const {
+  return type;
 }
 
-std::vector<std::string> LPNBlock::GetConnectingBlockList() const {
-    return connecting_block_list;
+std::vector<std::string> LPNBlock::get_connecting_block_list() const {
+  return connecting_block_list;
 }
 
-std::vector<int> LPNBlock::GetFlowDirections() const {
-    return flow_directions;
+std::vector<int> LPNBlock::get_flow_directions() const {
+  return flow_directions;
 }
 
-int LPNBlock::GetNumConnections() const {
-    return num_connections;
+int LPNBlock::get_num_connections() const {
+  return num_connections;
 }
 
-int LPNBlock::GetNeq() const {
-    return neq;
+int LPNBlock::get_neq() const {
+  return neq;
 }
 
-void LPNBlock::AddConnectingBlock(std::string block_name, int direction) {
-    // direction = +1 if flow sent to new block
-    //           = -1 if flow received from new block
-    connecting_block_list.push_back(block_name);
-    num_connections = connecting_block_list.size();
-    flow_directions.push_back(direction);
+void LPNBlock::add_connecting_block(const std::string& block_name, int direction) {
+  // direction = +1 if flow sent to new block
+  //           = -1 if flow received from new block
+  connecting_block_list.push_back(block_name);
+  num_connections = connecting_block_list.size();
+  flow_directions.push_back(direction);
 }
 
-void LPNBlock::AddConnectingWire(std::string wire_name) {
-    connecting_wires_list.push_back(wire_name);
+void LPNBlock::add_connecting_wire(const std::string& wire_name) {
+  connecting_wires_list.push_back(wire_name);
 }
 // 
-// int LPNBlock::GetEquationId(std::unordered_map<std::string, Wire *>, int) {
+// int LPNBlock::get_equation_id(std::unordered_map<std::string, Wire *>, int) {
 // 
 // }
 
-void LPNBlock::UpdateConstant(Args * args) {
-    
+void LPNBlock::update_constant(Args * args) {
+  
 }
 
-void LPNBlock::UpdateTime(Args * args) {
-    
+void LPNBlock::update_time(Args * args) {
+  
 }
 
-void LPNBlock::UpdateSolution(Args * args) {
-    
-}
-
-Wire::Wire(std::string name, std::array<LPNBlock *, 2> connecting_block_list) : name(name), connecting_block_list(connecting_block_list) {}
-
-void Wire::SetLPNSolutionIds(std::array<int, 2> solution_ids) {
-    lpn_solution_ids = solution_ids;
-}
-
-std::string Wire::GetName() const {
-    return name;
-}
-
-std::array<int, 2> Wire::GetLPNSolutionIds() const {
-    return lpn_solution_ids;
-}
-
-std::array<LPNBlock *, 2> Wire::GetConnectingBlockList() const {
-    return connecting_block_list;
+void LPNBlock::update_solution(Args * args) {
+  
 }
