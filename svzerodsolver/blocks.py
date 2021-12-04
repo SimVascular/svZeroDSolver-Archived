@@ -34,25 +34,6 @@ import numpy as np
 from collections import defaultdict
 
 
-class LPNVariable:
-    def __init__(self, value, name="NoName", vtype='ArbitraryVariable'):
-        self.name = name
-        self.type = vtype
-        self.value = value
-
-
-class PressureVariable(LPNVariable):
-
-    def __init__(self, value, name='NoNamePressure'):
-        LPNVariable.__init__(self, value=value, name=name, vtype='Pressure')
-
-
-class FlowVariable(LPNVariable):
-
-    def __init__(self, value, name='NoNameFlow'):
-        LPNVariable.__init__(self, value=value, name=name, vtype='Flow')
-
-
 class Wire:
     """
     Wires connect circuit elements and junctions
