@@ -36,6 +36,10 @@
 #include <vector>
 #include <unordered_map>
 
+// todo: use static and const variables where necessary: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
+
+// todo: delete unused getters and setters
+
 class LPNBlock; // forward declaration of LPNBlock; source: https://stackoverflow.com/questions/396084/headers-including-each-other-in-c
 
 class Wire {
@@ -137,7 +141,7 @@ public:
   // int get_equation_id(std::unordered_map<std::string, Wire *>, int); // todo: write function for get_equation_id
   virtual void update_constant(Args * args);
   virtual void update_time(Args * args);
-  virtual void update_solution(Args * args);
+  virtual void update_solution(Args * args); // todo: should this be a "const Args * args" (a pointer to a const Args)? (see "Pointers and const" in https://www.cplusplus.com/doc/tutorial/pointers/) I dont think so because it is possible that update_solution will change one of the fields in args
 };
 
 class Junction : public LPNBlock {
@@ -243,17 +247,12 @@ public:
   void update_time(Args * args);
 };
 
+todo: for unit testing in c++: how to do it best: throw exception or use assert or what?? -- last here - 12/3/21 -- do this first when I this code again
 
-todo: delete use of unused getters and setters?
-
-review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
-
-todo: use static and const variables: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
+todo: review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
 
 todo: do all todos first, so that I dont forget to do something
 
 todo: do all last here's
-
-todo: for unit testing in c++: how to do it best: use throw or assertion or what??
 
 #endif
