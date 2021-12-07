@@ -32,85 +32,103 @@ int main() {
   LPNBlock lpn_block05 = LPNBlock(name05, type05, connecting_block_list05, flow_directions05);
 
   if (lpn_block03.get_name().compare(name03) != 0) {
-    std::cout << "Error. lpn_block03.name, " << lpn_block03.get_name() << ", does not match name03, " << name03 << ".\n";
+    std::cerr << "Error. lpn_block03.name, " << lpn_block03.get_name() << ", does not match name03, " << name03 << ".\n";
+    exit(1);
   }
 
   if (lpn_block03.get_type().compare(type03) != 0) {
-    std::cout << "Error. lpn_block03.type, " << lpn_block03.get_type() << ", does not match type03, " << type03 << ".\n";
+    std::cerr << "Error. lpn_block03.type, " << lpn_block03.get_type() << ", does not match type03, " << type03 << ".\n";
+    exit(1);
   }
 
   if (lpn_block03.get_connecting_block_list().size() != connecting_block_list03.size()) {
-    std::cout << "Error. lpn_block03.connecting_block_list.size, " << lpn_block03.get_connecting_block_list().size() << ", does not match connecting_block_list03.size, " << connecting_block_list03.size() << ".\n";
+    std::cerr << "Error. lpn_block03.connecting_block_list.size, " << lpn_block03.get_connecting_block_list().size() << ", does not match connecting_block_list03.size, " << connecting_block_list03.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < connecting_block_list03.size(); i++) {
       if (lpn_block03.get_connecting_block_list()[i].compare(connecting_block_list03[i]) != 0) {
-        std::cout << "Error. lpn_block03.connecting_block_list[i], " << lpn_block03.get_connecting_block_list()[i] << ", does not match connecting_block_list03[i], " << connecting_block_list03[i] << ".\n";
+        std::cerr << "Error. lpn_block03.connecting_block_list[i], " << lpn_block03.get_connecting_block_list()[i] << ", does not match connecting_block_list03[i], " << connecting_block_list03[i] << ".\n";
+        exit(1);
       }
     }
   }
 
   if (lpn_block03.get_flow_directions().size() != flow_directions03.size()) {
-    std::cout << "Error. lpn_block03.flow_directions.size, " << lpn_block03.get_flow_directions().size() << ", does not match flow_directions03.size, " << flow_directions03.size() << ".\n";
+    std::cerr << "Error. lpn_block03.flow_directions.size, " << lpn_block03.get_flow_directions().size() << ", does not match flow_directions03.size, " << flow_directions03.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < flow_directions03.size(); i++) {
       if (lpn_block03.get_flow_directions()[i] != flow_directions03[i]) {
-        std::cout << "Error. lpn_block03.flow_directions[i], " << lpn_block03.get_flow_directions()[i] << ", does not match flow_directions03[i], " << flow_directions03[i] << ".\n";
+        std::cerr << "Error. lpn_block03.flow_directions[i], " << lpn_block03.get_flow_directions()[i] << ", does not match flow_directions03[i], " << flow_directions03[i] << ".\n";
+        exit(1);
       }
     }
   }
 
   if (lpn_block04.get_name().compare(name04) != 0) {
-    std::cout << "Error. lpn_block04.name, " << lpn_block04.get_name() << ", does not match name04, " << name04 << ".\n";
+    std::cerr << "Error. lpn_block04.name, " << lpn_block04.get_name() << ", does not match name04, " << name04 << ".\n";
+    exit(1);
   }
 
   if (lpn_block04.get_type().compare(type04) != 0) {
-    std::cout << "Error. lpn_block04.type, " << lpn_block04.get_type() << ", does not match type04, " << type04 << ".\n";
+    std::cerr << "Error. lpn_block04.type, " << lpn_block04.get_type() << ", does not match type04, " << type04 << ".\n";
+    exit(1);
   }
 
   if (lpn_block04.get_connecting_block_list().size() != connecting_block_list04.size()) {
-    std::cout << "Error. lpn_block04.connecting_block_list.size, " << lpn_block04.get_connecting_block_list().size() << ", does not match connecting_block_list04.size, " << connecting_block_list04.size() << ".\n";
+    std::cerr << "Error. lpn_block04.connecting_block_list.size, " << lpn_block04.get_connecting_block_list().size() << ", does not match connecting_block_list04.size, " << connecting_block_list04.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < connecting_block_list04.size(); i++) {
       if (lpn_block04.get_connecting_block_list()[i].compare(connecting_block_list04[i]) != 0) {
-        std::cout << "Error. lpn_block04.connecting_block_list[i], " << lpn_block04.get_connecting_block_list()[i] << ", does not match connecting_block_list04[i], " << connecting_block_list04[i] << ".\n";
+        std::cerr << "Error. lpn_block04.connecting_block_list[i], " << lpn_block04.get_connecting_block_list()[i] << ", does not match connecting_block_list04[i], " << connecting_block_list04[i] << ".\n";
+        exit(1);
       }
     }
   }
 
   if (lpn_block04.get_flow_directions().size() != flow_directions04.size()) {
-    std::cout << "Error. lpn_block04.flow_directions.size, " << lpn_block04.get_flow_directions().size() << ", does not match flow_directions04.size, " << flow_directions04.size() << ".\n";
+    std::cerr << "Error. lpn_block04.flow_directions.size, " << lpn_block04.get_flow_directions().size() << ", does not match flow_directions04.size, " << flow_directions04.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < flow_directions04.size(); i++) {
       if (lpn_block04.get_flow_directions()[i] != flow_directions04[i]) {
-        std::cout << "Error. lpn_block04.flow_directions[i], " << lpn_block04.get_flow_directions()[i] << ", does not match flow_directions04[i], " << flow_directions04[i] << ".\n";
+        std::cerr << "Error. lpn_block04.flow_directions[i], " << lpn_block04.get_flow_directions()[i] << ", does not match flow_directions04[i], " << flow_directions04[i] << ".\n";
+        exit(1);
       }
     }
   }
 
   if (lpn_block05.get_name().compare(name05) != 0) {
-    std::cout << "Error. lpn_block05.name, " << lpn_block05.get_name() << ", does not match name05, " << name05 << ".\n";
+    std::cerr << "Error. lpn_block05.name, " << lpn_block05.get_name() << ", does not match name05, " << name05 << ".\n";
+    exit(1);
   }
 
   if (lpn_block05.get_type().compare(type05) != 0) {
-    std::cout << "Error. lpn_block05.type, " << lpn_block05.get_type() << ", does not match type05, " << type05 << ".\n";
+    std::cerr << "Error. lpn_block05.type, " << lpn_block05.get_type() << ", does not match type05, " << type05 << ".\n";
+    exit(1);
   }
 
   if (lpn_block05.get_connecting_block_list().size() != connecting_block_list05.size()) {
-    std::cout << "Error. lpn_block05.connecting_block_list.size, " << lpn_block05.get_connecting_block_list().size() << ", does not match connecting_block_list05.size, " << connecting_block_list05.size() << ".\n";
+    std::cerr << "Error. lpn_block05.connecting_block_list.size, " << lpn_block05.get_connecting_block_list().size() << ", does not match connecting_block_list05.size, " << connecting_block_list05.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < connecting_block_list05.size(); i++) {
       if (lpn_block05.get_connecting_block_list()[i].compare(connecting_block_list05[i]) != 0) {
-        std::cout << "Error. lpn_block05.connecting_block_list[i], " << lpn_block05.get_connecting_block_list()[i] << ", does not match connecting_block_list05[i], " << connecting_block_list05[i] << ".\n";
+        std::cerr << "Error. lpn_block05.connecting_block_list[i], " << lpn_block05.get_connecting_block_list()[i] << ", does not match connecting_block_list05[i], " << connecting_block_list05[i] << ".\n";
+        exit(1);
       }
     }
   }
 
   if (lpn_block05.get_flow_directions().size() != flow_directions05.size()) {
-    std::cout << "Error. lpn_block05.flow_directions.size, " << lpn_block05.get_flow_directions().size() << ", does not match flow_directions05.size, " << flow_directions05.size() << ".\n";
+    std::cerr << "Error. lpn_block05.flow_directions.size, " << lpn_block05.get_flow_directions().size() << ", does not match flow_directions05.size, " << flow_directions05.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < flow_directions05.size(); i++) {
       if (lpn_block05.get_flow_directions()[i] != flow_directions05[i]) {
-        std::cout << "Error. lpn_block05.flow_directions[i], " << lpn_block05.get_flow_directions()[i] << ", does not match flow_directions05[i], " << flow_directions05[i] << ".\n";
+        std::cerr << "Error. lpn_block05.flow_directions[i], " << lpn_block05.get_flow_directions()[i] << ", does not match flow_directions05[i], " << flow_directions05[i] << ".\n";
+        exit(1);
       }
     }
   }
@@ -122,25 +140,30 @@ int main() {
   wire06.set_lpn_solution_ids(lpn_solution_ids06);
 
   if (wire06.get_name().compare(name06) != 0) {
-    std::cout << "Error. wire06.name, " << wire06.get_name() << ", does not match name06, " << name06 << ".\n";
+    std::cerr << "Error. wire06.name, " << wire06.get_name() << ", does not match name06, " << name06 << ".\n";
+    exit(1);
   }
 
   if (wire06.get_connecting_block_list().size() != connecting_block_list06.size()) {
-    std::cout << "Error. wire06.connecting_block_list.size, " << wire06.get_connecting_block_list().size() << ", does not match connecting_block_list06.size, " << connecting_block_list06.size() << ".\n";
+    std::cerr << "Error. wire06.connecting_block_list.size, " << wire06.get_connecting_block_list().size() << ", does not match connecting_block_list06.size, " << connecting_block_list06.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < connecting_block_list06.size(); i++) {
       if ((*(wire06.get_connecting_block_list()[i])).get_name().compare((*(connecting_block_list06[i])).get_name()) != 0) {
-        std::cout << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire06.get_connecting_block_list()[i])).get_name() << ", does not match connecting_block_list06[i].name, " << (*(connecting_block_list06[i])).get_name() << ".\n";
+        std::cerr << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire06.get_connecting_block_list()[i])).get_name() << ", does not match connecting_block_list06[i].name, " << (*(connecting_block_list06[i])).get_name() << ".\n";
+        exit(1);
       }
     }
   }
 
   if (wire06.get_lpn_solution_ids().size() != lpn_solution_ids06.size()) {
-    std::cout << "Error. wire06.lpn_solution_ids.size, " << wire06.get_lpn_solution_ids().size() << ", does not match lpn_solution_ids.size, " << lpn_solution_ids06.size() << ".\n";
+    std::cerr << "Error. wire06.lpn_solution_ids.size, " << wire06.get_lpn_solution_ids().size() << ", does not match lpn_solution_ids.size, " << lpn_solution_ids06.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < lpn_solution_ids06.size(); i++) {
       if (wire06.get_lpn_solution_ids()[i] != lpn_solution_ids06[i]) {
-        std::cout << "Error. wire06.lpn_solution_ids[i], " << wire06.get_lpn_solution_ids()[i] << ", does not match lpn_solution_ids06[i], " << lpn_solution_ids06[i] << ".\n";
+        std::cerr << "Error. wire06.lpn_solution_ids[i], " << wire06.get_lpn_solution_ids()[i] << ", does not match lpn_solution_ids06[i], " << lpn_solution_ids06[i] << ".\n";
+        exit(1);
       }
     }
   }
@@ -160,27 +183,33 @@ int main() {
   lpn_block07.add_connecting_wire(name08);
   
   if (lpn_block03.get_connecting_block_list().size() != connecting_block_list03.size() + 1) {
-    std::cout << "Error. lpn_block03.connecting_block_list.size, " << lpn_block03.get_connecting_block_list().size() << ", does not match connecting_block_list03.size + 1 = " << connecting_block_list03.size() + 1 << ".\n";
+    std::cerr << "Error. lpn_block03.connecting_block_list.size, " << lpn_block03.get_connecting_block_list().size() << ", does not match connecting_block_list03.size + 1 = " << connecting_block_list03.size() + 1 << ".\n";
+    exit(1);
   } else {
     if (lpn_block03.get_connecting_block_list()[connecting_block_list03.size()].compare(name07) != 0) {
-      std::cout << "Error. lpn_block03.connecting_block_list[connecting_block_list03.size()], " << lpn_block03.get_connecting_block_list()[connecting_block_list03.size()] << ", does not match name07, " << name07 << ".\n";
+      std::cerr << "Error. lpn_block03.connecting_block_list[connecting_block_list03.size()], " << lpn_block03.get_connecting_block_list()[connecting_block_list03.size()] << ", does not match name07, " << name07 << ".\n";
+      exit(1);
     }
   }
   
   if (lpn_block03.get_flow_directions().size() != flow_directions03.size() + 1) {
-    std::cout << "Error. lpn_block03.flow_directions.size, " << lpn_block03.get_flow_directions().size() << ", does not match flow_directions03.size + 1 = " << flow_directions03.size() + 1 << ".\n";
+    std::cerr << "Error. lpn_block03.flow_directions.size, " << lpn_block03.get_flow_directions().size() << ", does not match flow_directions03.size + 1 = " << flow_directions03.size() + 1 << ".\n";
+    exit(1);
   } else {
     if (lpn_block03.get_flow_directions()[flow_directions03.size()] != -1) {
-      std::cout << "Error. lpn_block03.flow_directions[flow_directions03.size()], " << lpn_block03.get_flow_directions()[flow_directions03.size()] << ", does not equate to 1.\n";
+      std::cerr << "Error. lpn_block03.flow_directions[flow_directions03.size()], " << lpn_block03.get_flow_directions()[flow_directions03.size()] << ", does not equate to 1.\n";
+      exit(1);
     }
   }
   
   if (wire08.get_connecting_block_list().size() != connecting_block_list08.size()) {
-    std::cout << "Error. wire08.connecting_block_list.size, " << wire08.get_connecting_block_list().size() << ", does not match connecting_block_list08.size, " << connecting_block_list08.size() << ".\n";
+    std::cerr << "Error. wire08.connecting_block_list.size, " << wire08.get_connecting_block_list().size() << ", does not match connecting_block_list08.size, " << connecting_block_list08.size() << ".\n";
+    exit(1);
   } else {
     for (int i = 0; i < connecting_block_list08.size(); i++) {
       if ((*(wire08.get_connecting_block_list()[i])).get_name().compare((*(connecting_block_list08[i])).get_name()) != 0) {
-        std::cout << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire08.get_connecting_block_list()[i])).get_name() << ", does not match connecting_block_list08[i].name, " << (*(connecting_block_list08[i])).get_name() << ".\n";
+        std::cerr << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire08.get_connecting_block_list()[i])).get_name() << ", does not match connecting_block_list08[i].name, " << (*(connecting_block_list08[i])).get_name() << ".\n";
+        exit(1);
       }
     }
   }

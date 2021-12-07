@@ -247,7 +247,9 @@ public:
   void update_time(Args * args);
 };
 
-todo: for unit testing in c++: how to do it best: throw exception or use assert or what?? -- last here - 12/3/21 -- do this first when I this code again
+done - todo: for unit testing in c++: how to do it best: throw exception or use assert or what?? -- last here - 12/3/21 -- do this first when I this code again
+
+in addition to my error handling via exceptions, do I had to stderr or whatever or create log files or whatever or create error files or whatever? last here - 12/6/21 -- do this next after the above last here from 12/3/21 -- actually, since the 0d solver is supposed to be a pretty small code and something simple to use (just a numerical solver), dont worry about creating log files and everything. just print the errors directly to the terminal screen and that should be good enough.
 
 todo: review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
 
