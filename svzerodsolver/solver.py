@@ -558,7 +558,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     if draw_directed_graph == True: # todo: should I move this draw_directed_graph to a separate function outside of run_network_util, since this stuff is completely separate
         directed_graph_file_path = os.path.splitext(zero_d_solver_input_file_path)[0] + "_directed_graph"
         save_directed_graph(block_list, connect_list, directed_graph_file_path)
-    neq = connections.compute_neq(block_list, wire_dict) # number of equations governing the 0d model
+    n_eqn = connections.compute_n_eqn(block_list, wire_dict) # number of equations governing the 0d model
     for block in block_list: # run a consistency check
         connections.check_block_connection(block)
     var_name_list = connections.assign_global_ids(block_list, wire_dict) # assign solution variables with global ID
@@ -568,7 +568,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
         ICs_dict = np.load(ICs_npy_file_path, allow_pickle = True).item()
         y_initial, ydot_initial = load_in_ics(var_name_list, ICs_dict)
     else:
-        y_initial, ydot_initial = connections.initialize_solution_structures(neq) # initial conditions for all solutions are zero
+        y_initial, ydot_initial = connections.initialize_solution_structures(n_eqn) # initial conditions for all solutions are zero
     y_next = y_initial.copy()
     ydot_next = ydot_initial.copy()
 
@@ -579,7 +579,7 @@ def run_network_util(zero_d_solver_input_file_path, parameters, draw_directed_gr
     args['Wire dictionary'] = wire_dict
     args["check_jacobian"] = parameters["simulation_parameters"]["check_jacobian"]
 
-    # y_next, ydot_next = min_ydot_least_sq_init(neq, 1e-8, y_initial, block_list, args, parameters["simulation_parameters"]["delta_t"], rho)
+    # y_next, ydot_next = min_ydot_least_sq_init(n_eqn, 1e-8, y_initial, block_list, args, parameters["simulation_parameters"]["delta_t"], rho)
 
     print("starting simulation")
 

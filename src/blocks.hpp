@@ -38,20 +38,18 @@
 
 // todo: use static and const variables where necessary: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
 
-// todo: delete unused getters and setters
+// todo: delete unused getters and setters -- maybe to make my code simpler and cleaner, I should delete them now and then add them back later when I actually them?
 
 class LPNBlock; // forward declaration of LPNBlock; source: https://stackoverflow.com/questions/396084/headers-including-each-other-in-c
 
 class Wire {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
   std::string name;
   std::array<int, 2> lpn_solution_ids;
-  std::array<LPNBlock *, 2> connecting_block_list;
+  std::array<LPNBlock *, 2> connecting_block_list; // todo: LPNBlock also has a "connecting_block_list" field, but that one is a vector of strings instead. Therefore, consider changing Wire's connecting_block)list from an array of LPNBlock pointers to a vector of strings as well. This will create consistency between both classes' similarly-named fields. Do this after the entire implementation of svZeroDSolver is done
 
 public:
   //constuctor
-  Wire(const std::string& name, const std::array<LPNBlock *, 2>& connecting_block_list); // todo: LPNBlock also has a "connecting_block_list" field, but that one is a vector of strings instead. Therefore, consider changing Wire's connecting_block)list from an array of LPNBlock pointers to a vector of strings as well. This will create consistency between both classes' similarly-named fields. Do this after the entire implementation of svZeroDSolver is done
+  Wire(const std::string& name, const std::array<LPNBlock *, 2>& connecting_block_list);
   
   // destructor
   ~Wire(); // https://www.learncpp.com/cpp-tutorial/destructors/
@@ -66,8 +64,6 @@ public:
 };
 
 class Args {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
   double dt; // time step size
   double rho; // generalized-alpha rho parameter
   bool check_jacobian;
@@ -98,8 +94,6 @@ public:
 };
 
 class LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
   std::string name;
   std::string type;
   std::vector<std::string> connecting_block_list;
@@ -145,8 +139,6 @@ public:
 };
 
 class Junction : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -159,8 +151,6 @@ public:
 };
 
 class BloodVessel : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -173,8 +163,6 @@ public:
 };
 
 class UnsteadyResistanceWithDistalPressure : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -188,8 +176,6 @@ public:
 };
 
 class UnsteadyPressureRef : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -203,8 +189,6 @@ public:
 };
 
 class UnsteadyFlowRef : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -218,8 +202,6 @@ public:
 };
 
 class UnsteadyRCRBlockWithDistalPressure : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -232,8 +214,6 @@ public:
 };
 
 class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock {
-  // private
-  // these fields are inherently private, since they are declared above the "public" space
 
 public:
   // constructors
@@ -246,10 +226,6 @@ public:
   void update_constant(Args * args);
   void update_time(Args * args);
 };
-
-done - todo: for unit testing in c++: how to do it best: throw exception or use assert or what?? -- last here - 12/3/21 -- do this first when I this code again
-
-in addition to my error handling via exceptions, do I had to stderr or whatever or create log files or whatever or create error files or whatever? last here - 12/6/21 -- do this next after the above last here from 12/3/21 -- actually, since the 0d solver is supposed to be a pretty small code and something simple to use (just a numerical solver), dont worry about creating log files and everything. just print the errors directly to the terminal screen and that should be good enough.
 
 todo: review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
 

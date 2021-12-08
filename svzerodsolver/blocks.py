@@ -36,7 +36,7 @@ from collections import defaultdict
 
 class Wire:
     """
-    Wires connect LPNBlocks. Wires contain only a single pressure and flow value (which are part of the system variables / unknowns). Wires must be attached to two LPNBlocks, one at each end.
+    Wires connect LPNBlocks. Wires contain only a single pressure and flow value (which are part of the system variables). Wires must be attached to two LPNBlocks, one at each end.
     """
     def __init__(self, name = "NoNameWire"):
         self.name = name
@@ -44,17 +44,14 @@ class Wire:
 
 
 class LPNBlock:
-    def __init__(self, connecting_block_list = None, name = "NoName", flow_directions = []):
-        if connecting_block_list == None:
-            connecting_block_list = []
+    def __init__(self, connecting_block_list = [], name = "NoName", flow_directions = []):
         self.name = name
         self.connecting_block_list = connecting_block_list
-        self.neq = 2
-        
-        self.num_block_vars = 0
+        self.n_eqn = 2
+        self.n_block_var = 0
         self.connecting_wires_list = []
 
-        # -1 : Inflow to block, +1 outflow from block
+        # flow direction is -1 for flow into this block and +1 for flow out of this block
         self.flow_directions = flow_directions
 
         # solution IDs for the LPN block's internal solution variables
@@ -68,8 +65,8 @@ class LPNBlock:
         self.global_row_id = []
 
     def add_connecting_block(self, block, direction):
-        # Direction = +1 if flow sent to block
-        #            = -1 if flow recvd from block
+        # direction = +1 if flow sent from self to block
+        #           = -1 if flow sent from block to self
         self.connecting_block_list.append(block)
         self.flow_directions.append(direction)
 
@@ -94,41 +91,41 @@ class LPNBlock:
         """
         pass
 
-    def eqids(self, wire_dict, local_eq):
-        # EqID returns variable's location in solution vector
+    def get_global_equation_ids(self, wire_dict, local_solution_id):
+        """ 
+        Return the index at which the local solution variable resides in the global vector of solution variables.
+        """
+        
+        n_wire_var = len(self.connecting_block_list) * 2  # there are 2 soltns (P and Q) per wire
+        if local_solution_id < n_wire_var: # wire solution variable
+            var_type = local_solution_id % 2  # 0 --> P, 1 --> Q
+            local_wire_id = int(local_solution_id / 2)
 
-        nwirevars = len(self.connecting_block_list) * 2  # there are 2 soltns (P and Q) per wire
-        if local_eq < nwirevars:
-            vtype = local_eq % 2  # 0 --> P, 1 --> Q
-            wnum = int(local_eq / 2)
+            # Example: Assume len(self.connecting_block_list) is 2. This can be a normal resistor block, which has 2 connections. Then this R block has 2 connecting wires. thus, This R block has 4 related solution variables (P_in, Q_in, P_out, Q_out).
+            #     then for these are the var_types we get for each local_solution_id:
+            #  local_solution_id  : var_type :  local_wire_id
+            #         0           :     0    :       0        <---  var_type = pressure, local_wire_id = inlet wire
+            #         1           :     1    :       0        <---  var_type = flow,     local_wire_id = inlet wire
+            #         2           :     0    :       1        <---  var_type = pressure, local_wire_id = outlet wire
+            #         3           :     1    :       1        <---  var_type = flow,     local_wire_id = outlet wire
 
-            # Example: Assume len(self.connecting_block_list) is 2. This can be a normal resistor block, which has 2 connections. Then this R block has 2 connecting wires. thus, This R block has 4 related solution variables/unknowns (P_in, Q_in, P_out, Q_out). Note that local_eq = local ID.
-            #     then for these are the vtypes we get for each local_eq:
-            #         local_eq     :     vtype     :   wnum
-            #         0            :     0         :    0        <---    vtype = pressure, wnum = inlet wire
-            #         1            :     1         :    0        <---    vtype = flow, wnum = inlet wire
-            #         2            :     0         :    1        <---    vtype = pressure, wnum = outlet wire
-            #         3            :     1         :    1        <---    vtype = flow, wnum = outlet wire
-            #    note that vtype represents whether the solution variable in local_eq (local ID) is a P or Q solution
-            #        and wnum represents whether the solution variable in local_eq comes from the inlet wire or the outlet wire, for this LPNBlock with 2 connections (one inlet, one outlet)
-
-            return wire_dict[self.connecting_wires_list[wnum]].lpn_solution_ids[vtype]
-        else:  # this section will return the index at which the LPNBlock's  INTERNAL SOLUTION VARIABLES are stored in the global vector of solution unknowns/variables (i.e. I think RCR and OpenLoopCoronaryBlock have internal solution variables; these internal solution variables arent the P_in, Q_in, P_out, Q_out that correspond to the solutions on the attached wires, they are the solutions that are internal to the LPNBlock itself)
-            vnum = local_eq - nwirevars
-            return self.lpn_solution_ids[vnum]
+            return wire_dict[self.connecting_wires_list[local_wire_id]].lpn_solution_ids[var_type]
+        else: # block internal solution variable
+            internal_var_local_id = local_solution_id - n_wire_var
+            return self.lpn_solution_ids[internal_var_local_id]
 
 
 class Junction(LPNBlock):
     """
     Junction points between LPN blocks with specified directions of flow
     """
-    def __init__(self, connecting_block_list=None, name="NoNameJunction", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.neq = len(self.connecting_block_list)  # number of equations = num of blocks that connect to this junction, where the equations are 1) mass conservation 2) inlet pressures = outlet pressures
+    def __init__(self, connecting_block_list = None, name = "NoNameJunction", flow_directions = None):
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
+        self.n_eqn = len(self.connecting_block_list)  # number of equations = num of blocks that connect to this junction, where the equations are 1) mass conservation 2) inlet pressures = outlet pressures
 
     def add_connecting_block(self, block, direction):
         self.connecting_block_list.append(block)
-        self.neq = len(self.connecting_block_list)
+        self.n_eqn = len(self.connecting_block_list)
         self.flow_directions.append(direction)
 
     def update_constant(self):
@@ -156,7 +153,7 @@ class BloodVessel(LPNBlock):
         source: Mirramezani, M., Shadden, S.C. A distributed lumped parameter model of blood flow. Annals of Biomedical Engineering. 2020.
     """
     def __init__(self, R, C, L, stenosis_coefficient, connecting_block_list = None, name = "NoNameBloodVessel", flow_directions = None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
         self.R = R  # poiseuille resistance value = 8 * mu * L / (pi * r**4)
         self.C = C
         self.L = L
@@ -176,10 +173,9 @@ class BloodVessel(LPNBlock):
 
 
 class UnsteadyResistanceWithDistalPressure(LPNBlock):
-    def __init__(self, Rfunc, Pref_func, connecting_block_list=None, name="NoNameUnsteadyResistanceWithDistalPressure",
-                 flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.neq = 1
+    def __init__(self, Rfunc, Pref_func, connecting_block_list = None, name = "NoNameUnsteadyResistanceWithDistalPressure", flow_directions=None):
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
+        self.n_eqn = 1
         self.Rfunc = Rfunc
         self.Pref_func = Pref_func
 
@@ -196,9 +192,9 @@ class UnsteadyPressureRef(LPNBlock):
     """
     Unsteady P reference
     """
-    def __init__(self, Pfunc, connecting_block_list=None, name="NoNameUnsteadyPressureRef", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.neq = 1
+    def __init__(self, Pfunc, connecting_block_list = None, name = "NoNameUnsteadyPressureRef", flow_directions = None):
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
+        self.n_eqn = 1
         self.Pfunc = Pfunc
 
     def update_time(self, args):
@@ -213,9 +209,9 @@ class UnsteadyFlowRef(LPNBlock):
     """
     Flow reference
     """
-    def __init__(self, Qfunc, connecting_block_list=None, name="NoNameUnsteadyFlowRef", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.neq = 1
+    def __init__(self, Qfunc, connecting_block_list = None, name = "NoNameUnsteadyFlowRef", flow_directions = None):
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
+        self.n_eqn = 1
         self.Qfunc = Qfunc
 
     def update_time(self, args):
@@ -231,11 +227,10 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
     Unsteady RCR - time-varying RCR values
     Formulation includes additional variable : internal pressure proximal to capacitance.
     """
-    def __init__(self, Rp_func, C_func, Rd_func, Pref_func, connecting_block_list=None,
-                 name="NoNameUnsteadyRCRBlockWithDistalPressure", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.neq = 2
-        self.num_block_vars = 1
+    def __init__(self, Rp_func, C_func, Rd_func, Pref_func, connecting_block_list = None, name = "NoNameUnsteadyRCRBlockWithDistalPressure", flow_directions = None):
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
+        self.n_eqn = 2
+        self.n_block_var = 1
         self.Rp_func = Rp_func
         self.C_func = C_func
         self.Rd_func = Rd_func
@@ -256,11 +251,10 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
     open-loop coronary BC = RCRCR BC
     Publication reference: Kim, H. J. et al. Patient-specific modeling of blood flow and pressure in human coronary arteries. Annals of Biomedical Engineering 38, 3195–3209 (2010)."
     """
-    def __init__(self, Ra, Ca, Ram, Cim, Rv, Pim, Pv, cardiac_cycle_period, connecting_block_list=None,
-                 name="NoNameCoronary", flow_directions=None):
-        LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
-        self.neq = 2
-        self.num_block_vars = 1
+    def __init__(self, Ra, Ca, Ram, Cim, Rv, Pim, Pv, cardiac_cycle_period, connecting_block_list = None, name = "NoNameCoronary", flow_directions = None):
+        LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
+        self.n_eqn = 2
+        self.n_block_var = 1
         self.Ra = Ra
         self.Ca = Ca
         self.Ram = Ram

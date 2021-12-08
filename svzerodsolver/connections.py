@@ -142,31 +142,31 @@ def reorder_inblock_connectivity(block):
 
 
 # Function to compute number of equations from blocks and wires
-def compute_neq(block_list, wire_dict):
-    neq = 0
+def compute_n_eqn(block_list, wire_dict):
+    n_eqn = 0
     block_vars = 0
     for b in block_list:
-        neq += b.neq
-        block_vars += b.num_block_vars
+        n_eqn += b.n_eqn
+        block_vars += b.n_block_var
 
-    # print("Number of equations : ",neq)
+    # print("Number of equations : ",n_eqn)
 
     print("Number of unknowns = ", 2 * len(
         wire_dict.values()) + block_vars)  # wire_dict.values() gives me an iterable or whatever whose length is the number of wires in wire_dict (number of wires in our model). then we multiply by 2, because each wire has 2 solution variables (P and Q).
     print("Number of equations = ",
-          neq)  # number of unknowns (solutionv variables) = 2*len(wire_dict.values()) + block_vars
-    if 2 * len(wire_dict.values()) + block_vars != neq:
+          n_eqn)  # number of unknowns (solutionv variables) = 2*len(wire_dict.values()) + block_vars
+    if 2 * len(wire_dict.values()) + block_vars != n_eqn:
         print("Expected number of variables : ", 2 * len(wire_dict) + block_vars)
-        print("Number of equations = ", neq)
+        print("Number of equations = ", n_eqn)
         raise Exception('Mismatch between number of variables and equations')
 
-    return neq
+    return n_eqn
 
 
-def initialize_solution_structures(neq):
+def initialize_solution_structures(n_eqn):
     # Return y,ydot
-    return np.zeros(neq), np.zeros(
-        neq)  # recall that neq = number of solution variables = num of unknowns. thus, the global solution vector, y, should be of length neq
+    return np.zeros(n_eqn), np.zeros(
+        n_eqn)  # recall that n_eqn = number of solution variables = num of unknowns. thus, the global solution vector, y, should be of length n_eqn
 
 
 def assign_global_ids(block_list,
@@ -191,22 +191,22 @@ def assign_global_ids(block_list,
 
     for b in block_list:  # here, we assign the solution ids for the internal solutions of the LPNBlocks
         b.lpn_solution_ids = []
-        for j in range(b.num_block_vars):
+        for j in range(b.n_block_var):
             b.lpn_solution_ids.append(i)
             var_name_list.append('var_' + str(j) + '_' + b.name)
             i += 1
 
     offset = 0
     for b in block_list:
-        for local_id in range(b.num_block_vars + 2 * len(
-                b.connecting_block_list)):  # note that b.num_block_vars+2*len(b.connecting_block_list) = the total number of solution variables/unknowns associated with this LPNBlock. len(b.connecting_block_list) is the number of wires (and blocks) attached to the current LPNBlock and this number is multiplied by 2 because each wire has 2 solutions (P and Q). then, the block also has internal solutions, where the number of internal solutions that it has is = b.num_block_vars
-            b.global_col_id.append(b.eqids(wire_dict,
-                                           local_id))  # b.eqids returns the index at which the block's solution variable corresponding to local_id is located in the global vector of solution variables/unknowns.
-        for local_id in range(b.neq):
+        for local_id in range(b.n_block_var + 2 * len(
+                b.connecting_block_list)):  # note that b.n_block_var+2*len(b.connecting_block_list) = the total number of solution variables/unknowns associated with this LPNBlock. len(b.connecting_block_list) is the number of wires (and blocks) attached to the current LPNBlock and this number is multiplied by 2 because each wire has 2 solutions (P and Q). then, the block also has internal solutions, where the number of internal solutions that it has is = b.n_block_var
+            b.global_col_id.append(b.get_global_equation_ids(wire_dict,
+                                           local_id))  # b.get_global_equation_ids returns the index at which the block's solution variable corresponding to local_id is located in the global vector of solution variables/unknowns.
+        for local_id in range(b.n_eqn):
             b.global_row_id += [offset + local_id]
         b.global_col_id = np.array(b.global_col_id)
         b.global_row_id = np.array(b.global_row_id)
-        offset += b.neq
+        offset += b.n_eqn
         # recall that global_col_id is a list of the indices at which this LPNBlock's associated solution variables (Pin, Qin, Pout, Qout, and internal solutions) are stored in the global vector of solution variables/unknowns
 
     # print var_name_list
