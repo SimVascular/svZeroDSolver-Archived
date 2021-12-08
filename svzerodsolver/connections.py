@@ -119,10 +119,10 @@ def connect_blocks_by_connectivity_list(block_list, connectivity):
 
 
 def check_block_connection(block):
-    if len(block.flow_directions) != block.num_connections:
+    if len(block.flow_directions) != len(block.connecting_block_list):
         print("Block name: " + block.name)
         print("Block number of flows: ", len(block.flow_directions))
-        print("Block number of eqs: ", block.num_connections)
+        print("Block number of eqs: ", len(block.connecting_block_list))
 
         raise Exception("Number of connections donot match the number of inflows+outflows for this block")
 
