@@ -75,18 +75,16 @@ def connect_blocks_by_inblock_list(
             i += 1  # i is the index at which block, bB, is located in block bA's connecting_block_list
             if bA.flow_directions[i] == +1 and (id_bA, id_bB) not in connectivity:
                 name_wire = bA.name + '_' + bB.name
-                connecting_elements = (block_list[id_bA], block_list[id_bB])
-                # wire_dict[name_wire] = Wire(connecting_elements,name=name_wire)
+                # wire_dict[name_wire] = Wire(name=name_wire)
                 connectivity.append((id_bA,
                                      id_bB))  # connectivity stores pair-wise tuples of indices of the blocks that are connected; basically, if block 1 is connected to block 2 and the flow goes from block 1 to block 2, then connectivity will store a 2-element tuple, where the first element is the index at which block 1 is stored in block_list and the 2nd element is the index at which block 2 is stored in block_list. if the flow goes from block 2 to block 1, then connectivity will store a 2-element tuple, where the first element is the index at which block 2 is stored in block_list and the 2nd element is the index at which block 1 is stored in block_list.
             elif bA.flow_directions[i] == -1:
                 name_wire = bB.name + '_' + bA.name
-                connecting_elements = (block_list[id_bB], block_list[id_bA])
             #     block_list[id_bA].add_connecting_wire(name_wire)
             #     block_list[id_bB].add_connecting_wire(name_wire)
             else:
                 continue  # if this line is executed, then the next two lines (wire_dict[name_wire] = ... and block_list[id_bA] = ...) will not be executed
-            wire_dict[name_wire] = Wire(connecting_elements, name=name_wire)
+            wire_dict[name_wire] = Wire(name=name_wire)
             block_list[id_bA].add_connecting_wire(name_wire)
 
     return connectivity, wire_dict
@@ -100,10 +98,9 @@ def connect_blocks_by_connectivity_list(block_list, connectivity):
         e1name = block_list[e1].name
         e2name = block_list[e2].name
 
-        connecting_elements = (block_list[e1], block_list[e2])
         name_wire = e1name + '_' + e2name
 
-        wire_dict[name_wire] = Wire(connecting_elements, name=name_wire)
+        wire_dict[name_wire] = Wire(name=name_wire)
 
         if e2name not in block_list[e1].connecting_block_list:
             block_list[e1].add_connecting_wire(name_wire)

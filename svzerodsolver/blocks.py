@@ -40,15 +40,8 @@ class Wire:
     They can only posses a single pressure and flow value (system variables)
     They can also only possess one element(or junction) at each end
     """
-    def __init__(self, connecting_elements, name="NoNameWire"):
+    def __init__(self, name="NoNameWire"):
         self.name = name
-        if len(connecting_elements) > 2:
-            raise Exception('Wire cannot connect to more than two elements at a time. Use a junction LPN block')
-        if len(connecting_elements) != 2:
-            raise ExceptIOn("Wire must be connected to exactly two elements.")
-        if type(connecting_elements) != tuple:
-            raise Exception('Connecting elements to Wire should be passed as a 2-tuple')
-        self.connecting_elements = connecting_elements
         self.lpn_solution_ids = [None] * 2
 
 
