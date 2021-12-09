@@ -31,7 +31,7 @@
 //#include <string>
 #include "blocks.hpp"
 
-Wire::Wire(const std::string& name, const std::array<LPNBlock *, 2>& connecting_block_list) : name(name), connecting_block_list(connecting_block_list) {}
+Wire::Wire(const std::string& name) : name(name) {}
 
 Wire::~Wire() {} // https://www.mycplus.com/tutorials/cplusplus-programming-tutorials/destructors/
 
@@ -45,10 +45,6 @@ std::string Wire::get_name() const {
 
 std::array<int, 2> Wire::get_lpn_solution_ids() const {
   return lpn_solution_ids;
-}
-
-std::array<LPNBlock *, 2> Wire::get_connecting_block_list() const {
-  return connecting_block_list;
 }
 
 LPNBlock::LPNBlock() {}
@@ -77,8 +73,8 @@ int LPNBlock::get_num_connections() const {
   return num_connections;
 }
 
-int LPNBlock::get_neq() const {
-  return neq;
+int LPNBlock::get_n_eqn() const {
+  return n_eqn;
 }
 
 void LPNBlock::add_connecting_block(const std::string& block_name, int direction) {

@@ -133,27 +133,14 @@ int main() {
     }
   }
 
-  std::array<LPNBlock *, 2> connecting_block_list06 {&lpn_block03, &lpn_block04};
   std::string name06 = "wire06";
   std::array<int, 2> lpn_solution_ids06 {1, 2};
-  Wire wire06 = Wire(name06, connecting_block_list06);
+  Wire wire06 = Wire(name06);
   wire06.set_lpn_solution_ids(lpn_solution_ids06);
 
   if (wire06.get_name().compare(name06) != 0) {
     std::cerr << "Error. wire06.name, " << wire06.get_name() << ", does not match name06, " << name06 << ".\n";
     exit(1);
-  }
-
-  if (wire06.get_connecting_block_list().size() != connecting_block_list06.size()) {
-    std::cerr << "Error. wire06.connecting_block_list.size, " << wire06.get_connecting_block_list().size() << ", does not match connecting_block_list06.size, " << connecting_block_list06.size() << ".\n";
-    exit(1);
-  } else {
-    for (int i = 0; i < connecting_block_list06.size(); i++) {
-      if ((*(wire06.get_connecting_block_list()[i])).get_name().compare((*(connecting_block_list06[i])).get_name()) != 0) {
-        std::cerr << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire06.get_connecting_block_list()[i])).get_name() << ", does not match connecting_block_list06[i].name, " << (*(connecting_block_list06[i])).get_name() << ".\n";
-        exit(1);
-      }
-    }
   }
 
   if (wire06.get_lpn_solution_ids().size() != lpn_solution_ids06.size()) {
@@ -174,9 +161,8 @@ int main() {
   std::vector<int> flow_directions07 {1};
   LPNBlock lpn_block07 = LPNBlock(name07, type07, connecting_block_list07, flow_directions07);
   
-  std::array<LPNBlock *, 2> connecting_block_list08 {&lpn_block07, &lpn_block03};
   std::string name08 = "wire08";
-  Wire wire08 = Wire(name08, connecting_block_list08);
+  Wire wire08 = Wire(name08);
   
   lpn_block03.add_connecting_block(name07, -1);
   lpn_block03.add_connecting_wire(name08);
@@ -201,21 +187,6 @@ int main() {
       exit(1);
     }
   }
-  
-  if (wire08.get_connecting_block_list().size() != connecting_block_list08.size()) {
-    std::cerr << "Error. wire08.connecting_block_list.size, " << wire08.get_connecting_block_list().size() << ", does not match connecting_block_list08.size, " << connecting_block_list08.size() << ".\n";
-    exit(1);
-  } else {
-    for (int i = 0; i < connecting_block_list08.size(); i++) {
-      if ((*(wire08.get_connecting_block_list()[i])).get_name().compare((*(connecting_block_list08[i])).get_name()) != 0) {
-        std::cerr << "Error. lpn_block06.connecting_block_list[i].name, " << (*(wire08.get_connecting_block_list()[i])).get_name() << ", does not match connecting_block_list08[i].name, " << (*(connecting_block_list08[i])).get_name() << ".\n";
-        exit(1);
-      }
-    }
-  }
 
   return 0;
-  
-  // last here - todo: use assert instead of print statements -- works only in debug mode
-  // - or throw exceptions
 }

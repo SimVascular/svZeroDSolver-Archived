@@ -45,11 +45,10 @@ class LPNBlock; // forward declaration of LPNBlock; source: https://stackoverflo
 class Wire {
   std::string name;
   std::array<int, 2> lpn_solution_ids;
-  std::array<LPNBlock *, 2> connecting_block_list; // todo: LPNBlock also has a "connecting_block_list" field, but that one is a vector of strings instead. Therefore, consider changing Wire's connecting_block)list from an array of LPNBlock pointers to a vector of strings as well. This will create consistency between both classes' similarly-named fields. Do this after the entire implementation of svZeroDSolver is done
 
 public:
   //constuctor
-  Wire(const std::string& name, const std::array<LPNBlock *, 2>& connecting_block_list);
+  Wire(const std::string& name);
   
   // destructor
   ~Wire(); // https://www.learncpp.com/cpp-tutorial/destructors/
@@ -60,7 +59,6 @@ public:
   // getters
   std::string get_name() const;
   std::array<int, 2> get_lpn_solution_ids() const;
-  std::array<LPNBlock *, 2> get_connecting_block_list() const;
 };
 
 class Args {
@@ -99,8 +97,8 @@ class LPNBlock {
   std::vector<std::string> connecting_block_list;
   std::vector<int> flow_directions;
   int num_connections;
-  int neq;
-  int num_block_vars;
+  int n_eqn;
+  int n_block_var;
   std::vector<std::string> connecting_wires_list;
   std::vector<int> lpn_solution_ids; // solution IDs for the LPN block's internal solution variables
 
@@ -127,7 +125,7 @@ public:
   std::vector<std::string> get_connecting_block_list() const;
   std::vector<int> get_flow_directions() const;
   int get_num_connections() const;
-  int get_neq() const; 
+  int get_n_eqn() const; 
 
   // misc
   void add_connecting_block(const std::string& block_name, int direction);
@@ -138,99 +136,103 @@ public:
   virtual void update_solution(Args * args); // todo: should this be a "const Args * args" (a pointer to a const Args)? (see "Pointers and const" in https://www.cplusplus.com/doc/tutorial/pointers/) I dont think so because it is possible that update_solution will change one of the fields in args
 };
 
-class Junction : public LPNBlock {
-
-public:
-  // constructors
-
-  // destructor
-
-  // setters
-
-  // getters
-};
-
-class BloodVessel : public LPNBlock {
-
-public:
-  // constructors
-
-  // destructor
-
-  // setters
-
-  // getters
-};
-
-class UnsteadyResistanceWithDistalPressure : public LPNBlock {
-
-public:
-  // constructors
-  UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
-    11/10/21: last here - how to pass a function as an argument to another function, e.g., how to pass Rfunc (a function) as an argument to this UnsteadyResistanceWithDistalPressure constructor?
-
-  // destructor
-
-  // misc
-  void update_time(Args * args);
-};
-
-class UnsteadyPressureRef : public LPNBlock {
-
-public:
-  // constructors
-  UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
-
-  // destructor
-
-  // misc
-  void update_constant(Args * args);
-  void update_time(Args * args);
-};
-
-class UnsteadyFlowRef : public LPNBlock {
-
-public:
-  // constructors
-  UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
-
-  // destructor
-
-  // misc
-  void update_constant(Args * args);
-  void update_time(Args * args);
-};
-
-class UnsteadyRCRBlockWithDistalPressure : public LPNBlock {
-
-public:
-  // constructors
-  UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
-
-  // destructor
-
-  // misc
-  void update_time(Args * args);
-};
-
-class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock {
-
-public:
-  // constructors
-  OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
-
-  // destructor
-
-  // misc
-  double get_P_at_t(P, t);
-  void update_constant(Args * args);
-  void update_time(Args * args);
-};
-
-todo: review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
-
-todo: do all todos first, so that I dont forget to do something
-
-todo: do all last here's
+// class Junction : public LPNBlock {
+// 
+// public:
+//   // constructors
+// 
+//   // destructor
+// 
+//   // setters
+// 
+//   // getters
+// };
+// 
+// class BloodVessel : public LPNBlock {
+// 
+// public:
+//   // constructors
+// 
+//   // destructor
+// 
+//   // setters
+// 
+//   // getters
+// };
+// 
+// class UnsteadyResistanceWithDistalPressure : public LPNBlock {
+// 
+// public:
+//   // constructors
+//   UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
+//     11/10/21: last here - how to pass a function as an argument to another function, e.g., how to pass Rfunc (a function) as an argument to this UnsteadyResistanceWithDistalPressure constructor?
+// 
+//   // destructor
+// 
+//   // misc
+//   void update_time(Args * args);
+// };
+// 
+// class UnsteadyPressureRef : public LPNBlock {
+// 
+// public:
+//   // constructors
+//   UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
+// 
+//   // destructor
+// 
+//   // misc
+//   void update_constant(Args * args);
+//   void update_time(Args * args);
+// };
+// 
+// class UnsteadyFlowRef : public LPNBlock {
+// 
+// public:
+//   // constructors
+//   UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
+// 
+//   // destructor
+// 
+//   // misc
+//   void update_constant(Args * args);
+//   void update_time(Args * args);
+// };
+// 
+// class UnsteadyRCRBlockWithDistalPressure : public LPNBlock {
+// 
+// public:
+//   // constructors
+//   UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
+// 
+//   // destructor
+// 
+//   // misc
+//   void update_time(Args * args);
+// };
+// 
+// class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock {
+// 
+// public:
+//   // constructors
+//   OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
+// 
+//   // destructor
+// 
+//   // misc
+//   double get_P_at_t(P, t);
+//   void update_constant(Args * args);
+//   void update_time(Args * args);
+// };
+// 
+// clean blocks.py first (so that I can do a direct 1-to-1 conversion from pytho too c++) more easily
+// 
+// then review this code and make sure that all the classes and functions and variable names etc match exactly what is in blocks.py
+// 
+// todo: review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
+// 
+// todo: do all todos first, so that I dont forget to do something
+// 
+// todo: do all last here's
 
 #endif
