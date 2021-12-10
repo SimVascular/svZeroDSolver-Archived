@@ -123,15 +123,10 @@ class Junction(LPNBlock):
         LPNBlock.__init__(self, connecting_block_list, name = name, flow_directions = flow_directions)
         self.n_eqn = len(self.connecting_block_list)  # number of equations = num of blocks that connect to this junction, where the equations are 1) mass conservation 2) inlet pressures = outlet pressures
 
-    def add_connecting_block(self, block, direction):
-        self.connecting_block_list.append(block)
-        self.n_eqn = len(self.connecting_block_list)
-        self.flow_directions.append(direction)
-
     def update_constant(self):
         # Number of variables per tuple = 2 * len(self.connecting_block_list)
         # Number of equations = len(self.connecting_block_list) - 1 Pressure equations, 1 flow equation
-        # Format : P1,Q1,P2,Q2,P3,Q3, .., Pn,Qm
+        # Format : P1, Q1, P2, Q2, P3, Q3, .., Pn, Qm
         self.mat['F'] = [(1.,) + (0,) * (2 * i + 1) + (-1,) + (0,) * (2 * len(self.connecting_block_list) - 2 * i - 3) for i in
                          range(len(self.connecting_block_list) - 1)]
 

@@ -38,201 +38,201 @@
 
 // todo: use static and const variables where necessary: https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/ ; https://www.learncpp.com/cpp-tutorial/const-constexpr-and-symbolic-constants/
 
-// todo: delete unused getters and setters -- maybe to make my code simpler and cleaner, I should delete them now and then add them back later when I actually them?
+// todo: delete unused getters and setters -- maybe to make my code simpler and cleaner, I should delete them now and then add them back later when I actually them? according to https://stackoverflow.com/questions/1568091/why-use-getters-and-setters-accessors , maybe I should just use getters and setters for every variable
 
 class LPNBlock; // forward declaration of LPNBlock; source: https://stackoverflow.com/questions/396084/headers-including-each-other-in-c
 
-class Wire {
-  std::string name;
-  std::array<int, 2> lpn_solution_ids;
+class Wire 
+{
+    std::string name;
+    std::array<int, 2> lpn_solution_ids;
 
 public:
-  //constuctor
-  Wire(const std::string& name);
-  
-  // destructor
-  ~Wire(); // https://www.learncpp.com/cpp-tutorial/destructors/
+    Wire(const std::string& name);
+    ~Wire(); // https://www.learncpp.com/cpp-tutorial/destructors/
     
-  // setters
-  void set_lpn_solution_ids(const std::array<int, 2>& lpn_solution_ids);
+    // setters
+    void set_lpn_solution_ids(const std::array<int, 2>& lpn_solution_ids);
 
-  // getters
-  std::string get_name() const;
-  std::array<int, 2> get_lpn_solution_ids() const;
+    // getters
+    std::string get_name() const;
+    std::array<int, 2> get_lpn_solution_ids() const; // https://www.learncpp.com/cpp-tutorial/const-class-objects-and-member-functions/
 };
 
-class Args {
-  double dt; // time step size
-  double rho; // generalized-alpha rho parameter
-  bool check_jacobian;
-  std::unordered_map<std::string, Wire *> wire_dict;
-  double time; // current time?? or time_af??
-  
-  // some_kind_of_eigen_vector yaf; // (the "Solution" key)
-  
+class Args 
+{
+    double dt; // time step size
+    double rho; // generalized-alpha rho parameter
+    bool check_jacobian;
+    std::unordered_map<std::string, Wire *> wire_dict;
+    double time; // current time?? or time_af??
+    
+    // some_kind_of_eigen_vector yaf; // (the "Solution" key)
+    
 public:
-  // constructors
-  Args(double dt, double rho, bool check_jacobian, const std::unordered_map<std::string, Wire *>& wire_dict);
-  
-  // destructor
-  ~Args();
-  
-  // getters
-  double get_dt() const;
-  double get_rho() const;
-  bool get_check_jacobian() const;
-  std::unordered_map<std::string, Wire *> get_wire_dict();
-  double get_time() const;
-  
-  // misc
-  void update_time();
-  void update_yaf();
-  
-  // last here - need to make unit tests and test cases for EVERYTHING INSIDE ARGS
+    Args(double dt, double rho, bool check_jacobian, const std::unordered_map<std::string, Wire *>& wire_dict);
+    ~Args();
+    
+    // getters
+    double get_dt() const;
+    double get_rho() const;
+    bool get_check_jacobian() const;
+    std::unordered_map<std::string, Wire *> get_wire_dict() const;
+    double get_time() const;
 };
 
-class LPNBlock {
-  std::string name;
-  std::string type;
-  std::vector<std::string> connecting_block_list;
-  std::vector<int> flow_directions;
-  int num_connections;
-  int n_eqn;
-  int n_block_var;
-  std::vector<std::string> connecting_wires_list;
-  std::vector<int> lpn_solution_ids; // solution IDs for the LPN block's internal solution variables
+class LPNBlock 
+{
+    int n_eqn;
+    int n_block_var;
+    std::vector<std::string> connecting_wires_list;
+    
+    // solution IDs for the LPN block's internal solution variables
+    std::vector<int> lpn_solution_ids;
 
-  std::unordered_map<char, std::vector<std::vector<double>>> mat; // todo: need to create a function to initialize map to have 'E', 'F', 'C', 'dE', 'dF', 'dC' keys with default values of empty vectors for the std::vector<std::vector<double>> values
-
-  // row and column indices of block in global matrices
-  std::vector<int> global_col_id;
-  std::vector<int> global_row_id;
+    // row and column indices of block in global matrices
+    std::vector<int> global_col_id;
+    std::vector<int> global_row_id;
 
 public:
-  // constructors
-  LPNBlock(); // default constructor; https://stackoverflow.com/questions/31211319/no-matching-function-for-call-to-class-constructor
-  LPNBlock(const std::string& name, const std::string& type, const std::vector<std::string>& connecting_block_list, const std::vector<int>& flow_directions);
-  
-  // destructor
-  virtual ~LPNBlock(); // https://stackoverflow.com/questions/3065154/undefined-reference-to-vtable ; https://www.geeksforgeeks.org/virtual-destructor/
+    LPNBlock(); // default constructor; https://stackoverflow.com/questions/31211319/no-matching-function-for-call-to-class-constructor
+    LPNBlock(const std::string& name, const std::vector<std::string>& connecting_block_list, const std::vector<int>& flow_directions);
+    virtual ~LPNBlock(); // https://stackoverflow.com/questions/3065154/undefined-reference-to-vtable ; https://www.geeksforgeeks.org/virtual-destructor/
 
-  // setters
-  
+    // getters
+    std::string get_name() const;
+    std::vector<std::string> get_connecting_block_list() const;
+    int get_n_eqn() const; 
+    int get_n_block_var() const;
+    std::vector<std::string> get_connecting_wires_list() const;
+    std::vector<int> get_flow_directions() const;
+    std::vector<int> get_lpn_solution_ids() const; 
+    std::unordered_map<char, std::vector<std::vector<double>>> get_mat() const;
+    std::vector<int> get_global_col_id() const;
+    std::vector<int> get_global_row_id() const;
 
-  // getters
-  std::string get_name() const;
-  std::string get_type() const;
-  std::vector<std::string> get_connecting_block_list() const;
-  std::vector<int> get_flow_directions() const;
-  int get_num_connections() const;
-  int get_n_eqn() const; 
-
-  // misc
-  void add_connecting_block(const std::string& block_name, int direction);
-  void add_connecting_wire(const std::string& wire_name);
-  // int get_equation_id(std::unordered_map<std::string, Wire *>, int); // todo: write function for get_equation_id
-  virtual void update_constant(Args * args);
-  virtual void update_time(Args * args);
-  virtual void update_solution(Args * args); // todo: should this be a "const Args * args" (a pointer to a const Args)? (see "Pointers and const" in https://www.cplusplus.com/doc/tutorial/pointers/) I dont think so because it is possible that update_solution will change one of the fields in args
+    // misc
+    
+    void add_connecting_block(const std::string& block_name, int direction);
+    void add_connecting_wire(const std::string& wire_name);
+    
+    /* Update solution- and time-independent blocks */
+    virtual void update_constant();
+    
+    /* Update time-dependent blocks */
+    virtual void update_time(Args * args);
+    
+    /* Update solution-dependent blocks */
+    virtual void update_solution(Args * args);
+    
+    /* Return the index at which the local solution variable resides in the global vector of solution variables. */
+    int get_global_equation_ids(std::unordered_map<std::string, Wire *> wire_dict, int local_solution_id);
+    
+protected:
+    std::string name;
+    std::vector<std::string> connecting_block_list;
+    
+    // flow direction is -1 for flow into this block and +1 for flow out of this block
+    std::vector<int> flow_directions;
+    
+    // block matrices
+    std::unordered_map<char, std::vector<std::vector<double>>> mat; // todo: need to create a function to initialize map to have 'E', 'F', 'C', 'dE', 'dF', 'dC' keys with default values of empty vectors for the std::vector<std::vector<double>> values
+    
+    // setters
+    void set_n_eqn(int n_eqn);
 };
 
-// class Junction : public LPNBlock {
+class Junction : public LPNBlock 
+{
+public:
+    Junction(const std::string& name, const std::vector<std::string>& connecting_block_list, const std::vector<int>& flow_directions);
+    ~Junction();
+    
+    // misc
+    void update_constant() override; // override keyword: https://www.programiz.com/cpp-programming/virtual-functions
+};
+
+// class BloodVessel : public LPNBlock 
+// {
 // 
 // public:
-//   // constructors
+//     // constructors
 // 
-//   // destructor
+//     // destructor
 // 
-//   // setters
+//     // setters
 // 
-//   // getters
+//     // getters
 // };
 // 
-// class BloodVessel : public LPNBlock {
+// class UnsteadyResistanceWithDistalPressure : public LPNBlock 
+// {
 // 
 // public:
-//   // constructors
-// 
-//   // destructor
-// 
-//   // setters
-// 
-//   // getters
-// };
-// 
-// class UnsteadyResistanceWithDistalPressure : public LPNBlock {
-// 
-// public:
-//   // constructors
-//   UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
+//     // constructors
+//     UnsteadyResistanceWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rfunc, Pref_func); 
 //     11/10/21: last here - how to pass a function as an argument to another function, e.g., how to pass Rfunc (a function) as an argument to this UnsteadyResistanceWithDistalPressure constructor?
 // 
-//   // destructor
+//     // destructor
 // 
-//   // misc
-//   void update_time(Args * args);
+//     // misc
+//     void update_time(Args * args);
 // };
 // 
-// class UnsteadyPressureRef : public LPNBlock {
+// class UnsteadyPressureRef : public LPNBlock 
+// {
 // 
 // public:
-//   // constructors
-//   UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
+//     // constructors
+//     UnsteadyPressureRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Pfunc);
 // 
-//   // destructor
+//     // destructor
 // 
-//   // misc
-//   void update_constant(Args * args);
-//   void update_time(Args * args);
+//     // misc
+//     void update_constant(Args * args);
+//     void update_time(Args * args);
 // };
-// 
-// class UnsteadyFlowRef : public LPNBlock {
+
+class UnsteadyFlowRef : public LPNBlock 
+{
+    last here - create this UnsteadyFlowRef function first, so that I can connect an instance of it to the junction instance and then test Junction and UnsteadyFlowRef blocks
+public:
+    // constructors
+    UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
+
+    // destructor
+
+    // misc
+    void update_constant(Args * args);
+    void update_time(Args * args);
+};
+
+// class UnsteadyRCRBlockWithDistalPressure : public LPNBlock 
+// {
 // 
 // public:
-//   // constructors
-//   UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
+//     // constructors
+//     UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
 // 
-//   // destructor
+//     // destructor
 // 
-//   // misc
-//   void update_constant(Args * args);
-//   void update_time(Args * args);
+//     // misc
+//     void update_time(Args * args);
 // };
 // 
-// class UnsteadyRCRBlockWithDistalPressure : public LPNBlock {
+// class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock 
+// {
 // 
 // public:
-//   // constructors
-//   UnsteadyRCRBlockWithDistalPressure(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Rp_func, C_func, Rd_func, Pref_func);
+//     // constructors
+//     OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
 // 
-//   // destructor
+//     // destructor
 // 
-//   // misc
-//   void update_time(Args * args);
+//     // misc
+//     double get_P_at_t(P, t);
+//     void update_constant(Args * args);
+//     void update_time(Args * args);
 // };
-// 
-// class OpenLoopCoronaryWithDistalPressureBlock : public LPNBlock {
-// 
-// public:
-//   // constructors
-//   OpenLoopCoronaryWithDistalPressureBlock(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, double Ra, double Ca, double Ram, double Cim, double Rv, Pim, Pv, double cardiac_cycle_period);
-// 
-//   // destructor
-// 
-//   // misc
-//   double get_P_at_t(P, t);
-//   void update_constant(Args * args);
-//   void update_time(Args * args);
-// };
-// 
-// clean blocks.py first (so that I can do a direct 1-to-1 conversion from pytho too c++) more easily
-// 
-// then review this code and make sure that all the classes and functions and variable names etc match exactly what is in blocks.py
-// 
-// todo: review this code in its entirely to make sure that I recall and understand everything again, before continuing the below todo items
-// 
-// todo: do all todos first, so that I dont forget to do something
-// 
-// todo: do all last here's
 
 #endif
