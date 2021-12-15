@@ -195,7 +195,8 @@ public:
 
 class UnsteadyFlowRef : public LPNBlock 
 {
-    last here - create this UnsteadyFlowRef function first, so that I can connect an instance of it to the junction instance and then test Junction and UnsteadyFlowRef blocks
+    // last here - create this UnsteadyFlowRef function first, so that I can connect an instance of it to the junction instance and then test Junction and UnsteadyFlowRef blocks
+    Qfunc - so I can make Qfunc a function pointer that points to an actual function somewhere else, but if I make to pass a spline in as the function for Qfunc, then how would I do that? I cant just write a brand new function to create a spline, can I? Maybe rather than using Eigen to create the spline, I could write a general function that solves for a general cubic spline and returns a function pointer to that spline function (which would take in as inputs, the coefficients defining the spline and a variable x, which dictates where to evaluate that spline).
 public:
     // constructors
     UnsteadyFlowRef(std::string name, std::vector<std::string> connecting_block_list, std::vector<int> flow_directions, Qfunc);
