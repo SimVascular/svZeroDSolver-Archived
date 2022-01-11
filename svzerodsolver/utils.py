@@ -74,7 +74,7 @@ def extract_info_from_solver_input_file(solver_input_file_path, one_d_inlet_segm
                                             "PRESSURE"      : ["P"],
                                             "RESISTANCE"    : ["R", "Pd"],
                                             "RCR"           : ["Rp", "C", "Rd", "Pd"],
-                                            "CORONARY"      : ["Ra1", "Ra2", "Ca", "Cc", "Rv1", "Pv", "Pim"]
+                                            "CORONARY"      : ["Ra1", "Ra2", "Ca", "Cc", "Rv1", "P_v", "Pim"]
                                          })
 
     segment_names = {} # {segment number : segment name}

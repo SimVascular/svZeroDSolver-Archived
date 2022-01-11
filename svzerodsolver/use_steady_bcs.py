@@ -130,7 +130,7 @@ def convert_unsteady_bcs_to_steady(parameters):
                 Rv1 = parameters["boundary_conditions"][index_of_bc]["bc_values"]["Rv1"]
                 Cc  = parameters["boundary_conditions"][index_of_bc]["bc_values"]["Cc"]
                 Pim = parameters["boundary_conditions"][index_of_bc]["bc_values"]["Pim"]
-                Pv_distal_pressure = parameters["boundary_conditions"][index_of_bc]["bc_values"]["Pv"]
+                Pv_distal_pressure = parameters["boundary_conditions"][index_of_bc]["bc_values"]["P_v"]
                 equivalent_R = Ra1 + Ra2 + Rv1 # add resistances in series
                 parameters["boundary_conditions"][index_of_bc]["bc_values"] = {"R" : equivalent_R, "Pd" : Pv_distal_pressure}
                 parameters["boundary_conditions"][index_of_bc]["bc_type"]   = "RESISTANCE"
