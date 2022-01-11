@@ -373,7 +373,7 @@ def create_outlet_bc_blocks(parameters, custom_0d_elements_arguments):
             Ca = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Ca"]
             Cc = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Cc"]
             Rv1 = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Rv1"]
-            Pv_distal_pressure = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["Pv"]
+            Pv_distal_pressure = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["P_v"]
 
             time_of_intramyocardial_pressure = vessel_id_to_boundary_condition_map[vessel_id]["outlet"]["bc_values"]["t"]
 

@@ -8,11 +8,11 @@
                                             "inlet:",
                                                 "flow rate: Q(t) = 2.5*SIN(2*PI()*t) + 2.2",
                                             "outlet:",
-                                                "Coronary: Ra1 = 100, Ra2 = 100, Rv1 = 100, distal pressure = Pv = 0",
+                                                "Coronary: Ra1 = 100, Ra2 = 100, Rv1 = 100, distal pressure = P_v = 0",
                                         "Solutions:",
                                             "inlet flow  (at time = t0) = Q(t = 0) = 2.2",
                                             "outlet flow (at time = t0) = Q(t = 0) = 2.2",
-                                            "outlet pressure (at time = t0) = Q(t = 0) * (Ra1 + Ra2 + Rv1) + Pv =  2.2 * (100 + 100 + 100) + 0 = 660",
+                                            "outlet pressure (at time = t0) = Q(t = 0) * (Ra1 + Ra2 + Rv1) + P_v =  2.2 * (100 + 100 + 100) + 0 = 660",
                                             "inlet pressure (at time = t0) = outlet pressure + Q(t = 0) * R_poiseuille = 660 + 2.2 * 100 = 880"
                                    ]
     },
@@ -239,7 +239,7 @@
                     1000.0,
                     1000.0
                 ],
-                "Pv": 0.0,
+                "P_v": 0.0,
                 "Ra1": 100.0,
                 "Ra2": 100.0,
                 "Rv1": 100.0,
