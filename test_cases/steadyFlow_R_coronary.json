@@ -7,9 +7,9 @@
                                             "inlet:",
                                                 "flow rate: Q = 5",
                                             "outlet:",
-                                                "Coronary: Ra1 = 100, Ra2 = 100, Rv1 = 100, distal pressure = Pv = 0",
+                                                "Coronary: Ra1 = 100, Ra2 = 100, Rv1 = 100, distal pressure = P_v = 0",
                                         "Solutions:",
-                                            "outlet pressure = Q * (Ra1 + Ra2 + Rv1) + Pv =  5 * (100 + 100 + 100) + 0 = 1500",
+                                            "outlet pressure = Q * (Ra1 + Ra2 + Rv1) + P_v =  5 * (100 + 100 + 100) + 0 = 1500",
                                             "inlet pressure = outlet pressure + Q * R_poiseuille = 1500 + 5 * 100 = 2000"
                                    ]
     },
@@ -38,7 +38,7 @@
                     1000.0,
                     1000.0
                 ],
-                "Pv": 0.0,
+                "P_v": 0.0,
                 "Ra1": 100.0,
                 "Ra2": 100.0,
                 "Rv1": 100.0,
