@@ -131,7 +131,6 @@ class LPNBlock:
         self.name = name
         self.neq = 2
         self.n_connect = 2
-        self.n_connect = None
         self.type = "ArbitraryBlock"
         self.num_block_vars = 0
         self.connecting_wires_list = []
@@ -248,6 +247,8 @@ class BloodVessel(LPNBlock):
     def __init__(self, R, C, L, stenosis_coefficient, connecting_block_list = None, name = "NoNameBloodVessel", flow_directions = None):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
         self.type = "BloodVessel"
+        self.neq = 3
+        self.num_block_vars = 1
         self.R = R  # poiseuille resistance value = 8 * mu * L / (pi * r**4)
         self.C = C
         self.L = L
@@ -256,14 +257,23 @@ class BloodVessel(LPNBlock):
     # the ordering of the solution variables is : (P_in, Q_in, P_out, Q_out)
 
     def update_constant(self):
-        self.mat['E'] = [(0, 0, 0, -self.L), (-self.C, self.C * self.R, 0, 0)]
+        self.mat['E'] = ([  (0, 0, 0, -self.L, 0), 
+                            (0, 0, 0, 0, -self.C), 
+                            (0,) * 5
+                        ])
 
     def update_solution(self, args):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
         wire_dict = args['Wire dictionary']
         Q_in = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[1]]
-        self.mat['F'] = [(1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0), (0, 1.0, 0, -1.0)]
-        self.mat['dF'] = [(0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0), (0,) * 4]
+        self.mat['F'] = ([  (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0, 0), 
+                            (0, 1.0, 0, -1.0, 0), 
+                            (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, 0, 0, -1.0)
+                        ])
+        self.mat['dF'] = ([ (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0, 0), 
+                            (0,) * 5, 
+                            (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0, 0)
+                         ])
 
 
 class UnsteadyResistanceWithDistalPressure(LPNBlock):
