@@ -99,13 +99,27 @@ def get_tests():
                                          Test('flow', 0, 0, 0, 2.2, 1.0e-8, 'point'), # inlet flow
                                          Test('flow', 0, -1, 0, 2.2, 1.0e-8, 'point')] # outlet flow
 
-    # check that initialization from steady state solution with mean flow work correctly
     tests['pusatileFlow_CStenosis_steadyPressure'] = [ 
         # solutions below are at t = 0.779114978068 sec (~pi/4 sec) in the last cardiac cycle simulated (assuming 501 time points per cycle)
                                 Test('pressure', 0,  0, -439, 0.5937169800360568, 1.0e-5, 'point'), # inlet pressure
                                 Test('pressure', 0, -1, -439,                0.1, 1.0e-5, 'point'), # outlet pressure
                                 Test(    'flow', 0,  0, -439, 0.7026499697830042, 1.0e-5, 'point'), # inlet flow
                                 Test(    'flow', 0, -1, -439, 0.7026499697830042, 1.0e-5, 'point') # outlet flow
+                            ]
+
+    tests['steadyFlow_confluenceR_R'] = [
+                                Test('pressure', 0,  0, -1, 6600, 1.0e-7, 'point'), # parent0 inlet pressure
+                                Test('pressure', 0, -1, -1, 6100, 1.0e-7, 'point'), # parent0 outlet pressure
+                                Test('pressure', 1,  0, -1, 8100, 1.0e-7, 'point'), # parent1 inlet pressure
+                                Test('pressure', 1, -1, -1, 6100, 1.0e-7, 'point'), # parent1 outlet pressure
+                                Test('pressure', 2,  0, -1, 6100, 1.0e-7, 'point'), # daughter inlet pressure
+                                Test('pressure', 2, -1, -1, 1600, 1.0e-7, 'point'), # daughter outlet pressure
+                                Test('flow', 0,  0, -1,  5.0, 1.0e-8, 'point'), # parent0 inlet flow
+                                Test('flow', 0, -1, -1,  5.0, 1.0e-8, 'point'), # parent0 outlet flow
+                                Test('flow', 1,  0, -1, 10.0, 1.0e-8, 'point'), # parent1 inlet flow
+                                Test('flow', 1, -1, -1, 10.0, 1.0e-8, 'point'), # parent1 outlet flow
+                                Test('flow', 2,  0, -1, 15.0, 1.0e-8, 'point'), # daughter inlet flow
+                                Test('flow', 2, -1, -1, 15.0, 1.0e-8, 'point'), # daughter outlet flow
                             ]
 
     return tests
