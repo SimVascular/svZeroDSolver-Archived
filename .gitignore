@@ -1,2 +1,12 @@
+# python stuff
 __pycache__
 *.pyc
+
+# build folder
+build/
+
+# mac os file system
+.DS_Store
+
+# patches
+*.diff
