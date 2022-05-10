@@ -10,3 +10,9 @@ build/
 
 # patches
 *.diff
+/dist
+*.egg-info
+
+# testing
+.coverage*
+/htmlcov

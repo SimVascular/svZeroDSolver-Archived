@@ -8,3 +8,6 @@ tqdm
 # optional for visualization
 matplotlib
 networkx
+
+pytest
+pytest-cov
