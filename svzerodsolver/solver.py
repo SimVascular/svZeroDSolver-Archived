@@ -1102,7 +1102,9 @@ def run_simulation(args):
                                 )
 
 
-def main(args):
+def main():
+
+    args = sys.argv[1:]
 
     parser = create_parser()
 
@@ -1111,4 +1113,4 @@ def main(args):
     run_simulation(args)
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main(main)
