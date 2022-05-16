@@ -31,7 +31,7 @@ svZeroDSolver currently supports the following vascular 0D modeling options and 
 svZeroDSolver and all its dependencies can be installed easily via pip.
 
 ~~~bash
-pip install svzerodsolver
+pip install https://github.com/SimVascular/svZeroDSolver.git
 ~~~
 
 #### For Contributers
@@ -81,7 +81,8 @@ import svzerodsolver
 svzerodsolver.solver.set_up_and_run_0d_simulation('input.json')
 ~~~
 
-This variant enables running svZeroDSolver within a user-defined Python code (e.g. parameter optimization, uncertainty quantification)
+This variant enables running svZeroDSolver within a user-defined Python code
+(e.g. parameter optimization, uncertainty quantification)
 
 
 
