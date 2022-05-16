@@ -31,7 +31,7 @@ svZeroDSolver currently supports the following vascular 0D modeling options and 
 svZeroDSolver and all its dependencies can be installed easily via pip.
 
 ~~~bash
-pip install https://github.com/SimVascular/svZeroDSolver.git
+pip install git+https://github.com/SimVascular/svZeroDSolver.git
 ~~~
 
 #### For Contributers
