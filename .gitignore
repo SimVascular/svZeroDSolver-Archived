@@ -10,13 +10,9 @@ build/
 
 # patches
 *.diff
-<<<<<<< HEAD
 /dist
 *.egg-info
 
 # testing
 .coverage*
 /htmlcov
-=======
-*.egg-info
->>>>>>> f6691bf (Setup package for pip)
