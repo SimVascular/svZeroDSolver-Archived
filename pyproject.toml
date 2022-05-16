@@ -6,6 +6,6 @@ build-backend = "setuptools.build_meta"
 addopts = """
     --cov-report=html
     --cov-report=term
-    --cov=svsuperestimator
+    --cov=svzerodsolver
     --verbose
 """
