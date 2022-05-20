@@ -34,7 +34,6 @@ import numpy as np
 import scipy
 import scipy.sparse.linalg
 from scipy.sparse import csr_matrix
-import pdb
 import copy
 
 try:
@@ -46,7 +45,7 @@ class GenAlpha:
     """
     Solves system E*ydot + F*y + C = 0 with generalized alpha and Newton-Raphson for non-linear residual
     """
-    def __init__(self, rho, y):
+    def __init__(self, rho, y, sparse=False):
         # Constants for generalized alpha
         self.alpha_m = 0.5 * (3.0 - rho) / (1.0 + rho)
         self.alpha_f = 1.0 / (1.0 + rho)
@@ -59,55 +58,74 @@ class GenAlpha:
         self.mat = {}
 
         # jacobian matrix
-        self.M = []
+        self.M = np.zeros((self.n, self.n))
+        self.sparse = sparse
+        self.is_sparse = False
 
         # residual vector
-        self.res = []
+        self.res = np.zeros(self.n)
 
-        # initialize matrices in self.mat
-        self.initialize_solution_matrices()
-
-    def initialize_solution_matrices(self):
-        """
-        Create empty dense matrices and vectors
-        """
-        mats = ['E', 'F', 'dE', 'dF', 'dC']
-        vecs = ['C']
-
-        for m in mats:
+        self.mats = ['E', 'F', 'dE', 'dF', 'dC']
+        self.vecs = ['C']
+        for m in self.mats:
             self.mat[m] = np.zeros((self.n, self.n))
-        for v in vecs:
+        for v in self.vecs:
             self.mat[v] = np.zeros(self.n)
+
+    def setup_sparse(self, block_list):
+        """Setup sparsity pattern."""
+
+        for m in self.mats:
+            self.mat[m] *= 0.0
+        for v in self.vecs:
+            self.mat[v] *= 0.0
+        for bl in block_list:
+            for n in self.mat.keys():
+                if (self.mat[n].ndim == 1) and bl.mat[n]:
+                    self.mat[n][bl.global_row_id] = 1.0
+                elif bl.mat[n]:
+                    for i in range(len(bl.global_row_id)):
+                        self.mat[n][bl.global_row_id[i], bl.global_col_id] = 1.0
+
+        self.M = csr_matrix(self.M) * 0.0
+        for m in self.mats:
+            self.mat[m] = csr_matrix(self.mat[m]) * 0.0
 
     def assemble_structures(self, block_list):
         """
         Assemble block matrices into global matrices
         """
+        if self.sparse and not self.is_sparse:
+            self.setup_sparse(block_list)
+            self.is_sparse = True
+        for m in self.mats:
+            self.mat[m] *= 0.0
+        for v in self.vecs:
+            self.mat[v] *= 0.0
         for bl in block_list:
-            for n in self.mat.keys():
+            for n, mat in self.mat.items():
                 # vectors
-                if len(self.mat[n].shape) == 1:
-                    for i in range(len(bl.mat[n])):
-                        self.mat[n][bl.global_row_id[i]] = bl.mat[n][i]
+                if (mat.ndim == 1) and bl.mat[n]:
+                    mat[bl.global_row_id] = bl.mat[n]
                 # matrices
-                else:
-                    for i in range(len(bl.mat[n])):
-                        for j in range(len(bl.mat[n][i])):
-                            self.mat[n][bl.global_row_id[i], bl.global_col_id[j]] = bl.mat[n][i][j]
+                elif bl.mat[n]:
+                    for i in range(len(bl.global_row_id)):
+                        mat[bl.global_row_id[i], bl.global_col_id] = bl.mat[n][i]
 
     def form_matrix_NR(self, dt):
         """
         Create Jacobian matrix
         """
-        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
+        self.M *= 0.0
+        self.M += (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
                     self.alpha_f * self.gamma * dt)))
 
     def form_rhs_NR(self, y, ydot):
         """
         Create residual vector
         """
-        self.res = - np.dot(self.mat['E'], ydot) - np.dot(self.mat['F'], y) - self.mat['C']
-        # return - csr_matrix(E).dot(ydot) - csr_matrix(F).dot(y) - C
+        self.res *= 0.0
+        self.res += - self.mat['E'].dot(ydot) - self.mat['F'].dot(y) - self.mat['C']
 
     def form_matrix_NR_numerical(self, res_i, ydotam, args, block_list, epsilon):
         """
@@ -128,7 +146,6 @@ class GenAlpha:
 
             for b in block_list:
                 b.update_solution(args)
-            self.initialize_solution_matrices()
             self.assemble_structures(block_list)
             self.form_rhs_NR(args['Solution'], ydotam)
 
@@ -140,7 +157,6 @@ class GenAlpha:
 
         for b in block_list:
             b.update_solution(args)
-        self.initialize_solution_matrices()
         self.assemble_structures(block_list)
         self.form_rhs_NR(args['Solution'], ydotam)
 
@@ -188,9 +204,8 @@ class GenAlpha:
             b.update_constant()
             b.update_time(args)
 
-        self.res = [1e16]
         iit = 0
-        while np.max(np.abs(self.res)) > 5e-4 and iit < nit:
+        while (np.max(np.abs(self.res)) > 5e-4 or iit == 0) and iit < nit:
             # update solution-dependent blocks
             for b in block_list:
                 b.update_solution(args)
@@ -206,7 +221,10 @@ class GenAlpha:
                     self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
 
             # solve for Newton increment
-            dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
+            if self.sparse:
+                dy = scipy.sparse.linalg.spsolve(self.M, self.res)
+            else:
+                dy = scipy.linalg.solve(self.M, self.res)
 
             # update solution
             yaf += dy
