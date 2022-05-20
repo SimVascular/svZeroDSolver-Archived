@@ -31,7 +31,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from collections import defaultdict
+from scipy.sparse import csr_array
 
 class wire:
     """
@@ -39,7 +39,7 @@ class wire:
     They can only posses a single pressure and flow value (system variables)
     They can also only possess one element(or junction) at each end
     """
-    def __init__(self, connecting_elements, Pval=0, Qval=0, name="NoNameWire", P_units='cgs', Q_units='cgs'):
+    def __init__(self, connecting_elements, name="NoNameWire", P_units='cgs', Q_units='cgs'):
         self.name = name
         self.type = 'Wire'
         if len(connecting_elements) > 2:
@@ -70,11 +70,15 @@ class LPNBlock:
         self.LPN_solution_ids = []
 
         # block matrices
-        self.mat = defaultdict(list)
+        self.mat = {}
 
         # row and column indices of block in global matrix
         self.global_col_id = []
         self.global_row_id = []
+    
+    def setup_sparse(self):
+        for key, mat in self.mat.items():
+            self.mat[key] = csr_array(mat)
 
     def check_block_consistency(self):
         if len(connecting_block_list) != self.n_connect:
@@ -182,26 +186,31 @@ class BloodVessel(LPNBlock):
         self.L = L
         self.stenosis_coefficient = stenosis_coefficient
 
+        self.mat['E'] = np.zeros((3, 5), dtype=float)
+        self.mat['F'] = np.array(
+            [
+                [1.0, 0.0, -1.0, 0.0, 0.0], 
+                [0.0, 1.0, 0.0, -1.0, 0.0], 
+                [1.0, 0.0, 0.0, 0.0, -1.0]
+            ],
+            dtype=float
+        )
+        self.mat['dF'] = np.zeros((3, 5), dtype=float)
+
     # the ordering of the solution variables is : (P_in, Q_in, P_out, Q_out)
 
     def update_constant(self):
-        self.mat['E'] = ([  (0, 0, 0, -self.L, 0), 
-                            (0, 0, 0, 0, -self.C), 
-                            (0,) * 5
-                        ])
+        self.mat["E"][0, 3] = -self.L
+        self.mat['E'][1, 4] = -self.C
 
     def update_solution(self, args):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
         wire_dict = args['Wire dictionary']
         Q_in = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[1]]
-        self.mat['F'] = ([  (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, -1.0, 0, 0), 
-                            (0, 1.0, 0, -1.0, 0), 
-                            (1.0, -1.0 * self.stenosis_coefficient * np.abs(Q_in) - self.R, 0, 0, -1.0)
-                        ])
-        self.mat['dF'] = ([ (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0, 0), 
-                            (0,) * 5, 
-                            (0, -1.0 * self.stenosis_coefficient * np.abs(Q_in), 0, 0, 0)
-                         ])
+        fac1 = -self.stenosis_coefficient * np.abs(Q_in)
+        fac2 = fac1 - self.R
+        self.mat['F'][[0, 2], 1] = fac2
+        self.mat['dF'][[0, 2], 1] = fac1
 
 
 class UnsteadyResistanceWithDistalPressure(LPNBlock):
@@ -212,15 +221,21 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
         self.neq = 1
         self.Rfunc = Rfunc
         self.Pref_func = Pref_func
+        self.mat["F"] = np.array(
+            [
+                [1.0, 0.0],
+            ],
+            dtype=float
+        )
+        self.mat['C'] = np.array([0.0], dtype=float)
 
     def update_time(self, args):
         """
         the ordering is : (P_in,Q_in)
         """
         t = args['Time']
-        self.mat['F'] = [(1., -1.0 * self.Rfunc(t))]
-        self.mat['C'] = [-1.0 * self.Pref_func(t)]
-
+        self.mat["F"][0, 1] = -self.Rfunc(t)
+        self.mat['C'][0] = -self.Pref_func(t)
 
 class UnsteadyPressureRef(LPNBlock):
     """
@@ -233,12 +248,12 @@ class UnsteadyPressureRef(LPNBlock):
         self.n_connect = 1
         self.Pfunc = Pfunc
 
+        self.mat["C"] = np.zeros(1, dtype=float)
+        self.mat["F"] = np.array([[1.0, 0.0]], dtype=float)
+
     def update_time(self, args):
         t = args['Time']
-        self.mat['C'] = [-1.0 * self.Pfunc(t)]
-
-    def update_constant(self):
-        self.mat['F'] = [(1., 0.)]
+        self.mat['C'][0] = -self.Pfunc(t)
 
 
 class UnsteadyFlowRef(LPNBlock):
@@ -251,13 +266,12 @@ class UnsteadyFlowRef(LPNBlock):
         self.neq = 1
         self.n_connect = 1
         self.Qfunc = Qfunc
+        self.mat['C'] = np.zeros(1, dtype=float)
+        self.mat["F"] = np.array([[0.0, 1.0]], dtype=float)
 
     def update_time(self, args):
         t = args['Time']
-        self.mat['C'] = [-1.0 * self.Qfunc(t)]
-
-    def update_constant(self):
-        self.mat['F'] = [(0, 1.)]
+        self.mat['C'][0] = -self.Qfunc(t)
 
 
 class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
@@ -277,14 +291,26 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         self.Rd_func = Rd_func
         self.Pref_func = Pref_func
 
+        self.mat["E"] = np.zeros((2, 3), dtype=float)
+        self.mat['F'] = np.array(
+            [
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, -1.0]
+            ],
+            dtype=float
+        )
+        self.mat['C'] = np.array([0.0, 0.0], dtype=float)
+
     def update_time(self, args):
         """
         unknowns = [P_in, Q_in, internal_var (Pressure at the intersection of the Rp, Rd, and C elements)]
         """
         t = args['Time']
-        self.mat['E'] = [(0, 0, 0), (0, 0, -1.0 * self.Rd_func(t) * self.C_func(t))]
-        self.mat['F'] = [(1., -self.Rp_func(t), -1.), (0.0, self.Rd_func(t), -1.0)]
-        self.mat['C'] = [0, self.Pref_func(t)]
+        Rp_t = self.Rp_func(t)
+        self.mat["E"][1, 2] = -self.Rd_func(t) * self.C_func(t)
+        self.mat['F'][0, 1] = -Rp_t
+        self.mat['F'][1, 1] = Rp_t
+        self.mat['C'][1] = self.Pref_func(t)
 
 
 class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
@@ -309,6 +335,11 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.Pv = Pv
         self.cardiac_cycle_period = cardiac_cycle_period
 
+        self.mat['C'] = np.zeros(2)
+        self.mat['E'] = np.zeros((2, 3))
+        self.mat['F'] = np.zeros((2, 3))
+        self.mat['F'][0, 2] = -1.0
+
     def get_P_at_t(self, P, t):
         tt = P[:, 0]
         P_val = P[:, 1]
@@ -324,12 +355,16 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         ttt = args['Time']
         Pim_value = self.get_P_at_t(self.Pim, ttt)
         Pv_value = self.get_P_at_t(self.Pv, ttt)
-        self.mat['C'] = [-1.0 * self.Cim * Pim_value + self.Cim * Pv_value,
-                         -1.0 * self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value]
+        self.mat["C"][0] = -self.Cim * Pim_value + self.Cim * Pv_value
+        self.mat["C"][1] = -self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value
 
     def update_constant(self):
-        self.mat['E'] = [
-            (-1.0 * self.Ca * self.Cim * self.Rv, self.Ra * self.Ca * self.Cim * self.Rv, -1.0 * self.Cim * self.Rv),
-            (0.0, 0.0, -1.0 * self.Cim * self.Rv * self.Ram)]
-        self.mat['F'] = [(0.0, self.Cim * self.Rv, -1.0),
-                         (self.Cim * self.Rv, -1.0 * self.Cim * self.Rv * self.Ra, -1.0 * (self.Rv + self.Ram))]
+        Cim_Rv = self.Cim * self.Rv
+        self.mat['E'][0, 0] = -self.Ca * Cim_Rv
+        self.mat['E'][0, 1] = self.Ra * self.Ca * Cim_Rv
+        self.mat['E'][0, 2] = -Cim_Rv
+        self.mat['E'][1, 2] = -Cim_Rv * self.Ram
+        self.mat['F'][0, 1] = Cim_Rv
+        self.mat['F'][1, 0] = Cim_Rv
+        self.mat['F'][1, 1] = -Cim_Rv * self.Ra
+        self.mat['F'][1, 2] = -(self.Rv + self.Ram)

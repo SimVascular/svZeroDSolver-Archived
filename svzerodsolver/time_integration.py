@@ -103,14 +103,14 @@ class GenAlpha:
         for v in self.vecs:
             self.mat[v] *= 0.0
         for bl in block_list:
-            for n, mat in self.mat.items():
+            for n, emat in bl.mat.items():
                 # vectors
-                if (mat.ndim == 1) and bl.mat[n]:
-                    mat[bl.global_row_id] = bl.mat[n]
+                if (self.mat[n].ndim == 1):
+                    self.mat[n][bl.global_row_id] = emat
                 # matrices
-                elif bl.mat[n]:
+                else:
                     for i in range(len(bl.global_row_id)):
-                        mat[bl.global_row_id[i], bl.global_col_id] = bl.mat[n][i]
+                        self.mat[n][bl.global_row_id[i], bl.global_col_id] = emat[i]
 
     def form_matrix_NR(self, dt):
         """
