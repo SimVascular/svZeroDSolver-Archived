@@ -80,10 +80,10 @@ class GenAlpha:
         for v in self.vecs:
             self.mat[v] *= 0.0
         for bl in block_list:
-            for n in self.mat.keys():
-                if (self.mat[n].ndim == 1) and bl.mat[n]:
+            for n in bl.mat.keys():
+                if (self.mat[n].ndim == 1):
                     self.mat[n][bl.global_row_id] = 1.0
-                elif bl.mat[n]:
+                else:
                     for i in range(len(bl.global_row_id)):
                         self.mat[n][bl.global_row_id[i], bl.global_col_id] = 1.0
 

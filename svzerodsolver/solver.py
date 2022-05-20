@@ -105,7 +105,6 @@ try:
 except ImportError:
     print("\njson not found.")
 
-np.set_printoptions(threshold=sys.maxsize)
 import importlib
 import argparse
 from collections import defaultdict
