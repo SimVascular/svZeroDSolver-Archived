@@ -31,7 +31,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from scipy.sparse import csr_array
 
 class wire:
     """
@@ -75,10 +74,6 @@ class LPNBlock:
         # row and column indices of block in global matrix
         self.global_col_id = []
         self.global_row_id = []
-    
-    def setup_sparse(self):
-        for key, mat in self.mat.items():
-            self.mat[key] = csr_array(mat)
 
     def check_block_consistency(self):
         if len(connecting_block_list) != self.n_connect:
@@ -166,6 +161,7 @@ class Junction(LPNBlock):
 
         tmp += (self.flow_directions[-1],)
         self.mat['F'].append(tmp)
+        self.mat['F'] = np.array(self.mat['F'], dtype=float)
 
 
 class BloodVessel(LPNBlock):
@@ -207,7 +203,7 @@ class BloodVessel(LPNBlock):
         curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
         wire_dict = args['Wire dictionary']
         Q_in = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[1]]
-        fac1 = -self.stenosis_coefficient * np.abs(Q_in)
+        fac1 = -self.stenosis_coefficient * abs(Q_in)
         fac2 = fac1 - self.R
         self.mat['F'][[0, 2], 1] = fac2
         self.mat['dF'][[0, 2], 1] = fac1
@@ -343,7 +339,7 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
     def get_P_at_t(self, P, t):
         tt = P[:, 0]
         P_val = P[:, 1]
-        ti, td = divmod(t, self.cardiac_cycle_period)
+        _, td = divmod(t, self.cardiac_cycle_period)
         P_tt = np.interp(td, tt, P_val)
         return P_tt
 

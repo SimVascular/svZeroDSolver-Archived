@@ -98,10 +98,6 @@ class GenAlpha:
         if self.sparse and not self.is_sparse:
             self.setup_sparse(block_list)
             self.is_sparse = True
-        for m in self.mats:
-            self.mat[m] *= 0.0
-        for v in self.vecs:
-            self.mat[v] *= 0.0
         for bl in block_list:
             for n, emat in bl.mat.items():
                 # vectors
@@ -116,16 +112,14 @@ class GenAlpha:
         """
         Create Jacobian matrix
         """
-        self.M *= 0.0
-        self.M += (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
+        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
                     self.alpha_f * self.gamma * dt)))
 
     def form_rhs_NR(self, y, ydot):
         """
         Create residual vector
         """
-        self.res *= 0.0
-        self.res += - self.mat['E'].dot(ydot) - self.mat['F'].dot(y) - self.mat['C']
+        self.res = - np.dot(self.mat['E'], ydot) - np.dot(self.mat['F'], y) - self.mat['C']
 
     def form_matrix_NR_numerical(self, res_i, ydotam, args, block_list, epsilon):
         """
@@ -205,7 +199,7 @@ class GenAlpha:
             b.update_time(args)
 
         iit = 0
-        while (np.max(np.abs(self.res)) > 5e-4 or iit == 0) and iit < nit:
+        while (np.abs(self.res).max() > 5e-4 or iit == 0) and iit < nit:
             # update solution-dependent blocks
             for b in block_list:
                 b.update_solution(args)
