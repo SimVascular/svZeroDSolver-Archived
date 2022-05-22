@@ -60,7 +60,6 @@ class GenAlpha:
         # jacobian matrix
         self.M = np.zeros((self.n, self.n))
         self.sparse = sparse
-        self.is_sparse = False
 
         # residual vector
         self.res = np.zeros(self.n)
@@ -72,41 +71,15 @@ class GenAlpha:
         for v in self.vecs:
             self.mat[v] = np.zeros(self.n)
 
-    def setup_sparse(self, block_list):
-        """Setup sparsity pattern."""
-
-        for m in self.mats:
-            self.mat[m] *= 0.0
-        for v in self.vecs:
-            self.mat[v] *= 0.0
-        for bl in block_list:
-            for n in bl.mat.keys():
-                if (self.mat[n].ndim == 1):
-                    self.mat[n][bl.global_row_id] = 1.0
-                else:
-                    for i in range(len(bl.global_row_id)):
-                        self.mat[n][bl.global_row_id[i], bl.global_col_id] = 1.0
-
-        self.M = csr_matrix(self.M) * 0.0
-        for m in self.mats:
-            self.mat[m] = csr_matrix(self.mat[m]) * 0.0
-
     def assemble_structures(self, block_list):
         """
         Assemble block matrices into global matrices
         """
-        if self.sparse and not self.is_sparse:
-            self.setup_sparse(block_list)
-            self.is_sparse = True
         for bl in block_list:
+            for n, evec  in bl.vec.items():
+                self.mat[n][bl.global_row_id] = evec
             for n, emat in bl.mat.items():
-                # vectors
-                if (self.mat[n].ndim == 1):
-                    self.mat[n][bl.global_row_id] = emat
-                # matrices
-                else:
-                    for i in range(len(bl.global_row_id)):
-                        self.mat[n][bl.global_row_id[i], bl.global_col_id] = emat[i]
+                self.mat[n][bl.flat_row_ids, bl.flat_col_ids] = emat.ravel()
 
     def form_matrix_NR(self, dt):
         """
@@ -216,7 +189,7 @@ class GenAlpha:
 
             # solve for Newton increment
             if self.sparse:
-                dy = scipy.sparse.linalg.spsolve(self.M, self.res)
+                dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
             else:
                 dy = scipy.linalg.solve(self.M, self.res)
 

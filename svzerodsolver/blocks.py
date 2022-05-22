@@ -70,10 +70,28 @@ class LPNBlock:
 
         # block matrices
         self.mat = {}
+        self.vec = {}
 
         # row and column indices of block in global matrix
         self.global_col_id = []
         self.global_row_id = []
+
+        self._flat_row_ids = None
+        self._flat_col_ids = None
+
+    @property
+    def flat_row_ids(self):
+        if self._flat_row_ids is None:
+            meshgrid = np.array(np.meshgrid(self.global_row_id, self.global_col_id)).T.reshape(-1,2)
+            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0].flat, meshgrid[:, 1]
+        return self._flat_row_ids
+
+    @property
+    def flat_col_ids(self):
+        if self._flat_col_ids is None:
+            meshgrid = np.array(np.meshgrid(self.global_row_id, self.global_col_id)).T.reshape(-1,2)
+            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0].flat, meshgrid[:, 1]
+        return self._flat_col_ids
 
     def check_block_consistency(self):
         if len(connecting_block_list) != self.n_connect:
@@ -223,7 +241,7 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
             ],
             dtype=float
         )
-        self.mat['C'] = np.array([0.0], dtype=float)
+        self.vec['C'] = np.array([0.0], dtype=float)
 
     def update_time(self, args):
         """
@@ -231,7 +249,7 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
         """
         t = args['Time']
         self.mat["F"][0, 1] = -self.Rfunc(t)
-        self.mat['C'][0] = -self.Pref_func(t)
+        self.vec['C'][0] = -self.Pref_func(t)
 
 class UnsteadyPressureRef(LPNBlock):
     """
@@ -244,12 +262,12 @@ class UnsteadyPressureRef(LPNBlock):
         self.n_connect = 1
         self.Pfunc = Pfunc
 
-        self.mat["C"] = np.zeros(1, dtype=float)
+        self.vec["C"] = np.zeros(1, dtype=float)
         self.mat["F"] = np.array([[1.0, 0.0]], dtype=float)
 
     def update_time(self, args):
         t = args['Time']
-        self.mat['C'][0] = -self.Pfunc(t)
+        self.vec['C'][0] = -self.Pfunc(t)
 
 
 class UnsteadyFlowRef(LPNBlock):
@@ -262,12 +280,12 @@ class UnsteadyFlowRef(LPNBlock):
         self.neq = 1
         self.n_connect = 1
         self.Qfunc = Qfunc
-        self.mat['C'] = np.zeros(1, dtype=float)
+        self.vec['C'] = np.zeros(1, dtype=float)
         self.mat["F"] = np.array([[0.0, 1.0]], dtype=float)
 
     def update_time(self, args):
         t = args['Time']
-        self.mat['C'][0] = -self.Qfunc(t)
+        self.vec['C'][0] = -self.Qfunc(t)
 
 
 class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
@@ -295,7 +313,7 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
             ],
             dtype=float
         )
-        self.mat['C'] = np.array([0.0, 0.0], dtype=float)
+        self.vec['C'] = np.array([0.0, 0.0], dtype=float)
 
     def update_time(self, args):
         """
@@ -306,7 +324,7 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         self.mat["E"][1, 2] = -Rd_t * self.C_func(t)
         self.mat['F'][0, 1] = -self.Rp_func(t)
         self.mat['F'][1, 1] = Rd_t
-        self.mat['C'][1] = self.Pref_func(t)
+        self.vec['C'][1] = self.Pref_func(t)
 
 
 class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
@@ -331,7 +349,7 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.Pv = Pv
         self.cardiac_cycle_period = cardiac_cycle_period
 
-        self.mat['C'] = np.zeros(2)
+        self.vec['C'] = np.zeros(2)
         self.mat['E'] = np.zeros((2, 3))
         self.mat['F'] = np.zeros((2, 3))
         self.mat['F'][0, 2] = -1.0
@@ -351,8 +369,8 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         ttt = args['Time']
         Pim_value = self.get_P_at_t(self.Pim, ttt)
         Pv_value = self.get_P_at_t(self.Pv, ttt)
-        self.mat["C"][0] = -self.Cim * Pim_value + self.Cim * Pv_value
-        self.mat["C"][1] = -self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value
+        self.vec["C"][0] = -self.Cim * Pim_value + self.Cim * Pv_value
+        self.vec["C"][1] = -self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value
 
     def update_constant(self):
         Cim_Rv = self.Cim * self.Rv
