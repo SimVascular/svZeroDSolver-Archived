@@ -302,10 +302,10 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         unknowns = [P_in, Q_in, internal_var (Pressure at the intersection of the Rp, Rd, and C elements)]
         """
         t = args['Time']
-        Rp_t = self.Rp_func(t)
-        self.mat["E"][1, 2] = -self.Rd_func(t) * self.C_func(t)
-        self.mat['F'][0, 1] = -Rp_t
-        self.mat['F'][1, 1] = Rp_t
+        Rd_t = self.Rd_func(t)
+        self.mat["E"][1, 2] = -Rd_t * self.C_func(t)
+        self.mat['F'][0, 1] = -self.Rp_func(t)
+        self.mat['F'][1, 1] = Rd_t
         self.mat['C'][1] = self.Pref_func(t)
 
 
