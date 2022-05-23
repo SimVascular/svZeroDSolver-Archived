@@ -78,10 +78,12 @@ class GenAlpha:
         Assemble block matrices into global matrices
         """
         for bl in block_list:
-            for n, evec  in bl.vec.items():
-                self.mat[n][bl.global_row_id] = evec
-            for n, emat in bl.mat.items():
-                self.mat[n][bl.flat_row_ids, bl.flat_col_ids] = emat.ravel()
+            while bl.vecs_to_assemble:
+                n = bl.vecs_to_assemble.pop()
+                self.mat[n][bl.global_row_id] = bl.vec[n]
+            while bl.mats_to_assemble:
+                n = bl.mats_to_assemble.pop()
+                self.mat[n][bl.flat_row_ids, bl.flat_col_ids] = bl.mat[n].ravel()
 
     def form_matrix_NR(self, invdt):
         """
@@ -93,7 +95,7 @@ class GenAlpha:
         """
         Create residual vector
         """
-        self.res = - np.dot(self.mat['E'], ydot) - np.dot(self.mat['F'], y) - self.mat['C']
+        self.res = - self.mat['E'].dot(ydot) - self.mat['F'].dot(y) - self.mat['C']
 
     def form_matrix_NR_numerical(self, res_i, ydotam, args, block_list, epsilon):
         """

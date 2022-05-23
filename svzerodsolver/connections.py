@@ -210,6 +210,8 @@ def assign_global_ids(block_list,
         b.global_col_id = np.array(b.global_col_id)
         b.global_row_id = np.array(b.global_row_id)
         offset += b.neq
+        meshgrid = np.array(np.meshgrid(b.global_row_id,  b.global_col_id)).T.reshape(-1,2)
+        b.flat_row_ids, b.flat_col_ids = meshgrid[:, 0], meshgrid[:, 1]
         # recall that global_col_id is a list of the indices at which this LPNBlock's associated solution variables (Pin, Qin, Pout, Qout, and internal solutions) are stored in the global vector of solution variables/unknowns
 
     # print var_name_list

@@ -72,26 +72,15 @@ class LPNBlock:
         self.mat = {}
         self.vec = {}
 
+        self.mats_to_assemble = set()
+        self.vecs_to_assemble = set()
+
         # row and column indices of block in global matrix
         self.global_col_id = []
         self.global_row_id = []
 
-        self._flat_row_ids = None
-        self._flat_col_ids = None
-
-    @property
-    def flat_row_ids(self):
-        if self._flat_row_ids is None:
-            meshgrid = np.array(np.meshgrid(self.global_row_id, self.global_col_id)).T.reshape(-1,2)
-            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0], meshgrid[:, 1]
-        return self._flat_row_ids
-
-    @property
-    def flat_col_ids(self):
-        if self._flat_col_ids is None:
-            meshgrid = np.array(np.meshgrid(self.global_row_id, self.global_col_id)).T.reshape(-1,2)
-            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0], meshgrid[:, 1]
-        return self._flat_col_ids
+        self.flat_row_ids = []
+        self.flat_col_ids = []
 
     def check_block_consistency(self):
         if len(connecting_block_list) != self.n_connect:
@@ -180,6 +169,7 @@ class Junction(LPNBlock):
         tmp += (self.flow_directions[-1],)
         self.mat['F'].append(tmp)
         self.mat['F'] = np.array(self.mat['F'], dtype=float)
+        self.mats_to_assemble.add("F")
 
 
 class BloodVessel(LPNBlock):
@@ -217,15 +207,15 @@ class BloodVessel(LPNBlock):
     def update_constant(self):
         self.mat["E"][0, 3] = -self.L
         self.mat['E'][1, 4] = -self.C
+        self.mats_to_assemble.add("E")
 
     def update_solution(self, args):
-        if self._qin_id is None:
-            self._qin_id = args['Wire dictionary'][self.connecting_wires_list[0]].LPN_solution_ids[1]
-        Q_in = np.abs(args["Solution"][self._qin_id])
+        Q_in = np.abs(args["Solution"][args['Wire dictionary'][self.connecting_wires_list[0]].LPN_solution_ids[1]])
         fac1 = -self.stenosis_coefficient * Q_in
         fac2 = fac1 - self.R
         self.mat['F'][[0, 2], 1] = fac2
         self.mat['dF'][[0, 2], 1] = fac1
+        self.mats_to_assemble.update({"F", "dF"})
 
 
 class UnsteadyResistanceWithDistalPressure(LPNBlock):
@@ -251,6 +241,8 @@ class UnsteadyResistanceWithDistalPressure(LPNBlock):
         t = args['Time']
         self.mat["F"][0, 1] = -self.Rfunc(t)
         self.vec['C'][0] = -self.Pref_func(t)
+        self.mats_to_assemble.add("F")
+        self.vecs_to_assemble.add("C")
 
 class UnsteadyPressureRef(LPNBlock):
     """
@@ -269,6 +261,8 @@ class UnsteadyPressureRef(LPNBlock):
     def update_time(self, args):
         t = args['Time']
         self.vec['C'][0] = -self.Pfunc(t)
+        self.vecs_to_assemble.add("C")
+        self.mats_to_assemble.add("F")
 
 
 class UnsteadyFlowRef(LPNBlock):
@@ -287,6 +281,8 @@ class UnsteadyFlowRef(LPNBlock):
     def update_time(self, args):
         t = args['Time']
         self.vec['C'][0] = -self.Qfunc(t)
+        self.vecs_to_assemble.add("C")
+        self.mats_to_assemble.add("F")
 
 
 class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
@@ -326,6 +322,8 @@ class UnsteadyRCRBlockWithDistalPressure(LPNBlock):
         self.mat['F'][0, 1] = -self.Rp_func(t)
         self.mat['F'][1, 1] = Rd_t
         self.vec['C'][1] = self.Pref_func(t)
+        self.mats_to_assemble.update({"E", "F"})
+        self.vecs_to_assemble.add("C")
 
 
 class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
@@ -372,6 +370,7 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         Pv_value = self.get_P_at_t(self.Pv, ttt)
         self.vec["C"][0] = -self.Cim * Pim_value + self.Cim * Pv_value
         self.vec["C"][1] = -self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value
+        self.vecs_to_assemble.add("C")
 
     def update_constant(self):
         Cim_Rv = self.Cim * self.Rv
@@ -383,3 +382,4 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.mat['F'][1, 0] = Cim_Rv
         self.mat['F'][1, 1] = -Cim_Rv * self.Ra
         self.mat['F'][1, 2] = -(self.Rv + self.Ram)
+        self.mats_to_assemble.update({"E", "F"})
