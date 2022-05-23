@@ -184,7 +184,6 @@ class GenAlpha:
             # update solution-dependent blocks
             for b in block_list:
                 b.update_solution(args)
-            
 
             # update residual and jacobian
             self.assemble_structures(block_list)
@@ -198,7 +197,7 @@ class GenAlpha:
 
             # solve for Newton increment
             if self.sparse:
-                dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
+                dy = scipy.sparse.linalg.spsolve(self.M, self.res)
             else:
                 dy = np.linalg.solve(self.M, self.res)
 
