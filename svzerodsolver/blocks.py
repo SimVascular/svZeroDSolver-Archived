@@ -83,14 +83,14 @@ class LPNBlock:
     def flat_row_ids(self):
         if self._flat_row_ids is None:
             meshgrid = np.array(np.meshgrid(self.global_row_id, self.global_col_id)).T.reshape(-1,2)
-            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0].flat, meshgrid[:, 1]
+            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0], meshgrid[:, 1]
         return self._flat_row_ids
 
     @property
     def flat_col_ids(self):
         if self._flat_col_ids is None:
             meshgrid = np.array(np.meshgrid(self.global_row_id, self.global_col_id)).T.reshape(-1,2)
-            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0].flat, meshgrid[:, 1]
+            self._flat_row_ids, self._flat_col_ids = meshgrid[:, 0], meshgrid[:, 1]
         return self._flat_col_ids
 
     def check_block_consistency(self):
@@ -199,6 +199,7 @@ class BloodVessel(LPNBlock):
         self.C = C
         self.L = L
         self.stenosis_coefficient = stenosis_coefficient
+        self._qin_id = None
 
         self.mat['E'] = np.zeros((3, 5), dtype=float)
         self.mat['F'] = np.array(
@@ -218,10 +219,10 @@ class BloodVessel(LPNBlock):
         self.mat['E'][1, 4] = -self.C
 
     def update_solution(self, args):
-        curr_y = args['Solution']  # the current solution for all unknowns in our 0D model
-        wire_dict = args['Wire dictionary']
-        Q_in = curr_y[wire_dict[self.connecting_wires_list[0]].LPN_solution_ids[1]]
-        fac1 = -self.stenosis_coefficient * abs(Q_in)
+        if self._qin_id is None:
+            self._qin_id = args['Wire dictionary'][self.connecting_wires_list[0]].LPN_solution_ids[1]
+        Q_in = np.abs(args["Solution"][self._qin_id])
+        fac1 = -self.stenosis_coefficient * Q_in
         fac2 = fac1 - self.R
         self.mat['F'][[0, 2], 1] = fac2
         self.mat['dF'][[0, 2], 1] = fac1

@@ -51,6 +51,8 @@ class GenAlpha:
         self.alpha_f = 1.0 / (1.0 + rho)
         self.gamma = 0.5 + self.alpha_m - self.alpha_f
 
+        self.fac = self.alpha_m / (self.alpha_f * self.gamma)
+
         # problem dimension
         self.n = y.shape[0]
 
@@ -81,12 +83,11 @@ class GenAlpha:
             for n, emat in bl.mat.items():
                 self.mat[n][bl.flat_row_ids, bl.flat_col_ids] = emat.ravel()
 
-    def form_matrix_NR(self, dt):
+    def form_matrix_NR(self, invdt):
         """
         Create Jacobian matrix
         """
-        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
-                    self.alpha_f * self.gamma * dt)))
+        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.fac * invdt))
 
     def form_rhs_NR(self, y, ydot):
         """
@@ -172,6 +173,8 @@ class GenAlpha:
             b.update_time(args)
 
         iit = 0
+        invdt = 1.0 / dt
+        fac_ydotam = self.fac * invdt
         while (np.abs(self.res).max() > 5e-4 or iit == 0) and iit < nit:
             # update solution-dependent blocks
             for b in block_list:
@@ -180,7 +183,7 @@ class GenAlpha:
             # update residual and jacobian
             self.assemble_structures(block_list)
             self.form_rhs_NR(yaf, ydotam)
-            self.form_matrix_NR(dt)
+            self.form_matrix_NR(invdt)
 
             # perform finite-difference check of jacobian if requested
             if args['check_jacobian']:
@@ -191,13 +194,13 @@ class GenAlpha:
             if self.sparse:
                 dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
             else:
-                dy = scipy.linalg.solve(self.M, self.res)
+                dy = np.linalg.solve(self.M, self.res)
 
             # update solution
             yaf += dy
-            ydotam += self.alpha_m * dy / (self.alpha_f * self.gamma * dt)
+            ydotam += dy * fac_ydotam
 
-            if np.any(np.isnan(self.res)):
+            if np.isnan(self.res).any():
                 raise RuntimeError('Solution nan')
 
             args['Solution'] = yaf
