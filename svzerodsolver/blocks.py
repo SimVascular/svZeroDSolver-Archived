@@ -72,6 +72,9 @@ class LPNBlock:
         self.mat = {}
         self.vec = {}
 
+        # mat and vec assembly queue. To reduce the need to reassemble
+        # matrices that havent't changed since last assembly, these attributes
+        # are used to queue updated mats and vecs.
         self.mats_to_assemble = set()
         self.vecs_to_assemble = set()
 
