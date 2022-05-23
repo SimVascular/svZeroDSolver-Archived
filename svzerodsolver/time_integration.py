@@ -45,7 +45,7 @@ class GenAlpha:
     """
     Solves system E*ydot + F*y + C = 0 with generalized alpha and Newton-Raphson for non-linear residual
     """
-    def __init__(self, rho, y, sparse=True):
+    def __init__(self, rho, y):
         # Constants for generalized alpha
         self.alpha_m = 0.5 * (3.0 - rho) / (1.0 + rho)
         self.alpha_f = 1.0 / (1.0 + rho)
@@ -61,7 +61,9 @@ class GenAlpha:
 
         # jacobian matrix
         self.M = np.zeros((self.n, self.n))
-        self.sparse = sparse
+        self.sparse = False
+        if self.n > 800:
+            self.sparse = True
 
         # residual vector
         self.res = np.zeros(self.n)
