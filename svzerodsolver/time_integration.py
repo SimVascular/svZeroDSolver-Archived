@@ -73,13 +73,6 @@ class GenAlpha:
         for v in self.vecs:
             self.mat[v] = np.zeros(self.n)
 
-    def setup_sparse(self, block_list):
-        """Setup sparsity matrices with sparsity pattern."""
-        for bl in block_list:
-            for n in bl.mat:
-                self.mat[n][bl.flat_row_ids, bl.flat_col_ids] = 1.0
-        for m in self.mats:
-            self.mat[m] = csr_matrix(self.mat[m]) * 0.0
 
     def assemble_structures(self, block_list):
         """
@@ -190,8 +183,6 @@ class GenAlpha:
             for b in block_list:
                 b.update_solution(args)
             
-            if iit == 0 and self.sparse:
-                self.setup_sparse(block_list)
 
             # update residual and jacobian
             self.assemble_structures(block_list)
@@ -205,7 +196,7 @@ class GenAlpha:
 
             # solve for Newton increment
             if self.sparse:
-                dy = scipy.sparse.linalg.spsolve(self.M, self.res)
+                dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
             else:
                 dy = np.linalg.solve(self.M, self.res)
 
