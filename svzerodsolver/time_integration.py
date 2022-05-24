@@ -63,7 +63,9 @@ class GenAlpha:
         self.M = np.zeros((self.n, self.n))
         self.sparse = False
         if self.n > 800:
-            self.sparse = True
+            self.solver = scipy.sparse.linalg.spsolve
+        else:
+            self.solver = np.linalg.solve
 
         # residual vector
         self.res = np.zeros(self.n)
@@ -196,10 +198,7 @@ class GenAlpha:
                     self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
 
             # solve for Newton increment
-            if self.sparse:
-                dy = scipy.sparse.linalg.spsolve(self.M, self.res)
-            else:
-                dy = np.linalg.solve(self.M, self.res)
+            dy = self.solver(self.M, self.res)
 
             # update solution
             yaf += dy
