@@ -142,9 +142,9 @@ class LPNBlock:
             return self.LPN_solution_ids[vnum]
 
 
-class Junction(LPNBlock):
+class InternalJunction(LPNBlock):
     """
-    Junction points between LPN blocks with specified directions of flow
+    Internal junction points between LPN blocks (for mesh refinement, does not appear as physical junction in model)
     """
     def __init__(self, connecting_block_list=None, name="NoNameJunction", flow_directions=None):
         LPNBlock.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
@@ -173,6 +173,15 @@ class Junction(LPNBlock):
         self.mat['F'].append(tmp)
         self.mat['F'] = np.array(self.mat['F'], dtype=float)
         self.mats_to_assemble.add("F")
+
+
+class BloodVesselJunction(InternalJunction):
+    """
+    Blood vessel junction (dummy for future implementation of blood pressure losses at junctions)
+    """
+    def __init__(self, j_params, connecting_block_list=None, name="NoNameJunction", flow_directions=None):
+        InternalJunction.__init__(self, connecting_block_list, name=name, flow_directions=flow_directions)
+        self.j_params = j_params
 
 
 class BloodVessel(LPNBlock):
