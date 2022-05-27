@@ -34,7 +34,6 @@ import numpy as np
 import scipy
 import scipy.sparse.linalg
 from scipy.sparse import csr_matrix
-import pdb
 import copy
 
 try:
@@ -52,6 +51,8 @@ class GenAlpha:
         self.alpha_f = 1.0 / (1.0 + rho)
         self.gamma = 0.5 + self.alpha_m - self.alpha_f
 
+        self.fac = self.alpha_m / (self.alpha_f * self.gamma)
+
         # problem dimension
         self.n = y.shape[0]
 
@@ -59,55 +60,47 @@ class GenAlpha:
         self.mat = {}
 
         # jacobian matrix
-        self.M = []
+        self.M = np.zeros((self.n, self.n))
+        self.sparse = False
+        if self.n > 800:
+            self.solver = scipy.sparse.linalg.spsolve
+        else:
+            self.solver = np.linalg.solve
 
         # residual vector
-        self.res = []
+        self.res = np.zeros(self.n)
 
-        # initialize matrices in self.mat
-        self.initialize_solution_matrices()
-
-    def initialize_solution_matrices(self):
-        """
-        Create empty dense matrices and vectors
-        """
-        mats = ['E', 'F', 'dE', 'dF', 'dC']
-        vecs = ['C']
-
-        for m in mats:
+        self.mats = ['E', 'F', 'dE', 'dF', 'dC']
+        self.vecs = ['C']
+        for m in self.mats:
             self.mat[m] = np.zeros((self.n, self.n))
-        for v in vecs:
+        for v in self.vecs:
             self.mat[v] = np.zeros(self.n)
+
 
     def assemble_structures(self, block_list):
         """
         Assemble block matrices into global matrices
         """
         for bl in block_list:
-            for n in self.mat.keys():
-                # vectors
-                if len(self.mat[n].shape) == 1:
-                    for i in range(len(bl.mat[n])):
-                        self.mat[n][bl.global_row_id[i]] = bl.mat[n][i]
-                # matrices
-                else:
-                    for i in range(len(bl.mat[n])):
-                        for j in range(len(bl.mat[n][i])):
-                            self.mat[n][bl.global_row_id[i], bl.global_col_id[j]] = bl.mat[n][i][j]
+            while bl.vecs_to_assemble:
+                n = bl.vecs_to_assemble.pop()
+                self.mat[n][bl.global_row_id] = bl.vec[n]
+            while bl.mats_to_assemble:
+                n = bl.mats_to_assemble.pop()
+                self.mat[n][bl.flat_row_ids, bl.flat_col_ids] = bl.mat[n].ravel()
 
-    def form_matrix_NR(self, dt):
+    def form_matrix_NR(self, invdt):
         """
         Create Jacobian matrix
         """
-        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.alpha_m / (
-                    self.alpha_f * self.gamma * dt)))
+        self.M = (self.mat['F'] + (self.mat['dE'] + self.mat['dF'] + self.mat['dC'] + self.mat['E'] * self.fac * invdt))
 
     def form_rhs_NR(self, y, ydot):
         """
         Create residual vector
         """
-        self.res = - np.dot(self.mat['E'], ydot) - np.dot(self.mat['F'], y) - self.mat['C']
-        # return - csr_matrix(E).dot(ydot) - csr_matrix(F).dot(y) - C
+        self.res = - self.mat['E'].dot(ydot) - self.mat['F'].dot(y) - self.mat['C']
 
     def form_matrix_NR_numerical(self, res_i, ydotam, args, block_list, epsilon):
         """
@@ -128,7 +121,6 @@ class GenAlpha:
 
             for b in block_list:
                 b.update_solution(args)
-            self.initialize_solution_matrices()
             self.assemble_structures(block_list)
             self.form_rhs_NR(args['Solution'], ydotam)
 
@@ -140,7 +132,6 @@ class GenAlpha:
 
         for b in block_list:
             b.update_solution(args)
-        self.initialize_solution_matrices()
         self.assemble_structures(block_list)
         self.form_rhs_NR(args['Solution'], ydotam)
 
@@ -188,9 +179,10 @@ class GenAlpha:
             b.update_constant()
             b.update_time(args)
 
-        self.res = [1e16]
         iit = 0
-        while np.max(np.abs(self.res)) > 5e-4 and iit < nit:
+        invdt = 1.0 / dt
+        fac_ydotam = self.fac * invdt
+        while (np.abs(self.res).max() > 5e-4 or iit == 0) and iit < nit:
             # update solution-dependent blocks
             for b in block_list:
                 b.update_solution(args)
@@ -198,7 +190,7 @@ class GenAlpha:
             # update residual and jacobian
             self.assemble_structures(block_list)
             self.form_rhs_NR(yaf, ydotam)
-            self.form_matrix_NR(dt)
+            self.form_matrix_NR(invdt)
 
             # perform finite-difference check of jacobian if requested
             if args['check_jacobian']:
@@ -206,13 +198,13 @@ class GenAlpha:
                     self.check_jacobian(copy.deepcopy(self.res), ydotam, args, block_list)
 
             # solve for Newton increment
-            dy = scipy.sparse.linalg.spsolve(csr_matrix(self.M), self.res)
+            dy = self.solver(self.M, self.res)
 
             # update solution
             yaf += dy
-            ydotam += self.alpha_m * dy / (self.alpha_f * self.gamma * dt)
+            ydotam += dy * fac_ydotam
 
-            if np.any(np.isnan(self.res)):
+            if np.isnan(self.res).any():
                 raise RuntimeError('Solution nan')
 
             args['Solution'] = yaf
