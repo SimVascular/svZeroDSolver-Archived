@@ -205,11 +205,20 @@ def create_junction_blocks(parameters, custom_0d_elements_arguments):
             connecting_block_list.append("V" + str(vessel_id))
             flow_directions.append(+1)
         if (+1 in flow_directions) and (-1 in flow_directions):
-            if junction["junction_type"] == "NORMAL_JUNCTION":
-                junction_blocks[junction_name] = ntwku.Junction(connecting_block_list = connecting_block_list, name = junction_name, flow_directions = flow_directions)
-            else: # this is a custom, user-defined junction block
+            if junction["junction_type"] in ["NORMAL_JUNCTION", "internal_junction"]:
+                junction_blocks[junction_name] = ntwku.InternalJunction(connecting_block_list=connecting_block_list,
+                                                                        name=junction_name,
+                                                                        flow_directions=flow_directions)
+            elif junction["junction_type"] == "BloodVesselJunction":
+                junction_blocks[junction_name] = ntwku.BloodVesselJunction(junction,
+                                                                           connecting_block_list=connecting_block_list,
+                                                                           name=junction_name,
+                                                                           flow_directions=flow_directions)
+            elif junction["junction_type"] == "CUSTOM_JUNCTION": # this is a custom, user-defined junction block
                 custom_0d_elements_arguments.junction_args[junction_name].update({"connecting_block_list" : connecting_block_list, "flow_directions" : flow_directions, "name" : junction_name})
                 junction_blocks[junction_name] = create_custom_element(junction["junction_type"], custom_0d_elements_arguments.junction_args[junction_name])
+            else:
+                raise ValueError('Unknown junction type ' + junction["junction_type"])
         else:
             message = "Error. Junction block, " + junction_name + ", must have at least 1 inlet connection and 1 outlet connection."
             raise RuntimeError(message)
