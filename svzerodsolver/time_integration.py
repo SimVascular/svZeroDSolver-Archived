@@ -176,7 +176,6 @@ class GenAlpha:
 
         # initialize blocks
         for b in block_list:
-            b.update_constant()
             b.update_time(args)
 
         iit = 0
