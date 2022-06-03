@@ -100,12 +100,6 @@ class LPNBlock:
     def add_connecting_wire(self, new_wire):
         self.connecting_wires_list.append(new_wire)
 
-    def update_constant(self):
-        """
-        Update solution- and time-independent blocks
-        """
-        pass
-
     def update_time(self, args):
         """
         Update time-dependent blocks
@@ -151,13 +145,6 @@ class InternalJunction(LPNBlock):
         self.type = "Junction"
         self.neq = self.num_connections  # number of equations = num of blocks that connect to this junction, where the equations are 1) mass conservation 2) inlet pressures = outlet pressures
 
-    def add_connecting_block(self, block, direction):
-        self.connecting_block_list.append(block)
-        self.num_connections = len(self.connecting_block_list)
-        self.neq = self.num_connections
-        self.flow_directions.append(direction)
-
-    def update_constant(self):
         # Number of variables per tuple = 2*num_connections
         # Number of equations = num_connections-1 Pressure equations, 1 flow equation
         # Format : P1,Q1,P2,Q2,P3,Q3, .., Pn,Qm
@@ -173,6 +160,12 @@ class InternalJunction(LPNBlock):
         self.mat['F'].append(tmp)
         self.mat['F'] = np.array(self.mat['F'], dtype=float)
         self.mats_to_assemble.add("F")
+
+    def add_connecting_block(self, block, direction):
+        self.connecting_block_list.append(block)
+        self.num_connections = len(self.connecting_block_list)
+        self.neq = self.num_connections
+        self.flow_directions.append(direction)
 
 
 class BloodVesselJunction(InternalJunction):
@@ -203,7 +196,10 @@ class BloodVessel(LPNBlock):
         self.stenosis_coefficient = stenosis_coefficient
         self._qin_id = None
 
+        # the ordering of the solution variables is : (P_in, Q_in, P_out, Q_out)
         self.mat['E'] = np.zeros((3, 5), dtype=float)
+        self.mat["E"][0, 3] = -self.L
+        self.mat['E'][1, 4] = -self.C
         self.mat['F'] = np.array(
             [
                 [1.0, 0.0, -1.0, 0.0, 0.0], 
@@ -214,11 +210,7 @@ class BloodVessel(LPNBlock):
         )
         self.mat['dF'] = np.zeros((3, 5), dtype=float)
 
-    # the ordering of the solution variables is : (P_in, Q_in, P_out, Q_out)
-
-    def update_constant(self):
-        self.mat["E"][0, 3] = -self.L
-        self.mat['E'][1, 4] = -self.C
+        # only necessary to assemble E in __init__, F and dF get assembled with update_solution
         self.mats_to_assemble.add("E")
 
     def update_solution(self, args):
@@ -365,6 +357,17 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.mat['F'] = np.zeros((2, 3))
         self.mat['F'][0, 2] = -1.0
 
+        Cim_Rv = self.Cim * self.Rv
+        self.mat['E'][0, 0] = -self.Ca * Cim_Rv
+        self.mat['E'][0, 1] = self.Ra * self.Ca * Cim_Rv
+        self.mat['E'][0, 2] = -Cim_Rv
+        self.mat['E'][1, 2] = -Cim_Rv * self.Ram
+        self.mat['F'][0, 1] = Cim_Rv
+        self.mat['F'][1, 0] = Cim_Rv
+        self.mat['F'][1, 1] = -Cim_Rv * self.Ra
+        self.mat['F'][1, 2] = -(self.Rv + self.Ram)
+        self.mats_to_assemble.update({"E", "F"})
+
     def get_P_at_t(self, P, t):
         tt = P[:, 0]
         P_val = P[:, 1]
@@ -383,15 +386,3 @@ class OpenLoopCoronaryWithDistalPressureBlock(LPNBlock):
         self.vec["C"][0] = -self.Cim * Pim_value + self.Cim * Pv_value
         self.vec["C"][1] = -self.Cim * (self.Rv + self.Ram) * Pim_value + self.Ram * self.Cim * Pv_value
         self.vecs_to_assemble.add("C")
-
-    def update_constant(self):
-        Cim_Rv = self.Cim * self.Rv
-        self.mat['E'][0, 0] = -self.Ca * Cim_Rv
-        self.mat['E'][0, 1] = self.Ra * self.Ca * Cim_Rv
-        self.mat['E'][0, 2] = -Cim_Rv
-        self.mat['E'][1, 2] = -Cim_Rv * self.Ram
-        self.mat['F'][0, 1] = Cim_Rv
-        self.mat['F'][1, 0] = Cim_Rv
-        self.mat['F'][1, 1] = -Cim_Rv * self.Ra
-        self.mat['F'][1, 2] = -(self.Rv + self.Ram)
-        self.mats_to_assemble.update({"E", "F"})
