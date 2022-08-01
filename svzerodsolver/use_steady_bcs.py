@@ -173,8 +173,10 @@ def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_l
                     # compute value of internal variable
                     Pd = Pin - Qin * (Ra1 + Ra2)
                     volume_internal = Cc * (Pd - Pim)
+                    assert volume_internal.size == 2, "Pim should be size 2."
+                    assert volume_internal[0] == volume_internal[1], f"Entries of Pim are not equal."
                     var_name_list.append("var_0_" + block.block_name)
-                    y0 = np.append(y0, np.array(volume_internal))
+                    y0 = np.append(y0, np.array(volume_internal[0]))
                 ydot0 = np.append(ydot0, np.zeros(1)) # the time derivative of the soltn is zero b/c at steady-state
             else:
                 message = "Error. This function does not work for inlet RCR or inlet coronary BCs."
