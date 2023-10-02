@@ -173,6 +173,13 @@ def restore_internal_variables_for_capacitance_based_bcs(y_f, ydot_f, var_name_l
                     # compute value of internal variable
                     Pd = Pin - Qin * (Ra1 + Ra2)
                     volume_internal = Cc * (Pd - Pim)
+
+                    if volume_internal.size != 2:
+                        raise Exception("The input Pim data should be size of size 2.")
+
+                    if volume_internal[0] != volume_internal[1]: 
+                        raise Exception("The input Pim data entries are not equal.")
+                   
                     var_name_list.append("var_0_" + block.block_name)
                     y0 = np.append(y0, np.array(volume_internal[0]))
                 ydot0 = np.append(ydot0, np.zeros(1)) # the time derivative of the soltn is zero b/c at steady-state
