@@ -1,4 +1,4 @@
-# This repository has been archived and is no longer maintained. It has been replaced by a new 0D solver with the same name in the SimVascular repository.
+# This repository has been archived and is no longer maintained. It has been replaced by a new 0D solver with the same name.
 
 ## About svZeroDSolver
 
