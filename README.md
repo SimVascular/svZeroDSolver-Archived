@@ -1,3 +1,5 @@
+# This repository has been archived and is no longer maintained. It has been replaced by a new 0D solver with the same name in the SimVascular repository.
+
 ## About svZeroDSolver
 
 svZeroDSolver is a Python code that simulates the hemodynamics in zero-dimensional (0D) lumped parameter models of 
